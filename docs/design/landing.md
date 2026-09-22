@@ -7,7 +7,7 @@ The public root route is a quiet teaser for the November ceremony. It is the one
 - Near-black surface: `#070A12`, with a restrained blue-violet radial field.
 - ASCII characters use violet in shadow (`#856BD1`), blue in midtone (`#709EF5`), and icy cyan in highlight (`#C7F5FF`). These are the shader’s nominal RGB values. Color follows the sculpture’s lighting, not its screen position. This palette belongs to the landing sculpture only; it does not change the shared design tokens.
 - Copy stays still, editorial, and small in scale. The primary line is exactly **“Coming soon in November.”** It has no year or signup action. Object names remain in the accessible description, with no visible caption.
-- The framing reads `VGU / CSE` and `GRAD ’26`, with a small university footer. The focal point is the sculpture, with generous dark space around it.
+- The framing reads a white `VGU` wordmark and `GRAD ’26` in the header only; there is no footer and no kicker line above the sculpture. The focal point is the sculpture, with generous dark space around it. The wordmark's acronym letters (V, G, U) anchor the display name; on hover or on scroll it grows the rest of each word in place — "VGU" becomes "Vietnamese-German University" — with a brief per-character ascii-noise decode rather than a slide or fade.
 
 ## Sculpture behavior
 

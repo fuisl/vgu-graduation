@@ -19,6 +19,16 @@ const DOTS = Array.from({ length: DOT_COUNT }, () => ({
   duration: 3.2 + random() * 3.2,
 }));
 
+// A few grid coordinates carry a quiet ASCII signal. Keep the middle clear for
+// the sculpture and copy, and use fixed positions for stable server rendering.
+const SIGNALS = [
+  { left: 12, top: 25, glyph: "+", delay: 0 },
+  { left: 20, top: 72, glyph: ":", delay: 4 },
+  { left: 81, top: 19, glyph: "*", delay: 8 },
+  { left: 89, top: 63, glyph: "+", delay: 12 },
+  { left: 72, top: 83, glyph: ".", delay: 16 },
+];
+
 export function TwinkleField() {
   return (
     <div className="landing-twinkle" aria-hidden="true">
@@ -33,6 +43,11 @@ export function TwinkleField() {
             animationDuration: `${dot.duration}s`,
           }}
         />
+      ))}
+      {SIGNALS.map((signal, i) => (
+        <span key={`signal-${i}`} className="landing-grid-signal" style={{ left: `${signal.left}%`, top: `${signal.top}%`, animationDelay: `${signal.delay}s` }}>
+          {signal.glyph}
+        </span>
       ))}
     </div>
   );

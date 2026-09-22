@@ -1,5 +1,6 @@
 import { BackgroundMotion } from "./background/BackgroundMotion";
 import { TwinkleField } from "./background/TwinkleField";
+import { GridCells } from "./background/GridCells";
 import { BrandName } from "./logo/BrandName";
 import { Sculpture } from "./sculpture/Sculpture";
 
@@ -11,7 +12,9 @@ export default function Home() {
       <span className="landing-aurora-blob" />
       <span className="landing-aurora-blob" />
     </div>
-    <div className="landing-field" aria-hidden="true" />
+    <div className="landing-field" aria-hidden="true">
+      <GridCells />
+    </div>
     <TwinkleField />
     <header className="landing-header mono">
       <BrandName />

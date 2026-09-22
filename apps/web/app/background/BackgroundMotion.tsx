@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 // Sets CSS custom properties on the document root rather than owning any DOM of its own,
-// so the background layers (aurora, grid) can react to scroll and pointer position purely
+// so the aurora can react to scroll and pointer position purely
 // through CSS — no re-render on every scroll/mousemove tick.
 export function BackgroundMotion() {
   useEffect(() => {

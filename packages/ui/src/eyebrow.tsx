@@ -1,0 +1,1 @@
+import type {ReactNode} from "react";export function Eyebrow({children}:{children:ReactNode}){return <p className="mono" style={{fontSize:"var(--text-xs)",color:"var(--muted)",margin:"0 0 var(--space-4)"}}>{children}</p>}

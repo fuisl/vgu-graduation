@@ -1,0 +1,1 @@
+export function Rule(){return <hr style={{border:0,borderTop:"1px solid var(--border)",margin:"var(--space-6) 0"}}/>}

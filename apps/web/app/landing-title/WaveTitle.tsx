@@ -49,7 +49,7 @@ export function WaveTitle() {
   }, []);
 
   let characterIndex = 0;
-  return <h1 id="landing-title" aria-label={TITLE}>
+  return <h2 aria-label={TITLE}>
     {WORDS.map((word, wordIndex) => {
       const start = characterIndex;
       characterIndex += word.length + 1;
@@ -62,5 +62,5 @@ export function WaveTitle() {
         {wordIndex < WORDS.length - 1 && " "}
       </span>;
     })}
-  </h1>;
+  </h2>;
 }

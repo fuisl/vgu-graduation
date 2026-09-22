@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 // Sets CSS custom properties on the document root rather than owning any DOM of its own,
-// so the aurora can react to scroll and pointer position purely
+// so the aurora can react to pointer position purely
 // through CSS — no re-render on every scroll/mousemove tick.
 export function BackgroundMotion() {
   useEffect(() => {
@@ -11,18 +11,6 @@ export function BackgroundMotion() {
     if (preference.matches) return;
 
     const root = document.documentElement;
-    let scrollFrame = 0;
-    const updateScroll = () => {
-      scrollFrame = 0;
-      root.style.setProperty("--scroll-y", `${window.scrollY}px`);
-    };
-    const onScroll = () => {
-      if (scrollFrame) return;
-      scrollFrame = requestAnimationFrame(updateScroll);
-    };
-    updateScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-
     // Cursor parallax only where a precise pointer is actually driving the cursor.
     const pointerQuery = window.matchMedia("(hover: hover) and (pointer: fine)");
     let pointerFrame = 0;
@@ -41,11 +29,8 @@ export function BackgroundMotion() {
     if (pointerQuery.matches) window.addEventListener("pointermove", onPointerMove, { passive: true });
 
     return () => {
-      window.removeEventListener("scroll", onScroll);
       window.removeEventListener("pointermove", onPointerMove);
-      if (scrollFrame) cancelAnimationFrame(scrollFrame);
       if (pointerFrame) cancelAnimationFrame(pointerFrame);
-      root.style.removeProperty("--scroll-y");
       root.style.removeProperty("--pointer-x");
       root.style.removeProperty("--pointer-y");
     };

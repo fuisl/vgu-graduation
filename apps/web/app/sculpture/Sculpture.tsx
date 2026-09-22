@@ -70,7 +70,7 @@ const asciiShader = {
       vec3 highlightColor = vec3(0.78, 0.96, 1.0);
       vec3 color = lightness < 0.5 ? mix(shadow, midtone, lightness * 2.0) : mix(midtone, highlightColor, (lightness - 0.5) * 2.0);
       float strength = glyph * (0.72 + 0.28 * lightness);
-      gl_FragColor = vec4(color * strength, 1.0);
+      gl_FragColor = vec4(color * strength, strength);
     }`,
 };
 
@@ -245,12 +245,12 @@ export function Sculpture() {
         frameloop={visible ? "always" : "never"}
         dpr={[1, 1.25]}
         camera={{ position: [0, 2.0, 4.8], fov: 40, near: 0.1, far: 30 }}
-        gl={{ antialias: false, alpha: false, powerPreference: "low-power" }}
+        gl={{ antialias: false, alpha: true, powerPreference: "low-power" }}
         onCreated={({ gl }) => {
+          gl.setClearColor(0x000000, 0);
           gl.domElement.addEventListener("webglcontextlost", () => setFailed(true), { once: true });
         }}
       >
-        <color attach="background" args={["#050810"]} />
         <CameraRig />
         <ParticleScene onShape={(index) => { setShapeIndex(index); setDeparting(false); }} onDepart={() => setDeparting(true)} />
         <AsciiPass onFirstFrame={() => setReady(true)} />

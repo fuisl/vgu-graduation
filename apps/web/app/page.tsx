@@ -3,6 +3,11 @@ import { Sculpture } from "./sculpture/Sculpture";
 
 export default function Home() {
   return <main className="landing">
+    <div className="landing-aurora" aria-hidden="true">
+      <span className="landing-aurora-blob" />
+      <span className="landing-aurora-blob" />
+      <span className="landing-aurora-blob" />
+    </div>
     <div className="landing-field" aria-hidden="true" />
     <header className="landing-header mono">
       <BrandName />

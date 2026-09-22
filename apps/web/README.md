@@ -1,4 +1,5 @@
 # Web
-Planned Next.js application for public, guest and admin surfaces.
-First vertical slice: personalized invitation → RSVP → calendar/directions.
-Do not start experimental 3D work before the invitation flow is production-usable.
+
+Next.js public site for the GRAD ’26 landing teaser, invitation preview, and future guest flows.
+
+The root route serves the November teaser. `/invite/demo` remains a separate route. `/docs` and its child paths are rewritten to the docs app. Set `DOCS_ORIGIN` to the docs deployment origin when building the web app for production; local development defaults to `http://localhost:3001`. For a local production build, use `DOCS_ORIGIN=http://localhost:3001 pnpm build` from the repository root while the docs app runs on port 3001.

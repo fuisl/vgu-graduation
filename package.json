@@ -1,0 +1,1 @@
+{"name":"vgu-graduation","private":true,"packageManager":"pnpm@10.17.1","scripts":{"build":"turbo build","dev":"turbo dev","lint":"turbo lint","typecheck":"turbo typecheck","test":"turbo test"},"devDependencies":{"turbo":"^2.5.0"}}

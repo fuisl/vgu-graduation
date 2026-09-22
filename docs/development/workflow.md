@@ -1,6 +1,9 @@
 # Development Workflow
+
 GitHub is the execution source of truth; repository docs are the durable knowledge source.
+
 ## Flow
+
 Epic/parent issue → scoped issue → branch → PR → review → merge.
 A PR represents one understandable change and references its issue.
 Recommended Project fields: Status, Priority, Area, Size, Risk, Iteration, Owner, Target.

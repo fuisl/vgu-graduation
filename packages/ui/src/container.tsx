@@ -1,0 +1,1 @@
+import type {ReactNode} from "react";export function Container({children,narrow=false}:{children:ReactNode;narrow?:boolean}){return <div style={{width:"100%",maxWidth:narrow?"var(--content)":"var(--wide)",margin:"0 auto",paddingInline:"var(--gutter)"}}>{children}</div>}

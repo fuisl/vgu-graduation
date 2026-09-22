@@ -121,60 +121,96 @@ function laptop(i: number, random: Rng): Point {
   return [x, -0.46, -0.48];
 }
 
-// A chunky extruded lightning bolt: symbolic of electrical/electronics work, and unlike a
-// flat PCB it keeps real volume (outline, depth walls, filled caps, interior core) so it
-// stays legible from every angle of a full rotation instead of vanishing edge-on.
-const BOLT_POLY: [number, number][] = [
-  [0.18, 1.25],
-  [-0.42, 0.06],
-  [0.0, 0.06],
-  [-0.18, -1.25],
-  [0.42, -0.06],
-  [0.0, -0.06],
-];
-const BOLT_DEPTH = 0.3;
-const BOLT_LAYERS = [-0.3, -0.15, 0, 0.15, 0.3];
+// A triangular lattice cell tower on a square base, with a dish mounted partway up one leg
+// and a domed antenna on top ringed by signal arcs — full 3D volume in every direction
+// (unlike the flat PCB this shape replaced earlier), so it stays legible through a full
+// rotation instead of vanishing edge-on.
+const TOWER_BASE_Y = -1.24;
+const TOWER_TOP_Y = 0.7;
+const TOWER_BASE_RADIUS = 0.5;
+const TOWER_TOP_RADIUS = 0.08;
+const TOWER_TAPER = (TOWER_BASE_RADIUS - TOWER_TOP_RADIUS) / (TOWER_TOP_Y - TOWER_BASE_Y);
+const TOWER_DOME_CENTER: Point = [0, 0.86, 0];
+const TOWER_DOME_RADIUS = 0.15;
+const TOWER_DISH_LEG = 0;
+const TOWER_DISH_HEIGHT = -0.32;
+const TOWER_DISH_RADIUS = 0.22;
 
-function boltInPolygon(x: number, y: number) {
-  let inside = false;
-  for (let a = 0, b = BOLT_POLY.length - 1; a < BOLT_POLY.length; b = a++) {
-    const [xa, ya] = BOLT_POLY[a];
-    const [xb, yb] = BOLT_POLY[b];
-    if (ya > y !== yb > y && x < ((xb - xa) * (y - ya)) / (yb - ya) + xa) inside = !inside;
-  }
-  return inside;
+function towerLegAngle(index: number) {
+  return (index * Math.PI * 2) / 3 + Math.PI / 6;
 }
 
-function boltFillPoint(random: Rng): [number, number] {
-  for (let attempt = 0; attempt < 12; attempt++) {
-    const x = between(random, -0.42, 0.42);
-    const y = between(random, -1.25, 1.25);
-    if (boltInPolygon(x, y)) return [x, y];
-  }
-  return [0, 0];
+function towerLeg(index: number, y: number): Point {
+  const radius = TOWER_BASE_RADIUS - (y - TOWER_BASE_Y) * TOWER_TAPER;
+  const angle = towerLegAngle(index);
+  return [Math.cos(angle) * radius, y, Math.sin(angle) * radius];
 }
 
-function bolt(i: number, random: Rng): Point {
+function tower(i: number, random: Rng): Point {
   const kind = i % 10;
-  const edge = Math.floor(random() * BOLT_POLY.length);
-  const next = (edge + 1) % BOLT_POLY.length;
-  const [xa, ya] = BOLT_POLY[edge];
-  const [xb, yb] = BOLT_POLY[next];
-  const t = random();
-  const x = xa + (xb - xa) * t;
-  const y = ya + (yb - ya) * t;
-  // Outline strokes repeated across several depths, giving the extrusion visible ridge lines.
-  if (kind < 4) return [x, y, BOLT_LAYERS[Math.floor(random() * BOLT_LAYERS.length)]];
-  // Depth walls: verticals joining the same outline position across the full extrusion.
-  if (kind < 6) return [x, y, between(random, -BOLT_DEPTH, BOLT_DEPTH)];
-  // Front and back caps, filled solid so the bolt reads as a slab rather than a hollow cage.
-  if (kind < 8) {
-    const [fx, fy] = boltFillPoint(random);
-    return [fx, fy, random() < 0.5 ? BOLT_DEPTH : -BOLT_DEPTH];
+  // Three tapering truss legs.
+  if (kind < 4) {
+    const leg = Math.floor(random() * 3);
+    return towerLeg(leg, between(random, TOWER_BASE_Y, TOWER_TOP_Y));
   }
-  // Interior core fill across every layer, for density when the bolt is seen edge-on.
-  const [fx, fy] = boltFillPoint(random);
-  return [fx, fy, BOLT_LAYERS[Math.floor(random() * BOLT_LAYERS.length)]];
+  // Diagonal cross-bracing between adjacent legs, section by section.
+  if (kind === 4) {
+    const section = Math.floor(random() * 6);
+    const y0 = TOWER_BASE_Y + section * 0.32;
+    const y1 = y0 + 0.32;
+    const leg = Math.floor(random() * 3);
+    return line(towerLeg(leg, y0), towerLeg((leg + 1) % 3, y1), random());
+  }
+  // Square base plate the legs stand on.
+  if (kind === 5) {
+    const half = 0.62;
+    const edge = Math.floor(random() * 4);
+    const t = between(random, -half, half);
+    const x = edge === 0 ? half : edge === 1 ? -half : t;
+    const z = edge === 2 ? half : edge === 3 ? -half : t;
+    return [x, TOWER_BASE_Y - 0.04, z];
+  }
+  // A dish mounted partway up one leg, facing outward.
+  if (kind === 6) {
+    const angle = towerLegAngle(TOWER_DISH_LEG);
+    const [lx, ly, lz] = towerLeg(TOWER_DISH_LEG, TOWER_DISH_HEIGHT);
+    const radial: Point = [Math.cos(angle), 0, Math.sin(angle)];
+    const tangent: Point = [-Math.sin(angle), 0, Math.cos(angle)];
+    const theta = random() * Math.PI * 2;
+    const r = Math.sqrt(random()) * TOWER_DISH_RADIUS;
+    return [
+      lx + radial[0] * 0.12 + tangent[0] * Math.cos(theta) * r,
+      ly + Math.sin(theta) * r,
+      lz + radial[2] * 0.12 + tangent[2] * Math.cos(theta) * r,
+    ];
+  }
+  // Collar ring where the legs converge, with a short mast up to the dome.
+  if (kind === 7) {
+    if (random() < 0.6) {
+      const theta = random() * Math.PI * 2;
+      return [Math.cos(theta) * 0.1, TOWER_TOP_Y, Math.sin(theta) * 0.1];
+    }
+    return [between(random, -0.02, 0.02), between(random, TOWER_TOP_Y, TOWER_DOME_CENTER[1] - TOWER_DOME_RADIUS), between(random, -0.02, 0.02)];
+  }
+  // Domed antenna head.
+  if (kind === 8) {
+    const theta = random() * Math.PI * 2;
+    const phi = random() * Math.PI;
+    return [
+      TOWER_DOME_CENTER[0] + TOWER_DOME_RADIUS * Math.sin(phi) * Math.cos(theta),
+      TOWER_DOME_CENTER[1] + TOWER_DOME_RADIUS * Math.cos(phi),
+      TOWER_DOME_CENTER[2] + TOWER_DOME_RADIUS * Math.sin(phi) * Math.sin(theta),
+    ];
+  }
+  // Signal arcs banded around the dome's equator, radiating to whichever side faces the camera.
+  const radius = [0.34, 0.56, 0.8][Math.floor(random() * 3)];
+  const polar = between(random, Math.PI * 0.28, Math.PI * 0.72);
+  const azimuth = random() * Math.PI * 2;
+  return [
+    TOWER_DOME_CENTER[0] + radius * Math.sin(polar) * Math.cos(azimuth),
+    TOWER_DOME_CENTER[1] + radius * Math.cos(polar),
+    TOWER_DOME_CENTER[2] + radius * Math.sin(polar) * Math.sin(azimuth),
+  ];
 }
 
 function pipeline(i: number, random: Rng): Point {
@@ -235,8 +271,16 @@ function quant(i: number, random: Rng): Point {
     const level = Math.floor(random() * 6);
     return [side * depth, -0.94 + level * 0.055, between(random, -0.76, -0.3)];
   }
-  const t = random();
-  return [-1.36 + 2.72 * t, -0.72 + 0.18 * t, -0.68];
+  // Trend arrow riding above the candle highs, in front of the candles rather than
+  // behind them, so the uptrend reads as a deliberate annotation, not a hidden line.
+  const start: Point = [-1.32, 0.08, 0.42];
+  const end: Point = [1.42, 1.34, 0.42];
+  const shaftAngle = Math.atan2(end[1] - start[1], end[0] - start[0]);
+  if (random() < 0.62) return line(start, end, random());
+  const barbSide = random() < 0.5 ? 1 : -1;
+  const barbAngle = shaftAngle + Math.PI + barbSide * 0.5;
+  const barbT = random();
+  return [end[0] + Math.cos(barbAngle) * 0.26 * barbT, end[1] + Math.sin(barbAngle) * 0.26 * barbT, 0.42];
 }
 
 type ShapeDef = {
@@ -259,11 +303,14 @@ const SHAPE_DEFS: ShapeDef[] = [
   { name: "SOFTWARE ENGINEERING", make: laptop },
   {
     name: "ELECTRICAL ENGINEERING",
-    make: bolt,
+    make: tower,
     shade: (i, light) => {
       const kind = i % 10;
-      if (kind < 4) return Math.max(light, 0.78);
-      if (kind < 6) return Math.max(light, 0.6);
+      if (kind < 4) return Math.max(light, 0.55);
+      if (kind === 6) return Math.max(light, 0.8);
+      if (kind === 7) return Math.max(light, 0.7);
+      if (kind === 8) return 0.96;
+      if (kind === 9) return Math.max(light, 0.82);
       return light;
     },
   },
@@ -279,6 +326,7 @@ const SHAPE_DEFS: ShapeDef[] = [
       const kind = i % 10;
       if (kind >= 5 && kind < 8) return 0.94;
       if (kind === 8) return light * 0.45;
+      if (kind === 9) return 1;
       return light;
     },
   },

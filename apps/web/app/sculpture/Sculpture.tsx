@@ -174,8 +174,8 @@ function ParticleScene({ onLabel }: { onLabel: (label: string) => void }) {
       colors.needsUpdate = true;
     }
     if (points.current) {
-      points.current.rotation.y = elapsed.current * 0.32;
-      points.current.rotation.x = -0.14;
+      points.current.rotation.y = Math.sin(elapsed.current * 0.52) * 0.42;
+      points.current.rotation.x = -0.12 + Math.sin(elapsed.current * 0.31) * 0.06;
     }
   });
 

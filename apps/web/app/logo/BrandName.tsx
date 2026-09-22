@@ -15,7 +15,13 @@ const NOISE = "!<>-_/\\[]{}=+*^?#%@$&:.";
 
 type CharState = { open: boolean; glyph: string };
 
-function collapsed(): CharState[] {
+// Full name is the resting state, so the first paint (server and pre-hydration client)
+// already shows it — no hydration mismatch, no flash of the compact form on load.
+function expandedChars(): CharState[] {
+  return REST_CHARS.map((ch) => ({ open: true, glyph: ch }));
+}
+
+function collapsedChars(): CharState[] {
   return REST_CHARS.map(() => ({ open: false, glyph: "" }));
 }
 
@@ -24,10 +30,11 @@ function randomNoise() {
 }
 
 export function BrandName() {
-  const [expanded, setExpanded] = useState(false);
-  const [chars, setChars] = useState<CharState[]>(collapsed);
+  const [expanded, setExpanded] = useState(true);
+  const [chars, setChars] = useState<CharState[]>(expandedChars);
   const hovered = useRef(false);
   const scrolled = useRef(false);
+  const active = useRef(true);
   const reducedMotion = useRef(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const applyStateRef = useRef<() => void>(() => {});
@@ -43,7 +50,7 @@ export function BrandName() {
     const reveal = () => {
       clearTimers();
       if (reducedMotion.current) {
-        setChars(REST_CHARS.map((ch) => ({ open: true, glyph: ch })));
+        setChars(expandedChars());
         return;
       }
       REST_CHARS.forEach((target, i) => {
@@ -66,11 +73,15 @@ export function BrandName() {
 
     const collapse = () => {
       clearTimers();
-      setChars(collapsed());
+      setChars(collapsedChars());
     };
 
+    // Resting (not scrolled) shows the full name; scrolling down compacts it to "VGU".
+    // Hovering while scrolled overrides the compact form so the full name can still be peeked.
     const applyState = () => {
-      const next = hovered.current || scrolled.current;
+      const next = hovered.current || !scrolled.current;
+      if (next === active.current) return;
+      active.current = next;
       setExpanded(next);
       if (next) reveal(); else collapse();
     };
@@ -121,7 +132,7 @@ export function BrandName() {
                 const state = chars[i];
                 return (
                   <span className={`brand-char${state.open ? " is-open" : ""}`} key={i}>
-                    {state.glyph || " "}
+                    {state.glyph || " "}
                   </span>
                 );
               })}

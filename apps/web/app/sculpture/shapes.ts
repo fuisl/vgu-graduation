@@ -28,7 +28,7 @@ function landscape(i: number, random: Rng): Point {
     const ends: Point[] = [[1.5, -0.62, 1.1], [-1.5, 1.24, 1.1], [-1.5, -0.62, -1.1]];
     const axis = i % 3;
     const point = line(origin, ends[axis], random());
-    return [point[0] + between(random, -0.012, 0.012), point[1] + between(random, -0.012, 0.012), point[2] + between(random, -0.012, 0.012)];
+    return [point[0] + between(random, -0.006, 0.006), point[1] + between(random, -0.006, 0.006), point[2] + between(random, -0.006, 0.006)];
   }
   if (i % 10 < 4) {
     const t = random();
@@ -311,8 +311,6 @@ const SHAPE_DEFS: ShapeDef[] = [
       if (kind < 4) return Math.max(light, 0.55);
       if (kind === 6) return Math.max(light, 0.8);
       if (kind === 7) return Math.max(light, 0.7);
-      if (kind === 8) return 0.96;
-      if (kind === 9) return Math.max(light, 0.82);
       return light;
     },
   },
@@ -328,7 +326,6 @@ const SHAPE_DEFS: ShapeDef[] = [
       const kind = i % 10;
       if (kind >= 5 && kind < 8) return 0.94;
       if (kind === 8) return light * 0.45;
-      if (kind === 9) return 1;
       return light;
     },
   },
@@ -361,6 +358,8 @@ export const SHADES = SHAPE_DEFS.map((def, shapeIndex) => {
     const x = points[offset];
     const y = points[offset + 1];
     const z = points[offset + 2];
+    const kind = i % 10;
+    const baseLight = 0.48 - x * 0.29 + y * 0.26 + z * 0.25;
     let light: number;
     if (def.name === "GRADIENT DESCENT") {
       const dx = 0.76 * x + 0.75 * Math.cos(3 * x) * Math.cos(3 * z);
@@ -368,7 +367,7 @@ export const SHADES = SHAPE_DEFS.map((def, shapeIndex) => {
       const facing = (0.7 + 0.62 * dx - 0.48 * dz) / Math.sqrt(1 + dx * dx + dz * dz);
       const elevation = Math.max(0, Math.min(1, (y + 0.45) / 1.2));
       light = (0.12 + 0.88 * Math.max(0, facing)) * (0.38 + 0.62 * elevation);
-    } else if (def.name === "INNOVATION" && i % 10 <= 5) {
+    } else if (def.name === "INNOVATION" && kind <= 5) {
       // Glass + aura only (kind 0-5); filament/neck/base/threads fall through to the
       // generic directional light below since they aren't on the BULB_CENTER sphere.
       const dx = x - BULB_CENTER[0];
@@ -388,9 +387,47 @@ export const SHADES = SHAPE_DEFS.map((def, shapeIndex) => {
         const fresnel = 1 - Math.min(1, Math.abs(nz));
         light = 0.18 + 0.38 * shadowTerm + 0.58 * Math.pow(fresnel, 1.6);
       }
+    } else if (def.name === "ELECTRICAL ENGINEERING" && (kind === 8 || kind === 9)) {
+      // Dome + signal arcs: the same fresnel-rim-plus-glow-shell treatment as the bulb's
+      // glass and aura, since the dome is a small sphere and the arcs are a radiating shell.
+      const dx = x - TOWER_DOME_CENTER[0];
+      const dy = y - TOWER_DOME_CENTER[1];
+      const dz = z - TOWER_DOME_CENTER[2];
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+      const nx = dx / dist, ny = dy / dist, nz = dz / dist;
+      const shadowTerm = 0.5 + 0.5 * (nx * -0.5 + ny * 0.6 + nz * 0.62);
+      if (kind === 8) {
+        const fresnel = 1 - Math.min(1, Math.abs(nz));
+        light = 0.25 + 0.35 * shadowTerm + 0.5 * Math.pow(fresnel, 1.5);
+      } else {
+        const auraT = Math.max(0, Math.min(1, (dist - TOWER_DOME_RADIUS) / (0.8 - TOWER_DOME_RADIUS)));
+        light = Math.max(0.15, 0.85 * (1 - auraT) * (0.6 + 0.4 * shadowTerm));
+      }
+    } else if (def.name === "DATA ENGINEERING" && kind < 4) {
+      // Database drums: a cylindrical fresnel rim, bright at the silhouette edge of each
+      // drum and dim on the face turned toward the viewer.
+      const cx = x < 0 ? -1.05 : 1.05;
+      const dx = x - cx;
+      const dz = z;
+      const distXZ = Math.sqrt(dx * dx + dz * dz) || 1;
+      const nx = dx / distXZ, nz = dz / distXZ;
+      const shadowTerm = 0.5 + 0.5 * (nx * -0.45 + (y / 0.42) * 0.35 + nz * 0.55);
+      const fresnel = 1 - Math.min(1, Math.abs(nz));
+      light = 0.22 + 0.35 * shadowTerm + 0.5 * Math.pow(fresnel, 1.5);
+    } else if (def.name === "SOFTWARE ENGINEERING" && kind < 5) {
+      // Screen backlight bloom: brightest near the screen's center, fading toward its edges.
+      const distT = Math.sqrt((x / 1.08) ** 2 + ((y - 0.35) / 0.77) ** 2);
+      const bloom = Math.max(0, 1 - distT);
+      light = Math.max(baseLight, 0.22 + 0.68 * Math.pow(bloom, 1.3));
+    } else if (def.name === "QUANTITATIVE FINANCE" && kind === 9) {
+      // A spark of glow at the trend arrow's tip, fading back along the shaft.
+      const dx = x - 1.42, dy = y - 1.34, dz = z - 0.42;
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      const tipGlow = Math.max(0, 1 - dist / 0.55);
+      light = Math.max(baseLight, 0.3 + 0.7 * Math.pow(tipGlow, 1.4));
     } else {
       // A fixed upper-left light gives each rotating structure bright and shaded sides.
-      light = 0.48 - x * 0.29 + y * 0.26 + z * 0.25;
+      light = baseLight;
     }
     if (def.shade) light = def.shade(i, light);
     const value = Math.max(0.1, Math.min(1, light));

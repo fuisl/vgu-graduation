@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { navGroups } from "../lib/navigation";
 
 export function DocsNav() {
-  const pathname = usePathname();
+  const pathname = usePathname().replace(/^\/docs(?=\/|$)/, "") || "/";
 
   return (
     <nav className="docs-nav" aria-label="Documentation">

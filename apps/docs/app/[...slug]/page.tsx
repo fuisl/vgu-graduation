@@ -4,6 +4,13 @@ import { notFound } from "next/navigation";
 import { Shell } from "../../components/shell";
 import { MermaidDiagram } from "../../components/mermaid-diagram";
 import { readDoc } from "../../lib/content";
+import { navGroups } from "../../lib/navigation";
+
+export const dynamicParams = false;
+
+export function generateStaticParams() {
+  return navGroups.flatMap((group) => group.items.map(([slug]) => ({ slug: slug.split("/") })));
+}
 
 export default async function Doc({ params }: { params: Promise<{ slug: string[] }> }) {
   const { slug } = await params;

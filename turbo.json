@@ -1,1 +1,19 @@
-{"$schema":"https://turbo.build/schema.json","tasks":{"build":{"dependsOn":["^build"],"outputs":[".next/**","dist/**"]},"dev":{"cache":false,"persistent":true},"lint":{"dependsOn":["^lint"]},"typecheck":{"dependsOn":["^typecheck"]},"test":{"dependsOn":["^test"],"outputs":["coverage/**"]}}}
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": { "dependsOn": ["^build"], "outputs": [] },
+    "@grad/web#build": {
+      "dependsOn": ["^build"],
+      "env": ["DOCS_ORIGIN"],
+      "outputs": [".next/**", "!.next/cache/**"]
+    },
+    "@grad/docs#build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**"]
+    },
+    "dev": { "cache": false, "persistent": true },
+    "lint": { "dependsOn": ["^lint"] },
+    "typecheck": { "dependsOn": ["^typecheck"] },
+    "test": { "dependsOn": ["^test"], "outputs": [] }
+  }
+}

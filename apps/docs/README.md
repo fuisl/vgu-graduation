@@ -2,7 +2,7 @@
 
 Markdoc-powered internal project handbook. It reads canonical Markdown from the repository-level `docs/` directory rather than duplicating content.
 
-Run from repository root with `pnpm --filter @grad/docs dev`; default port is 3001.
+Run from repository root with `pnpm --filter @grad/docs dev`; default port is 3001. The handbook uses `/docs` as its base path, so open `http://localhost:3001/docs`. For Vercel setup, see `docs/operations/deployment.md`.
 
 ## Authoring
 Add durable knowledge to the appropriate repository `docs/` area. Add a navigation entry in `lib/navigation.ts` when a new canonical page should be exposed. The navigation also acts as an explicit route allowlist, preventing arbitrary filesystem paths from becoming routes.

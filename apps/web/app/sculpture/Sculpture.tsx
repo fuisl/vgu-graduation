@@ -124,7 +124,6 @@ function ParticleScene({ onLabel }: { onLabel: (label: string) => void }) {
   const points = useRef<Points>(null);
   const elapsed = useRef(0);
   const previous = useRef(-1);
-  const synced = useRef(false);
   const geometry = useMemo(() => {
     const result = new BufferGeometry();
     const positions = new Float32Array(SHAPES[0]);
@@ -140,7 +139,6 @@ function ParticleScene({ onLabel }: { onLabel: (label: string) => void }) {
     const state = sequenceAt(elapsed.current);
     if (state.index !== previous.current) {
       previous.current = state.index;
-      synced.current = false;
       onLabel(SHAPE_NAMES[state.index]);
     }
     const position = geometry.attributes.position as BufferAttribute;
@@ -151,31 +149,38 @@ function ParticleScene({ onLabel }: { onLabel: (label: string) => void }) {
     const to = SHAPES[state.next];
     const fromShades = SHADES[state.index];
     const toShades = SHADES[state.next];
-    if (state.morph > 0) {
-      const t = state.morph * state.morph * (3 - 2 * state.morph);
-      const scatter = Math.sin(Math.PI * t) * 0.36;
-      for (let i = 0; i < POINT_COUNT; i++) {
-        const offset = i * 3;
+    const t = state.morph > 0 ? state.morph * state.morph * (3 - 2 * state.morph) : 0;
+    const scatter = state.morph > 0 ? Math.sin(Math.PI * t) * 0.36 : 0;
+    const time = elapsed.current;
+    // Runs every frame, held shapes included, so the sculpture keeps a faint living shimmer
+    // rather than sitting perfectly still between morphs — motion beyond just the rotation.
+    for (let i = 0; i < POINT_COUNT; i++) {
+      const offset = i * 3;
+      let x = from[offset] * (1 - t) + to[offset] * t;
+      let y = from[offset + 1] * (1 - t) + to[offset + 1] * t;
+      let z = from[offset + 2] * (1 - t) + to[offset + 2] * t;
+      if (scatter > 0) {
         const angle = i * 2.399963;
         const radius = 0.4 + ((i * 37) % 101) / 101;
-        output[offset] = from[offset] * (1 - t) + to[offset] * t + Math.cos(angle) * radius * scatter;
-        output[offset + 1] = from[offset + 1] * (1 - t) + to[offset + 1] * t + Math.sin(angle) * radius * scatter;
-        output[offset + 2] = from[offset + 2] * (1 - t) + to[offset + 2] * t + Math.sin(angle * 1.7) * scatter;
-        for (let channel = 0; channel < 3; channel++) outputColors[offset + channel] = fromShades[offset + channel] * (1 - t) + toShades[offset + channel] * t;
+        x += Math.cos(angle) * radius * scatter;
+        y += Math.sin(angle) * radius * scatter;
+        z += Math.sin(angle * 1.7) * scatter;
       }
-      position.needsUpdate = true;
-      colors.needsUpdate = true;
-      synced.current = false;
-    } else if (!synced.current) {
-      synced.current = true;
-      output.set(from);
-      outputColors.set(fromShades);
-      position.needsUpdate = true;
-      colors.needsUpdate = true;
+      const phase = i * 0.011;
+      x += Math.sin(time * 1.7 + phase) * 0.016;
+      y += Math.cos(time * 1.3 + phase * 1.7) * 0.016;
+      z += Math.sin(time * 1.9 + phase * 2.3) * 0.016;
+      output[offset] = x;
+      output[offset + 1] = y;
+      output[offset + 2] = z;
+      for (let channel = 0; channel < 3; channel++) outputColors[offset + channel] = fromShades[offset + channel] * (1 - t) + toShades[offset + channel] * t;
     }
+    position.needsUpdate = true;
+    colors.needsUpdate = true;
     if (points.current) {
-      points.current.rotation.y = Math.sin(elapsed.current * 0.52) * 0.42;
-      points.current.rotation.x = -0.12 + Math.sin(elapsed.current * 0.31) * 0.06;
+      points.current.rotation.y = Math.sin(time * 0.52) * 0.42;
+      points.current.rotation.x = -0.12 + Math.sin(time * 0.31) * 0.06;
+      points.current.scale.setScalar(1 + Math.sin(time * 0.9) * 0.015);
     }
   });
 

@@ -43,68 +43,75 @@ function landscape(i: number, random: Rng): Point {
   return [x, y, z];
 }
 
-// A roughly-spherical 3D node network: isotropic, so unlike a flat diagram it never
-// reads as a thin sliver from any rotation angle.
-function fibonacciSphere(count: number, radius: number): Point[] {
-  const points: Point[] = [];
-  const golden = Math.PI * (3 - Math.sqrt(5));
-  for (let k = 0; k < count; k++) {
-    const y = 1 - (k / (count - 1)) * 2;
-    const r = Math.sqrt(Math.max(0, 1 - y * y));
-    const theta = golden * k;
-    points.push([Math.cos(theta) * r * radius, y * radius, Math.sin(theta) * r * radius]);
-  }
-  return points;
-}
+// A light bulb, standing for innovation/ideas rather than AI specifically: one big, nearly
+// full glass globe with a zigzag filament, pinching down through a short neck into a small,
+// clearly separate screw base — real volume throughout (glass shell, cone neck, cylinder
+// base) so it reads well through a full rotation. An earlier version spent a tenth of its
+// points on thin rays off the top; those didn't resolve cleanly through the ASCII sampling
+// and read as noise, so they're gone in favor of a fuller, rounder globe.
+const BULB_CENTER: Point = [0, 0.5, 0];
+const BULB_RADIUS = 0.64;
+const BULB_CUTOFF = 2.55; // polar angle where the glass shell ends and the neck begins — close
+// to a full sphere (pi), leaving only a small flat underside for the neck to attach to.
+const BULB_AURA_SPAN = 0.42; // how far the glow shell extends past the glass
+const NECK_TOP_Y = BULB_CENTER[1] + BULB_RADIUS * Math.cos(BULB_CUTOFF);
+const NECK_TOP_RADIUS = BULB_RADIUS * Math.sin(BULB_CUTOFF);
+const NECK_BOTTOM_Y = -0.22;
+const BASE_RADIUS = 0.14;
+const BASE_TOP_Y = -0.22;
+const BASE_BOTTOM_Y = -0.72;
+const FILAMENT: Point[] = [
+  [-0.2, 0.08, 0], [0.2, 0.32, 0], [-0.2, 0.56, 0], [0.2, 0.8, 0], [0, 0.98, 0],
+];
 
-const NN_NODES: Point[] = [...fibonacciSphere(64, 1.05), ...fibonacciSphere(28, 0.62), [0, 0, 0]];
-
-function nodeDist2(a: Point, b: Point) {
-  const dx = a[0] - b[0];
-  const dy = a[1] - b[1];
-  const dz = a[2] - b[2];
-  return dx * dx + dy * dy + dz * dz;
-}
-
-const NN_EDGES: [number, number][] = (() => {
-  const seen = new Set<string>();
-  const edges: [number, number][] = [];
-  for (let a = 0; a < NN_NODES.length; a++) {
-    const ranked = NN_NODES
-      .map((p, b): [number, number] => [nodeDist2(NN_NODES[a], p), b])
-      .filter(([, b]) => b !== a)
-      .sort((x, y) => x[0] - y[0]);
-    for (let k = 0; k < 4; k++) {
-      const b = ranked[k][1];
-      const key = a < b ? `${a}-${b}` : `${b}-${a}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      edges.push(a < b ? [a, b] : [b, a]);
-    }
-  }
-  return edges;
-})();
-
-function cnn(i: number, random: Rng): Point {
+function bulb(i: number, random: Rng): Point {
   const kind = i % 10;
-  // Edges: the connective mesh between nodes, thickened by a slight radial jitter for visible strands.
-  if (kind < 7) {
-    const [a, b] = NN_EDGES[Math.floor(random() * NN_EDGES.length)];
-    const t = random();
-    const point = line(NN_NODES[a], NN_NODES[b], t);
-    const wobble = Math.sin(t * Math.PI) * 0.012;
-    return [point[0] + between(random, -wobble, wobble), point[1] + between(random, -wobble, wobble), point[2] + between(random, -wobble, wobble)];
+  // Glass globe: a shell cut off only right at the bottom, where it necks into the base.
+  if (kind < 5) {
+    const theta = random() * Math.PI * 2;
+    const phi = random() * BULB_CUTOFF;
+    return [
+      BULB_CENTER[0] + BULB_RADIUS * Math.sin(phi) * Math.cos(theta),
+      BULB_CENTER[1] + BULB_RADIUS * Math.cos(phi),
+      BULB_CENTER[2] + BULB_RADIUS * Math.sin(phi) * Math.sin(theta),
+    ];
   }
-  // Nodes: small filled spheres at every network vertex, brighter than the strands.
-  const node = NN_NODES[Math.floor(random() * NN_NODES.length)];
+  // Aura: a sparse glow shell floating outside the glass, thinning out with distance —
+  // shaded separately below, purely by how far past the glass each point sits.
+  if (kind === 5) {
+    const theta = random() * Math.PI * 2;
+    const phi = random() * Math.PI;
+    const radius = BULB_RADIUS + Math.pow(random(), 1.6) * BULB_AURA_SPAN;
+    return [
+      BULB_CENTER[0] + radius * Math.sin(phi) * Math.cos(theta),
+      BULB_CENTER[1] + radius * Math.cos(phi),
+      BULB_CENTER[2] + radius * Math.sin(phi) * Math.sin(theta),
+    ];
+  }
+  // Zigzag filament inside the glass.
+  if (kind === 6) {
+    const segment = Math.floor(random() * (FILAMENT.length - 1));
+    return line(FILAMENT[segment], FILAMENT[segment + 1], random());
+  }
+  // Short, quickly-tapering neck — the pinch that separates the big globe from the small base.
+  if (kind === 7) {
+    const t = random();
+    const radius = NECK_TOP_RADIUS + (BASE_RADIUS - NECK_TOP_RADIUS) * t;
+    const y = NECK_TOP_Y + (NECK_BOTTOM_Y - NECK_TOP_Y) * t;
+    const theta = random() * Math.PI * 2;
+    return [Math.cos(theta) * radius, y, Math.sin(theta) * radius];
+  }
+  // Small screw base cylinder.
+  if (kind === 8) {
+    const theta = random() * Math.PI * 2;
+    const y = between(random, BASE_BOTTOM_Y, BASE_TOP_Y);
+    return [Math.cos(theta) * BASE_RADIUS, y, Math.sin(theta) * BASE_RADIUS];
+  }
+  // Thread ridges banding the base.
+  const band = Math.floor(random() * 4);
+  const y = BASE_TOP_Y - 0.05 + band * -0.15;
   const theta = random() * Math.PI * 2;
-  const phi = random() * Math.PI;
-  const radius = 0.07;
-  return [
-    node[0] + Math.sin(phi) * Math.cos(theta) * radius,
-    node[1] + Math.cos(phi) * radius,
-    node[2] + Math.sin(phi) * Math.sin(theta) * radius,
-  ];
+  return [Math.cos(theta) * (BASE_RADIUS + 0.03), y, Math.sin(theta) * (BASE_RADIUS + 0.03)];
 }
 
 function laptop(i: number, random: Rng): Point {
@@ -290,17 +297,12 @@ type ShapeDef = {
 };
 
 const SHAPE_DEFS: ShapeDef[] = [
+  { name: "SOFTWARE ENGINEERING", make: laptop },
   {
     name: "GRADIENT DESCENT",
     make: landscape,
     shade: (i, light) => (i % 10 < 2 ? 1 : i % 10 < 4 ? 0.9 : light),
   },
-  {
-    name: "NEURAL NETWORKS",
-    make: cnn,
-    shade: (i, light) => (i % 10 >= 7 ? 0.95 : light * 0.82),
-  },
-  { name: "SOFTWARE ENGINEERING", make: laptop },
   {
     name: "ELECTRICAL ENGINEERING",
     make: tower,
@@ -330,6 +332,16 @@ const SHAPE_DEFS: ShapeDef[] = [
       return light;
     },
   },
+  {
+    name: "INNOVATION",
+    make: bulb,
+    shade: (i, light) => {
+      const kind = i % 10;
+      if (kind === 6) return 1;
+      if (kind === 9) return Math.max(light, 0.6);
+      return light;
+    },
+  },
 ];
 
 export const SHAPE_NAMES = SHAPE_DEFS.map((def) => def.name) as readonly string[];
@@ -356,6 +368,26 @@ export const SHADES = SHAPE_DEFS.map((def, shapeIndex) => {
       const facing = (0.7 + 0.62 * dx - 0.48 * dz) / Math.sqrt(1 + dx * dx + dz * dz);
       const elevation = Math.max(0, Math.min(1, (y + 0.45) / 1.2));
       light = (0.12 + 0.88 * Math.max(0, facing)) * (0.38 + 0.62 * elevation);
+    } else if (def.name === "INNOVATION" && i % 10 <= 5) {
+      // Glass + aura only (kind 0-5); filament/neck/base/threads fall through to the
+      // generic directional light below since they aren't on the BULB_CENTER sphere.
+      const dx = x - BULB_CENTER[0];
+      const dy = y - BULB_CENTER[1];
+      const dz = z - BULB_CENTER[2];
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+      const nx = dx / dist, ny = dy / dist, nz = dz / dist;
+      const shadowTerm = 0.5 + 0.5 * (nx * -0.5 + ny * 0.6 + nz * 0.62);
+      if (dist > BULB_RADIUS + 0.015) {
+        // Aura: a soft glow shell that thins out the further it sits from the glass.
+        const auraT = Math.max(0, Math.min(1, (dist - BULB_RADIUS) / BULB_AURA_SPAN));
+        light = Math.max(0.12, 0.55 * (1 - auraT) * (0.6 + 0.4 * shadowTerm));
+      } else {
+        // Glass: a fresnel-style rim, bright at the silhouette and dim toward the
+        // center-facing zone, so the middle of the globe reads as a bit see-through
+        // rather than a solid disc, with a soft directional shadow across it.
+        const fresnel = 1 - Math.min(1, Math.abs(nz));
+        light = 0.18 + 0.38 * shadowTerm + 0.58 * Math.pow(fresnel, 1.6);
+      }
     } else {
       // A fixed upper-left light gives each rotating structure bright and shaded sides.
       light = 0.48 - x * 0.29 + y * 0.26 + z * 0.25;

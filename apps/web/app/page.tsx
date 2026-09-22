@@ -3,6 +3,7 @@ import { TwinkleField } from "./background/TwinkleField";
 import { GridCells } from "./background/GridCells";
 import { BrandName } from "./logo/BrandName";
 import { Sculpture } from "./sculpture/Sculpture";
+import { WaveTitle } from "./landing-title/WaveTitle";
 
 export default function Home() {
   return <main className="landing">
@@ -23,7 +24,7 @@ export default function Home() {
     <section className="landing-center" aria-labelledby="landing-title">
       <Sculpture />
       <div className="landing-message">
-        <h1 id="landing-title">Coming soon in November.</h1>
+        <WaveTitle />
         <p>The next chapter begins together.</p>
       </div>
     </section>

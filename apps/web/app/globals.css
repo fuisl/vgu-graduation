@@ -38,6 +38,10 @@
 .sculpture-fallback{position:absolute;inset:0;display:grid;place-content:center;margin:0;font-family:var(--font-mono);font-size:clamp(9px,1.27vw,15px);line-height:1.35;letter-spacing:.04em;text-align:left;white-space:pre;color:#879edc;text-shadow:0 0 42px rgba(80,120,232,.18);transition:opacity .5s ease}
 .sculpture-fallback.is-hidden{opacity:0}
 .landing-message h1{margin:0;font-size:clamp(1.65rem,2.65vw,2.2rem);line-height:1.14;font-weight:400;letter-spacing:-.04em;color:#edf1f9}
+.landing-title-word{display:inline-block;white-space:pre}
+.landing-title-char{display:inline-grid;vertical-align:baseline}
+.landing-title-char::before{content:attr(data-original);grid-area:1/1;visibility:hidden}
+.landing-title-char>span{grid-area:1/1;width:0;white-space:pre;overflow:visible}
 .landing-message p{margin:1.1rem 0 0;color:var(--landing-muted);font-size:clamp(.82rem,1.3vw,.96rem);line-height:1.5;letter-spacing:.015em}
 @media(max-width:600px){.landing-header{padding-inline:1.3rem;padding-top:1.5rem}.landing-center{padding-top:2rem;padding-bottom:2rem}.sculpture{height:min(100vw,410px);margin-top:1.2rem;margin-bottom:1.1rem}.sculpture-code{max-width:72%;font-size:9px}.sculpture-code-left{top:12%}.sculpture-code-right{top:58%}.landing-message h1{font-size:clamp(1.75rem,7vw,2.2rem)}.landing-message p{margin-top:.85rem}.brand-name{font-size:.64rem;letter-spacing:.12em}}
 @media(prefers-reduced-motion:reduce){.sculpture-fallback{transition:none}.brand-char{transition:none}.landing-aurora{animation:none;transform:none;transition:none}.landing-grid-cell{animation:none;opacity:0}.landing-aurora-blob{animation:none}.landing-twinkle-dot,.landing-grid-signal{animation:none;opacity:0}}

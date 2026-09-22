@@ -25,6 +25,7 @@ All motion here is intentionally small and slow — it should read as "the page 
 - Both directions use a per-character decode rather than a slide or fade: each character opens its slot, then cycles through 2-3 ascii-noise glyphs (`!<>-_/\[]{}=+*^?#%@$&:.`) over ~80ms before settling on its real letter, staggered 9ms apart across the string. Collapsing is instant, no decode — only the reveal direction decodes.
 - Right: `GRAD '26`, bold, wider tracking.
 - No footer, no kicker line above the sculpture — both were removed; the header and the sculpture/message block are the only two structural pieces on the page.
+- The "Coming soon in November." heading has a narrow four-character decode wave (`WaveTitle.tsx`). It moves across the line roughly every four seconds, replacing the visible letters themselves with ASCII noise before restoring them. Invisible original glyphs reserve each character's width, so the heading stays stable; words wrap together on narrow screens. The accessible heading remains constant, and reduced motion shows plain text.
 
 ## Sculpture
 

@@ -5,6 +5,6 @@ Markdoc-powered internal project handbook. It reads canonical Markdown from the 
 Run from repository root with `pnpm --filter @grad/docs dev`; default port is 3001.
 
 ## Authoring
-Add durable knowledge to the appropriate repository `docs/` area. Add a navigation entry in `lib/content.ts` when a new canonical page should be exposed. The renderer uses an explicit allowlist, preventing arbitrary filesystem paths from becoming routes.
+Add durable knowledge to the appropriate repository `docs/` area. Add a navigation entry in `lib/navigation.ts` when a new canonical page should be exposed. The navigation also acts as an explicit route allowlist, preventing arbitrary filesystem paths from becoming routes.
 
-Mermaid source blocks remain readable as code in this first version. A later visualization PR can add client-side Mermaid/D2 rendering without changing the canonical Markdown.
+Fenced `mermaid` blocks render as diagrams on the client, using a restrained light/dark theme. The source remains visible until rendering succeeds and stays available if rendering fails or JavaScript is unavailable. Other fenced blocks remain code.

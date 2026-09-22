@@ -1,1 +1,14 @@
-import Link from "next/link";import {nav} from "../lib/content";export function Shell({children}:{children:React.ReactNode}){return <div className="docs-shell"><aside><Link className="brand" href="/">GRAD '26 / DOCS</Link><nav>{nav.map(([slug,label])=><Link key={slug} href={"/"+slug}>{label}</Link>)}</nav></aside><main className="docs-main">{children}</main></div>}
+import Link from "next/link";
+import { DocsNav } from "./docs-nav";
+
+export function Shell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="docs-shell">
+      <aside className="docs-sidebar">
+        <Link className="brand" href="/">GRAD &apos;26 / DOCS</Link>
+        <DocsNav />
+      </aside>
+      <main className="docs-main">{children}</main>
+    </div>
+  );
+}

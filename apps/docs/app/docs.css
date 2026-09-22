@@ -1,1 +1,52 @@
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-sans)}a{color:inherit;text-decoration:none}.docs-shell{max-width:var(--wide);margin:auto;display:grid;grid-template-columns:240px minmax(0,1fr);min-height:100svh;padding:var(--gutter);gap:clamp(2rem,6vw,7rem)}aside{position:sticky;top:var(--gutter);align-self:start}.brand{font-family:var(--font-mono);font-size:12px}.docs-shell nav{display:grid;margin-top:2rem;border-top:1px solid var(--border)}.docs-shell nav a{font-size:13px;color:var(--muted);padding:.6rem 0;border-bottom:1px solid var(--border)}.docs-main{max-width:850px;padding-bottom:6rem}.eyebrow{font-family:var(--font-mono);font-size:12px;color:var(--muted);margin-bottom:1rem}.docs-main>h1,.prose h1{font-size:clamp(3rem,7vw,6rem);letter-spacing:-.06em;line-height:.9;margin:2rem 0}.lede{font-size:1.25rem;line-height:1.6;color:var(--muted);max-width:680px}.doc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin-top:4rem;border-top:1px solid var(--border);border-left:1px solid var(--border)}.doc-grid a{padding:1.25rem;border-right:1px solid var(--border);border-bottom:1px solid var(--border)}.prose{font-size:1rem;line-height:1.75}.prose h2{font-size:1.7rem;letter-spacing:-.025em;margin-top:3rem}.prose h3{margin-top:2rem}.prose p,.prose li{color:var(--muted)}.prose strong{color:var(--fg)}.prose code{font-family:var(--font-mono);font-size:.9em;color:var(--fg)}.prose pre{overflow:auto;padding:1rem;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface)}.prose hr{border:0;border-top:1px solid var(--border);margin:3rem 0}@media(max-width:760px){.docs-shell{display:block}.docs-shell aside{position:static;margin-bottom:4rem}.docs-shell nav{grid-template-columns:repeat(2,1fr)}.docs-main>h1,.prose h1{font-size:clamp(2.6rem,14vw,4.5rem)}.doc-grid{grid-template-columns:1fr}}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-sans); }
+a { color: inherit; text-decoration: none; }
+:focus-visible { outline: 2px solid var(--fg); outline-offset: 3px; }
+
+.docs-shell { max-width: var(--wide); min-height: 100svh; margin: auto; padding: var(--gutter); display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: clamp(2rem, 6vw, 7rem); }
+.docs-sidebar { position: sticky; top: var(--gutter); align-self: start; max-height: calc(100svh - 2 * var(--gutter)); overflow-y: auto; scrollbar-width: thin; }
+.brand { display: inline-block; font: 700 12px var(--font-mono); letter-spacing: .05em; padding: .35rem 0 1.3rem; }
+.docs-nav { border-top: 1px solid var(--border); }
+.docs-nav-group { border-bottom: 1px solid var(--border); }
+.docs-nav-group summary { display: flex; align-items: center; justify-content: space-between; padding: .9rem 0; cursor: pointer; list-style: none; font: 700 11px var(--font-mono); letter-spacing: .09em; text-transform: uppercase; }
+.docs-nav-group summary::-webkit-details-marker { display: none; }
+.docs-nav-group summary span { color: var(--color-subtle); font-weight: 400; }
+.docs-nav-group summary:hover { color: var(--muted); }
+.docs-nav-links { display: grid; gap: 2px; padding: 0 0 .8rem; }
+.docs-nav-links a { display: block; margin-left: -1px; padding: .45rem .75rem; border-left: 1px solid transparent; color: var(--muted); font-size: 13px; line-height: 1.35; }
+.docs-nav-links a:hover { color: var(--fg); background: var(--surface); }
+.docs-nav-links a[aria-current="page"] { color: var(--fg); border-left-color: var(--fg); background: var(--surface); font-weight: 600; }
+
+.docs-main { min-width: 0; max-width: 850px; padding-bottom: 6rem; }
+.eyebrow { margin-bottom: 1rem; color: var(--muted); font: 12px var(--font-mono); letter-spacing: .06em; }
+.docs-main > h1, .prose h1 { margin: 2rem 0; font-size: clamp(3rem, 7vw, 6rem); line-height: .9; letter-spacing: -.06em; }
+.lede { max-width: 680px; color: var(--muted); font-size: 1.25rem; line-height: 1.6; }
+.doc-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 4rem; border-top: 1px solid var(--border); border-left: 1px solid var(--border); }
+.doc-grid a { display: flex; min-height: 9rem; flex-direction: column; justify-content: space-between; gap: 1.5rem; padding: 1.25rem; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.doc-grid a:hover { background: var(--surface); }
+.doc-grid-title { font-size: 1.25rem; font-weight: 600; letter-spacing: -.03em; }
+.doc-grid-meta { color: var(--muted); font: 11px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; }
+
+.prose { font-size: 1rem; line-height: 1.75; }
+.prose h2 { margin-top: 3rem; font-size: 1.7rem; letter-spacing: -.025em; }
+.prose h3 { margin-top: 2rem; }
+.prose p, .prose li { color: var(--muted); }
+.prose strong { color: var(--fg); }
+.prose code { color: var(--fg); font-family: var(--font-mono); font-size: .9em; }
+.prose pre { overflow: auto; padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
+.prose hr { margin: 3rem 0; border: 0; border-top: 1px solid var(--border); }
+.mermaid-figure { margin: 2rem 0; border: 1px solid var(--border); background: var(--surface); }
+.mermaid-label { padding: .7rem 1rem; border-bottom: 1px solid var(--border); color: var(--muted); font: 10px var(--font-mono); letter-spacing: .08em; }
+.mermaid-graphic { overflow-x: auto; padding: clamp(1rem, 3vw, 2rem); text-align: center; }
+.mermaid-graphic svg { display: block; width: 100%; max-width: 100%; height: auto; min-width: 520px; margin: auto; }
+.prose .mermaid-source { margin: 0; border: 0; border-radius: 0; background: transparent; color: var(--muted); font-size: .8rem; }
+.mermaid-figure figcaption { padding: 0 1rem 1rem; color: var(--muted); font-size: .8rem; }
+
+@media (max-width: 760px) {
+  .docs-shell { display: block; }
+  .docs-sidebar { position: static; max-height: none; margin-bottom: 3rem; overflow: visible; }
+  .docs-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 1.25rem; }
+  .docs-main > h1, .prose h1 { font-size: clamp(2.6rem, 14vw, 4.5rem); }
+  .doc-grid { grid-template-columns: 1fr; }
+  .doc-grid a { min-height: 7rem; }
+}

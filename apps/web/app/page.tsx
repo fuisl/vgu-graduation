@@ -2,17 +2,10 @@ import Link from "next/link";
 import { BackgroundMotion } from "./background/BackgroundMotion";
 import { TwinkleField } from "./background/TwinkleField";
 import { GridCells } from "./background/GridCells";
+import { ArrowUpRight } from "./icons/ArrowUpRight";
 import { BrandName } from "./logo/BrandName";
 import { Sculpture } from "./sculpture/Sculpture";
 import { WaveTitle } from "./landing-title/WaveTitle";
-
-function ArrowUpRight() {
-  return <span className="landing-arrow" aria-hidden="true">
-    <svg viewBox="0 0 12 12" role="presentation">
-      <path d="M2.25 9.75 9.75 2.25M4 2.25h5.75V8" />
-    </svg>
-  </span>;
-}
 
 export default function Home() {
   return <main className="landing">
@@ -27,13 +20,13 @@ export default function Home() {
     </div>
     <TwinkleField />
     <header className="landing-header">
-      <Link className="landing-brand" href="/" aria-label="GRAD '26 home">
+      <a className="landing-brand" href="https://vgu.edu.vn/vi/home" target="_blank" rel="noopener noreferrer" aria-label="VGU home">
         <BrandName />
-      </Link>
+      </a>
       <nav className="landing-nav" aria-label="Main navigation">
         <a href="#gallery">Gallery</a>
         <a href="#live-translate">Live translate</a>
-        <Link className="landing-signin" href="/invite/demo">Guest sign in <ArrowUpRight /></Link>
+        <Link className="landing-signin" href="/not-found">Guest sign in <ArrowUpRight /></Link>
       </nav>
     </header>
 

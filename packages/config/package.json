@@ -1,0 +1,1 @@
+{"name":"@grad/config","private":true,"version":"0.0.0","scripts":{"build":"echo config","lint":"echo config","typecheck":"echo config","test":"echo config"}}

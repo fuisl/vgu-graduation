@@ -1,0 +1,1 @@
+import type {Metadata} from "next";import "@grad/design-tokens/tokens.css";import "./globals.css";export const metadata:Metadata={title:"GRAD '26",description:"VGU graduation ceremony companion."};export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="en"><body>{children}</body></html>}

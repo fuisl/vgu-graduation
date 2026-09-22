@@ -1,0 +1,1 @@
+{"name":"@grad/design-tokens","private":true,"version":"0.0.0","exports":{"./tokens.css":"./src/tokens.css"},"scripts":{"build":"echo tokens","lint":"echo tokens","typecheck":"echo tokens","test":"echo tokens"}}

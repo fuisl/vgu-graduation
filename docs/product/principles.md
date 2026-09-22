@@ -1,5 +1,4 @@
 # Product Principles
-
 1. **Invitation first.**
 2. **One experience, not many apps.** The invitation/pass connects event utilities.
 3. **90% restraint, 10% spectacle.**

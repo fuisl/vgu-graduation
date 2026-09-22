@@ -1,5 +1,4 @@
 # AI-assisted Development
-
 **Bring your own model; share the same context.**
 Context order: GitHub issue → `AGENTS.md` → relevant docs → existing implementation/tests → approved visual references.
 Agent loop: read → inspect patterns → plan → implement smallest coherent change → test → acceptance criteria → design check → docs update → summary.

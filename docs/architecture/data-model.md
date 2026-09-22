@@ -1,7 +1,5 @@
 # Initial Data Model
-
 Core concepts:
-
 - `User`: internal graduate/admin.
 - `Guest`: external invited person.
 - `Invitation`: personalized pass with high-entropy bearer token; store a hash where practical.

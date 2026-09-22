@@ -1,0 +1,1 @@
+{"name":"@grad/ui","private":true,"version":"0.0.0","exports":{".":"./src/index.ts"},"peerDependencies":{"react":"^19.0.0"},"devDependencies":{"@types/react":"^19.1.13","react":"^19.1.1","typescript":"^5.9.2"},"scripts":{"build":"tsc --noEmit","lint":"tsc --noEmit","typecheck":"tsc --noEmit","test":"echo ui"}}

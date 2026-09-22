@@ -1,0 +1,22 @@
+name: Feature
+description: A scoped product or engineering feature
+title: "[Feature] "
+body:
+  - type: textarea
+    id: context
+    attributes: { label: Context }
+    validations: { required: true }
+  - type: textarea
+    id: requirements
+    attributes: { label: Requirements }
+    validations: { required: true }
+  - type: textarea
+    id: acceptance
+    attributes: { label: Acceptance criteria, placeholder: "- [ ] ..." }
+    validations: { required: true }
+  - type: textarea
+    id: references
+    attributes: { label: Design / docs / dependencies }
+  - type: textarea
+    id: outofscope
+    attributes: { label: Out of scope }

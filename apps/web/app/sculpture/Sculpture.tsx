@@ -124,6 +124,7 @@ function ParticleScene({ onLabel }: { onLabel: (label: string) => void }) {
   const points = useRef<Points>(null);
   const elapsed = useRef(0);
   const previous = useRef(-1);
+  const synced = useRef(false);
   const geometry = useMemo(() => {
     const result = new BufferGeometry();
     const positions = new Float32Array(SHAPES[0]);
@@ -139,6 +140,7 @@ function ParticleScene({ onLabel }: { onLabel: (label: string) => void }) {
     const state = sequenceAt(elapsed.current);
     if (state.index !== previous.current) {
       previous.current = state.index;
+      synced.current = false;
       onLabel(SHAPE_NAMES[state.index]);
     }
     const position = geometry.attributes.position as BufferAttribute;
@@ -163,15 +165,17 @@ function ParticleScene({ onLabel }: { onLabel: (label: string) => void }) {
       }
       position.needsUpdate = true;
       colors.needsUpdate = true;
-    } else if (previous.current !== -1 && output[0] !== from[0]) {
+      synced.current = false;
+    } else if (!synced.current) {
+      synced.current = true;
       output.set(from);
       outputColors.set(fromShades);
       position.needsUpdate = true;
       colors.needsUpdate = true;
     }
     if (points.current) {
-      points.current.rotation.y = Math.sin(elapsed.current * 0.52) * 0.42;
-      points.current.rotation.x = -0.12 + Math.sin(elapsed.current * 0.31) * 0.06;
+      points.current.rotation.y = elapsed.current * 0.32;
+      points.current.rotation.x = -0.14;
     }
   });
 
@@ -239,6 +243,5 @@ export function Sculpture() {
         <AsciiPass onFirstFrame={() => setReady(true)} />
       </Canvas>
     </WebGLErrorBoundary>}
-    <span className="sculpture-label mono" aria-hidden="true"><span className="sculpture-count">[ {String(SHAPE_NAMES.indexOf(label as typeof SHAPE_NAMES[number]) + 1).padStart(2, "0")} / 05 ]</span>{ready && enabled && !failed ? label : "GRADIENT DESCENT"}</span>
   </div>;
 }

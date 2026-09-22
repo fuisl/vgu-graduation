@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { HOLD_SECONDS, MORPH_SECONDS, POINT_COUNT, sequenceAt, SHADES, SHAPES, SHAPE_NAMES } from "./shapes";
 
 describe("landing sculpture sequence", () => {
-  it("keeps all five forms compatible for point-by-point morphing", () => {
-    expect(SHAPES).toHaveLength(5);
-    expect(SHAPE_NAMES).toHaveLength(5);
+  it("keeps all six forms compatible for point-by-point morphing", () => {
+    expect(SHAPES).toHaveLength(6);
+    expect(SHAPE_NAMES).toHaveLength(6);
     for (const form of SHAPES) {
       expect(form).toHaveLength(POINT_COUNT * 3);
       expect([...form].every(Number.isFinite)).toBe(true);
@@ -22,6 +22,6 @@ describe("landing sculpture sequence", () => {
     expect(sequenceAt(HOLD_SECONDS - 0.01)).toMatchObject({ index: 0, morph: 0 });
     expect(sequenceAt(HOLD_SECONDS + MORPH_SECONDS / 2).morph).toBeCloseTo(0.5);
     expect(sequenceAt(HOLD_SECONDS + MORPH_SECONDS)).toMatchObject({ index: 1, morph: 0 });
-    expect(sequenceAt((HOLD_SECONDS + MORPH_SECONDS) * 5)).toMatchObject({ index: 0, morph: 0 });
+    expect(sequenceAt((HOLD_SECONDS + MORPH_SECONDS) * 6)).toMatchObject({ index: 0, morph: 0 });
   });
 });

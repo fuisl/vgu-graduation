@@ -17,9 +17,7 @@
 .sculpture-canvas{position:absolute!important;inset:0;z-index:1;mix-blend-mode:screen}
 .sculpture-fallback{position:absolute;inset:0;display:grid;place-content:center;margin:0;font-family:var(--font-mono);font-size:clamp(9px,1.27vw,15px);line-height:1.35;letter-spacing:.04em;text-align:left;white-space:pre;color:#879edc;text-shadow:0 0 42px rgba(80,120,232,.18);transition:opacity .5s ease}
 .sculpture-fallback.is-hidden{opacity:0}
-.sculpture-label{position:absolute;z-index:2;left:0;right:0;bottom:.1rem;font-size:.58rem;letter-spacing:.23em;color:#7c8dac}
-.sculpture-count{display:block;margin-bottom:.6rem;color:#52617b;letter-spacing:.15em}
 .landing-message h1{margin:0;font-size:clamp(1.65rem,2.65vw,2.2rem);line-height:1.14;font-weight:400;letter-spacing:-.04em;color:#edf1f9}
 .landing-message p{margin:1.1rem 0 0;color:var(--landing-muted);font-size:clamp(.82rem,1.3vw,.96rem);line-height:1.5;letter-spacing:.015em}
-@media(max-width:600px){.landing-header,.landing-footer{padding-inline:1.3rem}.landing-header{padding-top:1.5rem}.landing-footer{padding-bottom:1.5rem}.landing-footer span:last-child{display:none}.landing-center{padding-top:2rem;padding-bottom:2rem}.landing-kicker{font-size:.5rem;gap:.7rem;letter-spacing:.14em}.landing-kicker-line{width:1rem}.sculpture{height:min(100vw,410px);margin-top:1.2rem;margin-bottom:1.1rem}.sculpture-label{bottom:.1rem}.landing-message h1{font-size:clamp(1.75rem,7vw,2.2rem)}.landing-message p{margin-top:.85rem}}
+@media(max-width:600px){.landing-header,.landing-footer{padding-inline:1.3rem}.landing-header{padding-top:1.5rem}.landing-footer{padding-bottom:1.5rem}.landing-footer span:last-child{display:none}.landing-center{padding-top:2rem;padding-bottom:2rem}.landing-kicker{font-size:.5rem;gap:.7rem;letter-spacing:.14em}.landing-kicker-line{width:1rem}.sculpture{height:min(100vw,410px);margin-top:1.2rem;margin-bottom:1.1rem}.landing-message h1{font-size:clamp(1.75rem,7vw,2.2rem)}.landing-message p{margin-top:.85rem}}
 @media(prefers-reduced-motion:reduce){.sculpture-fallback{transition:none}}

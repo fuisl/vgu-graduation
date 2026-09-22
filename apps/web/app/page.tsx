@@ -1,10 +1,12 @@
+import { BrandName } from "./logo/BrandName";
+import { LogoMark } from "./logo/LogoMark";
 import { Sculpture } from "./sculpture/Sculpture";
 
 export default function Home() {
   return <main className="landing">
     <div className="landing-field" aria-hidden="true" />
     <header className="landing-header mono">
-      <span>VGU / CSE</span>
+      <span className="landing-brand"><LogoMark /><BrandName /></span>
       <span>GRAD ’26</span>
     </header>
     <section className="landing-center" aria-labelledby="landing-title">

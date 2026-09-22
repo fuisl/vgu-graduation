@@ -6,6 +6,16 @@
 .landing-header,.landing-footer{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding-inline:clamp(1.25rem,4vw,4.5rem);font-size:.68rem;letter-spacing:.16em;line-height:1.5}
 .landing-header{padding-top:clamp(1.5rem,4vw,3rem);color:#d8e1f2}
 .landing-header span:last-child{font-weight:700;letter-spacing:.22em}
+.landing-brand{display:inline-flex;align-items:center;gap:.5em}
+.logo-mark{display:inline-flex;cursor:default}
+.logo-mark pre{margin:0;font-family:var(--font-mono);font-size:4.6px;line-height:1;letter-spacing:0;color:#f5821f;text-shadow:0 0 10px rgba(245,130,31,.3);user-select:none}
+.brand-name{display:inline-flex;letter-spacing:.16em;cursor:default}
+.brand-segment{display:inline-flex}
+.brand-prefix{font-weight:700}
+.brand-rest{display:inline-flex}
+.brand-char{display:inline-block;width:0;opacity:0;overflow:hidden;transform:translateY(3px);white-space:pre;transition:width .38s cubic-bezier(.22,1,.36,1),opacity .22s ease,transform .38s cubic-bezier(.22,1,.36,1)}
+.brand-name.is-expanded .brand-char{width:1ch;opacity:1;transform:translateY(0)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .landing-footer{padding-bottom:clamp(1.5rem,4vw,3rem);color:#69748c;font-size:.61rem;letter-spacing:.13em}
 .landing-footer-dot{padding-inline:.5em;color:#4e5e7f}
 .landing-center{width:min(100%,1000px);margin:auto;display:flex;align-items:center;flex-direction:column;justify-content:center;text-align:center;padding:1.5rem 1.25rem 2rem}
@@ -19,5 +29,5 @@
 .sculpture-fallback.is-hidden{opacity:0}
 .landing-message h1{margin:0;font-size:clamp(1.65rem,2.65vw,2.2rem);line-height:1.14;font-weight:400;letter-spacing:-.04em;color:#edf1f9}
 .landing-message p{margin:1.1rem 0 0;color:var(--landing-muted);font-size:clamp(.82rem,1.3vw,.96rem);line-height:1.5;letter-spacing:.015em}
-@media(max-width:600px){.landing-header,.landing-footer{padding-inline:1.3rem}.landing-header{padding-top:1.5rem}.landing-footer{padding-bottom:1.5rem}.landing-footer span:last-child{display:none}.landing-center{padding-top:2rem;padding-bottom:2rem}.landing-kicker{font-size:.5rem;gap:.7rem;letter-spacing:.14em}.landing-kicker-line{width:1rem}.sculpture{height:min(100vw,410px);margin-top:1.2rem;margin-bottom:1.1rem}.landing-message h1{font-size:clamp(1.75rem,7vw,2.2rem)}.landing-message p{margin-top:.85rem}}
-@media(prefers-reduced-motion:reduce){.sculpture-fallback{transition:none}}
+@media(max-width:600px){.landing-header,.landing-footer{padding-inline:1.3rem}.landing-header{padding-top:1.5rem}.landing-footer{padding-bottom:1.5rem}.landing-footer span:last-child{display:none}.landing-center{padding-top:2rem;padding-bottom:2rem}.landing-kicker{font-size:.5rem;gap:.7rem;letter-spacing:.14em}.landing-kicker-line{width:1rem}.sculpture{height:min(100vw,410px);margin-top:1.2rem;margin-bottom:1.1rem}.landing-message h1{font-size:clamp(1.75rem,7vw,2.2rem)}.landing-message p{margin-top:.85rem}.logo-mark pre{font-size:3.8px}.brand-name{letter-spacing:.12em}}
+@media(prefers-reduced-motion:reduce){.sculpture-fallback{transition:none}.brand-char{transition:none}}

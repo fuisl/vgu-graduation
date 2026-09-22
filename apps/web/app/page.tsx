@@ -4,6 +4,7 @@ import { TwinkleField } from "./background/TwinkleField";
 import { GridCells } from "./background/GridCells";
 import { ArrowUpRight } from "./icons/ArrowUpRight";
 import { BrandName } from "./logo/BrandName";
+import { RecapCarousel } from "./recap/RecapCarousel";
 import { Sculpture } from "./sculpture/Sculpture";
 import { WaveTitle } from "./landing-title/WaveTitle";
 
@@ -36,12 +37,11 @@ export default function Home() {
       <div className="landing-event-grid">
         <div className="landing-recap" id="gallery">
           <div className="landing-recap-frame" aria-hidden="true">
-            <span className="landing-recap-mark">+</span>
+            <RecapCarousel />
             <span className="landing-recap-scan">MEDIA_00</span>
           </div>
           <div className="landing-recap-caption mono">
-            <span>Pictures / recaps</span>
-            <span>Coming later</span>
+            <span>Coming soon</span>
           </div>
         </div>
 

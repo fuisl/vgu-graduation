@@ -1,5 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalPassThroughEnv": ["DOCS_ORIGIN"],
   "tasks": {
     "build": { "dependsOn": ["^build"], "outputs": [] },
     "@grad/web#build": {

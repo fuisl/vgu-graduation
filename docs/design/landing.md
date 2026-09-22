@@ -53,6 +53,10 @@ Each point's brightness (`SHADES`, precomputed once per shape) drives glyph dens
 - **Idle motion**: every point gets a small continuous sine-driven shimmer (unique phase per point), running every frame including during the 5s hold, not just during morphs, plus a gentle whole-object breathing scale (±1.5%). Both intentionally subtle so a held shape stays readable.
 - **Morph**: all 5,200 points share one synchronized progress value, eased with symmetric smoothstep (`t²(3-2t)`), plus a `sin(πt)`-driven outward scatter that peaks at the transition's midpoint. Two alternatives were tried and reverted: a per-point staggered reform (via a golden-ratio Weyl sequence, each point on its own delayed timeline) read as unsynchronized rather than lively; a restrained ease-out-back curve (fast departure, ~4% overshoot, clean settle) went back to smoothstep alongside it. Current state: fully synced, symmetric easing.
 
+### Code backdrop
+
+`CodeBackdrop.tsx` displays two short PyTorch-style fragments for each of the six shapes, in the same order as the sculpture cycle. The right fragment sits lower and starts typing 250ms after the left; both finish during the shape's hold. As soon as morphing begins, both retract character by character faster than they appeared, completing before the next shape arrives. The text sits behind the canvas, with grid-level blue-gray contrast and a slightly brighter muted blue on function calls; each side fades toward the sculpture's center. It is decorative and hidden from assistive technology. Reduced motion and unavailable WebGL show the complete static fragments instead of typing.
+
 ## ASCII rendering
 
 The scene renders normally, then gets sampled into a fixed ASCII grid by a GPU shader (`asciiShader` in `Sculpture.tsx`): each cell averages a 3×3 neighborhood and tracks its peak brightness, blends the two, and indexes into an 8-glyph ramp (space, then `.:-=+*#`, sparsest to densest). Color follows that same blended lightness through a 3-stop gradient (violet shadow → blue midtone → icy cyan highlight) — color follows lighting, not screen position.

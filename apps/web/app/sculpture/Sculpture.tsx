@@ -11,6 +11,7 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { POINT_COUNT, sequenceAt, SHADES, SHAPES, SHAPE_NAMES } from "./shapes";
+import { ShapeCodeBackdrop } from "./CodeBackdrop";
 
 const GLYPHS = " .:-=+*#";
 
@@ -120,10 +121,11 @@ function CameraRig() {
   return null;
 }
 
-function ParticleScene({ onLabel }: { onLabel: (label: string) => void }) {
+function ParticleScene({ onShape, onDepart }: { onShape: (index: number) => void; onDepart: () => void }) {
   const points = useRef<Points>(null);
   const elapsed = useRef(0);
   const previous = useRef(-1);
+  const departing = useRef(false);
   const geometry = useMemo(() => {
     const result = new BufferGeometry();
     const positions = new Float32Array(SHAPES[0]);
@@ -139,7 +141,11 @@ function ParticleScene({ onLabel }: { onLabel: (label: string) => void }) {
     const state = sequenceAt(elapsed.current);
     if (state.index !== previous.current) {
       previous.current = state.index;
-      onLabel(SHAPE_NAMES[state.index]);
+      departing.current = false;
+      onShape(state.index);
+    } else if (state.morph > 0 && !departing.current) {
+      departing.current = true;
+      onDepart();
     }
     const position = geometry.attributes.position as BufferAttribute;
     const colors = geometry.attributes.color as BufferAttribute;
@@ -201,7 +207,8 @@ export function Sculpture() {
   const [visible, setVisible] = useState(true);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [label, setLabel] = useState<string>(SHAPE_NAMES[0]);
+  const [shapeIndex, setShapeIndex] = useState(0);
+  const [departing, setDeparting] = useState(false);
 
   useEffect(() => {
     const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -220,8 +227,9 @@ export function Sculpture() {
     };
   }, []);
 
-  return <div className="sculpture" aria-label={`Animated ASCII sculpture: ${label}`} role="img">
+  return <div className="sculpture" aria-label={`Animated ASCII sculpture: ${SHAPE_NAMES[shapeIndex]}`} role="img">
     <div className="sculpture-halo" aria-hidden="true" />
+    <ShapeCodeBackdrop index={shapeIndex} animate={enabled && ready && visible && !failed} departing={departing} />
     <pre className={`sculpture-fallback${ready && enabled && !failed ? " is-hidden" : ""}`} aria-hidden="true">{`             .   :   .
        .  :  +  *  +  :  .
     . : + * # % @ % # * + : .
@@ -244,7 +252,7 @@ export function Sculpture() {
       >
         <color attach="background" args={["#050810"]} />
         <CameraRig />
-        <ParticleScene onLabel={setLabel} />
+        <ParticleScene onShape={(index) => { setShapeIndex(index); setDeparting(false); }} onDepart={() => setDeparting(true)} />
         <AsciiPass onFirstFrame={() => setReady(true)} />
       </Canvas>
     </WebGLErrorBoundary>}

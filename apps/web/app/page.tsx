@@ -4,7 +4,6 @@ import { TwinkleField } from "./background/TwinkleField";
 import { GridCells } from "./background/GridCells";
 import { ArrowUpRight } from "./icons/ArrowUpRight";
 import { BrandName } from "./logo/BrandName";
-import { RecapCarousel } from "./recap/RecapCarousel";
 import { Sculpture } from "./sculpture/Sculpture";
 import { WaveTitle } from "./landing-title/WaveTitle";
 
@@ -34,31 +33,21 @@ export default function Home() {
     <section className="landing-hero" aria-labelledby="landing-title">
       <h1 id="landing-title">GRADUATION<span>’26</span></h1>
 
-      <div className="landing-event-grid">
-        <div className="landing-recap" id="gallery">
-          <div className="landing-recap-frame" aria-hidden="true">
-            <RecapCarousel />
-            <span className="landing-recap-scan">MEDIA_00</span>
-          </div>
-          <div className="landing-recap-caption mono">
-            <span>Coming soon</span>
-          </div>
+      <div className="landing-centerpiece" id="gallery">
+        <div className="landing-event-meta mono">
+          <p>November 2026 / VGU Campus, HCMC</p>
+          <span aria-hidden="true" />
         </div>
-
-        <div className="landing-program">
-          <div className="landing-event-meta mono">
-            <p>November 2026 / VGU Campus, HCMC</p>
-            <span>Graduation ceremony</span>
-          </div>
-          <div className="landing-visual" id="live-translate">
-            <Sculpture />
-          </div>
-          <div className="landing-message">
-            <WaveTitle />
-            <p>The next chapter begins together.</p>
-          </div>
+        <div className="landing-visual" id="live-translate">
+          <Sculpture />
+        </div>
+        <div className="landing-message">
+          <WaveTitle />
+          <p>The next chapter begins together.</p>
         </div>
       </div>
     </section>
+
+    <p className="landing-credit">Duong <span>(aka. James)</span></p>
   </main>;
 }

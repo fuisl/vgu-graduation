@@ -32,7 +32,7 @@ export function BadgeScene({ children }: { children: ReactNode }) {
   return <div className="guest-badge-view" role="img" aria-label={enabled && !failed ? "Interactive three-dimensional GRAD '26 guest badge. Drag the badge to move it." : "GRAD '26 guest badge preview. Your name here."}>
     <div className={`guest-badge-fallback${ready && enabled && !failed ? " is-hidden" : ""}`} aria-hidden="true">{children}</div>
     {enabled && !failed && <BadgeErrorBoundary onError={() => setFailed(true)}>
-      <BadgeCanvas onReady={() => setReady(true)} onError={() => setFailed(true)} visible={visible} />
+      <BadgeCanvas onReady={setReady} visible={visible} />
     </BadgeErrorBoundary>}
   </div>;
 }

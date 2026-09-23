@@ -33,35 +33,12 @@ export default function GuestPrototype() {
       <section className="guest-stage" aria-labelledby="guest-page-title">
         <div className="guest-stage-heading">
           <p className="mono">01 / THE PASS</p>
-          <h1 id="guest-page-title">Your place in this memory.</h1>
+          <h1 id="guest-page-title">Your place<br />in this memory.</h1>
           <p>A first look at the guest badge. Details shown are placeholders.</p>
         </div>
 
         <div className="guest-object-scene">
-          <div className="guest-orbit guest-orbit-one" aria-hidden="true" />
-          <div className="guest-orbit guest-orbit-two" aria-hidden="true" />
-          <span className="guest-cross guest-cross-left" aria-hidden="true">+</span>
-          <span className="guest-cross guest-cross-right" aria-hidden="true">+</span>
-
-          <BadgeScene><div className="guest-badge-assembly">
-            <div className="guest-lanyard mono" aria-hidden="true"><span>GRADUATION ’26</span></div>
-            <div className="guest-ring" aria-hidden="true" />
-            <article className="guest-badge" aria-label="Prototype guest badge for GRAD '26">
-              <div className="guest-badge-top mono"><span>VGU / 26</span><span>GUEST</span></div>
-              <pre className="guest-badge-ascii" aria-hidden="true">{`        . : .
-     . : + : .
-   . : + * + : .
-. : + * # * + : .
-   . : + * + : .
-     . : + : .
-        . : .`}</pre>
-              <p className="guest-badge-name mono">YOUR NAME HERE</p>
-              <div className="guest-badge-bottom mono">
-                <div className="guest-badge-details"><span>NOV 2026<br />VGU CAMPUS</span><span>PASS / 001<br />PREVIEW</span></div>
-                <p>SAME PEOPLE. A BRIGHTER YOU.</p>
-              </div>
-            </article>
-          </div></BadgeScene>
+          <BadgeScene><p className="guest-badge-placeholder mono">YOUR NAME HERE</p></BadgeScene>
         </div>
 
         <p className="guest-stage-footer mono">[ PREVIEW ONLY ] <span aria-hidden="true">—</span> A PLACEHOLDER FOR YOUR STORY</p>

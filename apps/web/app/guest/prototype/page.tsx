@@ -4,6 +4,7 @@ import { BackgroundMotion } from "../../background/BackgroundMotion";
 import { GridCells } from "../../background/GridCells";
 import { TwinkleField } from "../../background/TwinkleField";
 import { BrandName } from "../../logo/BrandName";
+import { BadgeScene } from "./BadgeScene";
 import "./prototype.css";
 
 export const metadata: Metadata = {
@@ -42,29 +43,25 @@ export default function GuestPrototype() {
           <span className="guest-cross guest-cross-left" aria-hidden="true">+</span>
           <span className="guest-cross guest-cross-right" aria-hidden="true">+</span>
 
-          <div className="guest-badge-assembly">
-            <div className="guest-lanyard" aria-hidden="true" />
+          <BadgeScene><div className="guest-badge-assembly">
+            <div className="guest-lanyard mono" aria-hidden="true"><span>GRADUATION ’26</span></div>
             <div className="guest-ring" aria-hidden="true" />
             <article className="guest-badge" aria-label="Prototype guest badge for GRAD '26">
-              <div className="guest-badge-hole" aria-hidden="true" />
-              <div className="guest-badge-top mono"><span>VGU</span><span>GRADUATION ’26</span></div>
-              <div className="guest-badge-mark" aria-hidden="true">
-                <span className="guest-mark-horizontal" />
-                <span className="guest-mark-vertical" />
-                <span className="guest-mark-core">✳</span>
-              </div>
-              <div className="guest-badge-identity mono">
-                <span>GRAD / 26</span>
-                <strong>GUEST</strong>
-                <span className="guest-badge-divider" aria-hidden="true" />
-                <span className="guest-badge-name">YOUR NAME HERE</span>
-              </div>
+              <div className="guest-badge-top mono"><span>VGU / 26</span><span>GUEST</span></div>
+              <pre className="guest-badge-ascii" aria-hidden="true">{`        . : .
+     . : + : .
+   . : + * + : .
+. : + * # * + : .
+   . : + * + : .
+     . : + : .
+        . : .`}</pre>
+              <p className="guest-badge-name mono">YOUR NAME HERE</p>
               <div className="guest-badge-bottom mono">
-                <div className="guest-badge-details"><span>NOV 2026<br />VGU CAMPUS</span><span>PASS / 001<br />GUEST PREVIEW</span></div>
-                <p>SAME PEOPLE.<br />A BRIGHTER YOU.</p>
+                <div className="guest-badge-details"><span>NOV 2026<br />VGU CAMPUS</span><span>PASS / 001<br />PREVIEW</span></div>
+                <p>SAME PEOPLE. A BRIGHTER YOU.</p>
               </div>
             </article>
-          </div>
+          </div></BadgeScene>
         </div>
 
         <p className="guest-stage-footer mono">[ PREVIEW ONLY ] <span aria-hidden="true">—</span> A PLACEHOLDER FOR YOUR STORY</p>

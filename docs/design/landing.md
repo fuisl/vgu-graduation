@@ -1,6 +1,6 @@
 # Landing teaser — GRAD '26
 
-The public root route (`/`) is a quiet teaser for the November ceremony, and the one place in the product where the visual system permits a continuous 3D moment. The `/guest/prototype` badge preview reuses its background layers without a WebGL scene. Invitation and documentation routes stay separate and don't inherit this palette or motion. This page documents the approved aesthetic as shipped — treat it as the reference for future changes, not a changelog.
+The public root route (`/`) is a quiet teaser for the November ceremony. The `/guest/prototype` badge preview reuses its background layers and adds a focused, interactive 3D badge. Invitation and documentation routes stay separate and don't inherit this palette or motion. This page documents the approved aesthetic as shipped — treat it as the reference for future changes, not a changelog.
 
 ## Palette
 
@@ -75,3 +75,9 @@ The scene renders normally, then gets sampled into a fixed ASCII grid by a GPU s
 ## Reference captures
 
 `docs/design/reference/landing-desktop.png` and `landing-mobile.png` exist but predate this pass — the sculpture set, wordmark, and background layers have all changed since they were captured. Recapture both from a local production build before treating them as current.
+
+## Guest badge prototype
+
+`/guest/prototype` reuses the landing background. The 3D pass has a thin, dark card with a static ASCII artwork placeholder, compact guest details, and a wider, single-color lanyard printed with `GRADUATION '26`. The server-rendered CSS badge mirrors that layout for reduced motion, loading, and WebGL failure.
+
+The lanyard uses three Rapier rope joints and a spherical card joint, following the Vercel badge reference. Physics uses a fixed 1/60-second step, gravity `-40`, damping `2`, a `0.25` front-facing rotation correction, and distance-based smoothing of the middle joints (speed range `10–50`). Pointer drags stay within the lanyard's reach. Tab hiding pauses physics and clears captured gestures; on return, two render frames advance before physics resumes so a background-tab delta cannot drive a burst of catch-up steps.

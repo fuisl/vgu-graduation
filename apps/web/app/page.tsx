@@ -26,7 +26,7 @@ export default function Home() {
       <nav className="landing-nav" aria-label="Main navigation">
         <a href="#gallery">Gallery</a>
         <a href="#live-translate">Live translate</a>
-        <Link className="landing-signin" href="/not-found">Guest sign in <ArrowUpRight /></Link>
+        <Link className="landing-signin" href="/guest/prototype">Guest preview <ArrowUpRight /></Link>
       </nav>
     </header>
 

@@ -1,12 +1,12 @@
 # Landing teaser — GRAD '26
 
-The public root route (`/`) is a quiet teaser for the November ceremony, and the one place in the product where the visual system permits a continuous 3D moment. Invitation and documentation routes stay separate and don't inherit this palette or motion. This page documents the approved aesthetic as shipped — treat it as the reference for future changes, not a changelog.
+The public root route (`/`) is a quiet teaser for the November ceremony, and the one place in the product where the visual system permits a continuous 3D moment. The `/guest/prototype` badge preview reuses its background layers without a WebGL scene. Invitation and documentation routes stay separate and don't inherit this palette or motion. This page documents the approved aesthetic as shipped — treat it as the reference for future changes, not a changelog.
 
 ## Palette
 
 - Near-black surface: `#070A12`. Header/body text a near-white `#ECF0F9`/`#D8E1F2`; the header wordmark is pure white (`#fff`).
 - A restrained blue-violet radial glow sits behind everything (`.landing::before`), independent of the sculpture's own halo.
-- This palette — including the sculpture's ASCII shader gradient (violet shadow → blue midtone → icy cyan highlight) — belongs to the landing page only. It does not change `packages/design-tokens`; see `docs/design/tokens.md`.
+- This palette — including the sculpture's ASCII shader gradient (violet shadow → blue midtone → icy cyan highlight) — belongs to the landing experience and its guest badge prototype. It does not change `packages/design-tokens`; see `docs/design/tokens.md`.
 
 ## Background layers
 
@@ -21,7 +21,7 @@ All motion here is intentionally small and slow — it should read as "the page 
 
 ## Header
 
-- The header is a full-width segmented navigation bar inspired by the clear event hierarchy of GitHub Universe, translated into GRAD's dark, bordered visual system. It contains Gallery, Live translate, and Guest sign in; the guest link currently leads to the invitation preview.
+- The header is a full-width segmented navigation bar inspired by the clear event hierarchy of GitHub Universe, translated into GRAD's dark, bordered visual system. It contains Gallery, Live translate, and Guest preview; the guest link leads to the placeholder badge prototype.
 - Left: a procedural white ASCII treatment generated from the official transparent `apps/web/public/brand/vgu-logo.png` by `scripts/generate-vgu-logo.py`. The 36-frame GIF uses 21px monospace glyphs and a slow 2.9-second sweep across only the emblem while the wordmark remains stable. The generator uses 1.2× vertical pitch to prevent larger glyphs from cutting through adjacent rows. `BrandName.tsx` uses the GIF as a CSS mask, so `--brand-logo-color` can recolor the whole result. Reduced motion switches to the original static PNG mask. The logo remains stable while scrolling.
 - Guest sign in is the single raised accent action: muted blue fill, hard offset shadow, and a locally drawn compact northeast arrow. It lifts another 2px on hover or keyboard focus.
 - The "Coming soon in November." heading has a narrow four-character decode wave (`WaveTitle.tsx`). It moves across the line roughly every four seconds, replacing the visible letters themselves with ASCII noise before restoring them. Invisible original glyphs reserve each character's width, so the heading stays stable; words wrap together on narrow screens. The accessible heading remains constant, and reduced motion shows plain text.

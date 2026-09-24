@@ -30,13 +30,7 @@ export default function GuestPrototype() {
         <Link className="guest-back mono" href="/">← BACK TO HOME</Link>
       </header>
 
-      <section className="guest-stage" aria-labelledby="guest-page-title">
-        <div className="guest-stage-heading">
-          <p className="mono">01 / THE PASS</p>
-          <h1 id="guest-page-title">Your place<br />in this memory.</h1>
-          <p>A first look at the guest badge. Details shown are placeholders.</p>
-        </div>
-
+      <section className="guest-stage" aria-label="Guest badge preview">
         <div className="guest-object-scene">
           <BadgeScene><p className="guest-badge-placeholder mono">YOUR NAME HERE</p></BadgeScene>
         </div>

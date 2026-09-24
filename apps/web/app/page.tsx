@@ -25,9 +25,9 @@ export default function Home() {
         <BrandName />
       </a>
       <nav className="landing-nav" aria-label="Main navigation">
-        <a href="#gallery"><DecodeText text="Gallery" delay={160} /></a>
-        <Link href="/ascii-live"><DecodeText text="ASCII live" delay={230} /></Link>
-        <Link className="landing-signin" href="/guest/prototype"><DecodeText text="Guest preview" delay={300} /> <ArrowUpRight /></Link>
+        <a href="#gallery">Gallery</a>
+        <Link href="/ascii-live">ASCII live</Link>
+        <Link className="landing-signin" href="/guest/prototype">Guest preview <ArrowUpRight /></Link>
       </nav>
     </header>
 

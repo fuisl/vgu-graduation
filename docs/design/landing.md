@@ -21,7 +21,7 @@ All motion here is intentionally small and slow — it should read as "the page 
 
 ## Header
 
-- The header is a full-width segmented navigation bar inspired by the clear event hierarchy of GitHub Universe, translated into GRAD's dark, bordered visual system. It contains Gallery, Live translate, and Guest preview; the guest link leads to the placeholder badge prototype.
+- The header is a full-width segmented navigation bar inspired by the clear event hierarchy of GitHub Universe, translated into GRAD's dark, bordered visual system. It contains Gallery, ASCII live, and Guest preview; ASCII live opens the user-initiated camera renderer and the guest link leads to the placeholder badge prototype.
 - Left: a procedural white ASCII treatment generated from the official transparent `apps/web/public/brand/vgu-logo.png` by `scripts/generate-vgu-logo.py`. The 36-frame GIF uses 21px monospace glyphs and a slow 2.9-second sweep across only the emblem while the wordmark remains stable. The generator uses 1.2× vertical pitch to prevent larger glyphs from cutting through adjacent rows. `BrandName.tsx` uses the GIF as a CSS mask, so `--brand-logo-color` can recolor the whole result. Reduced motion switches to the original static PNG mask. The logo remains stable while scrolling.
 - Guest sign in is the single raised accent action: muted blue fill, hard offset shadow, and a locally drawn compact northeast arrow. It lifts another 2px on hover or keyboard focus.
 - The "Coming soon in November." heading has a narrow four-character decode wave (`WaveTitle.tsx`). It moves across the line roughly every four seconds, replacing the visible letters themselves with ASCII noise before restoring them. Invisible original glyphs reserve each character's width, so the heading stays stable; words wrap together on narrow screens. The accessible heading remains constant, and reduced motion shows plain text.
@@ -72,6 +72,10 @@ The scene renders normally, then passes through a two-stage GPU character render
 - The glyph atlas uses the same self-hosted Geist Mono face as the page and is created only after the font is ready, avoiding platform-dependent `monospace` substitutions.
 - The render loop pauses entirely when the document is hidden (`frameloop="never"`).
 - A static ASCII motif ships in server-rendered HTML and stays visible whenever the canvas isn't: reduced motion, no WebGL, a render error, or WebGL context loss.
+
+### Live camera
+
+`/ascii-live` uses the pinned private `asciify` dependency rather than a copied renderer. Camera access is explicit and user-initiated; frames remain in the browser and are passed directly from a hidden video element to ASCIIGen's two-pass WebGL2 renderer. Leaving the route or pressing Stop releases every media track. Users can change the character matcher, cell-grid density, dark-background cutoff, mirror state, and source-color mode without restarting capture. The route reports permission, device, playback, and WebGL failures in place and does not depend on the event backend.
 
 ## Reference captures
 

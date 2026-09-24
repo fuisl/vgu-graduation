@@ -74,3 +74,43 @@
 .landing-credit span{color:rgba(146,167,210,.16)}
 @media(max-width:960px){.landing,.notfound{--landing-grid-unit:64px}.landing{display:block;height:auto;min-height:100svh;overflow-x:hidden;overflow-y:auto}.landing-header{grid-template-columns:1fr;height:auto}.landing-brand{min-height:64px;border-right:0;border-bottom:1px solid var(--landing-line)}.landing-nav a{height:58px;padding:.75rem;font-size:.65rem}.landing-hero{display:block}.landing-hero>h1{display:block;height:auto;padding:1.4rem 1rem 1.1rem;font-size:clamp(3.25rem,17.5vw,7rem);white-space:normal;line-height:.82}.landing-centerpiece{min-height:560px}.landing-visual{min-height:390px}.sculpture{height:min(96vw,390px);min-height:340px}.sculpture-code{max-width:68%;font-size:9px}.sculpture-code-left{top:14%;left:3%}.sculpture-code-right{top:58%;right:3%}.landing-event-meta{flex-direction:column;gap:0;height:auto;padding:1rem clamp(1.25rem,2.5vw,2.5rem)}.landing-event-meta p{margin:0 0 .4rem}.landing-message{height:auto;gap:.3rem;padding:1.1rem clamp(1.25rem,2.5vw,2.5rem) 1.4rem}.landing-message h2{font-size:clamp(1.35rem,6vw,1.8rem)}.brand-logo{width:190px}}
 @media(prefers-reduced-motion:reduce){.sculpture-fallback{transition:none}.brand-logo-animated{display:none}.brand-logo-static{display:block}.landing-aurora{animation:none;transform:none;transition:none}.landing-grid-cell{animation:none;opacity:0}.landing-aurora-blob{animation:none}.landing-twinkle-dot,.landing-grid-signal{animation:none;opacity:0}.landing-recap-photo{transition:none}}
+
+.ascii-live{--live-border:rgba(157,178,224,.18);min-height:100svh;padding:clamp(1rem,3vw,2.5rem);background:radial-gradient(circle at 60% 20%,rgba(49,75,137,.17),transparent 40%),#070a12;color:#ecf0f9}
+.ascii-live-header{display:grid;grid-template-columns:minmax(10rem,1fr) 2fr minmax(14rem,1fr);align-items:start;gap:1.5rem;padding-bottom:clamp(1.25rem,3vw,2.5rem);border-bottom:1px solid var(--live-border)}
+.ascii-live-back{width:max-content;padding:.55rem 0;font:600 .78rem/1 var(--font-mono);letter-spacing:.04em;color:#aebbd7}
+.ascii-live-back:hover,.ascii-live-back:focus-visible{color:#fff}
+.ascii-live-kicker{margin:0 0 .5rem;font:600 .65rem/1 var(--font-mono);letter-spacing:.15em;text-transform:uppercase;color:#8298c8}
+.ascii-live-header h1{margin:0;font-size:clamp(2.5rem,6vw,6.25rem);line-height:.82;letter-spacing:-.07em}
+.ascii-live-privacy{justify-self:end;max-width:22rem;margin:.25rem 0 0;font-size:.76rem;line-height:1.5;color:#8790a7}
+.ascii-live-workspace{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,340px);min-height:calc(100svh - 12rem);border-left:1px solid var(--live-border)}
+.ascii-live-stage{position:relative;display:grid;place-items:center;min-height:34rem;overflow:hidden;border-right:1px solid var(--live-border);border-bottom:1px solid var(--live-border);background-image:linear-gradient(rgba(150,168,211,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(150,168,211,.04) 1px,transparent 1px);background-size:48px 48px}
+.ascii-live-stage video{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.ascii-live-stage canvas{display:block;width:94%;height:94%;object-fit:contain;filter:drop-shadow(0 0 28px rgba(78,116,207,.18))}
+.ascii-live-empty{display:flex;flex-direction:column;align-items:center;text-align:center}
+.ascii-live-empty>span{font:clamp(2.5rem,7vw,6rem)/1 var(--font-mono);letter-spacing:.08em;color:#50658f}
+.ascii-live-empty h2{margin:1.4rem 0 .35rem;font-size:1.1rem;font-weight:500}
+.ascii-live-empty p{margin:0 0 1.4rem;color:#8790a7;font-size:.78rem}
+.ascii-live-empty button,.ascii-live-actions button{min-height:44px;padding:0 1.15rem;border:1px solid #91a8df;background:#8299d5;color:#080c16;font:700 .76rem/1 var(--font-sans);cursor:pointer}
+.ascii-live-empty button:disabled,.ascii-live-actions button:disabled{cursor:wait;opacity:.55}
+.ascii-live-readout{position:absolute;right:1rem;bottom:1rem;padding:.45rem .6rem;border:1px solid var(--live-border);background:rgba(7,10,18,.78);font:.64rem/1 var(--font-mono);color:#879bc5}
+.ascii-live-controls{padding:1.4rem;border-right:1px solid var(--live-border);border-bottom:1px solid var(--live-border);background:rgba(9,13,23,.74)}
+.ascii-live-control-heading{display:flex;align-items:center;gap:.65rem;margin:1.6rem 0 .85rem;padding-top:1.1rem;border-top:1px solid var(--live-border)}
+.ascii-live-control-heading:first-child{margin-top:0;padding-top:0;border-top:0}
+.ascii-live-control-heading span{font:.62rem/1 var(--font-mono);color:#6f83ae}
+.ascii-live-control-heading h2{margin:0;font-size:.72rem;letter-spacing:.11em;text-transform:uppercase}
+.ascii-live-controls label{display:grid;gap:.6rem;margin:.85rem 0;font-size:.72rem;color:#b8c3d9}
+.ascii-live-controls label>span{display:flex;justify-content:space-between}
+.ascii-live-controls output{font-family:var(--font-mono);color:#829bd2}
+.ascii-live-controls select{width:100%;min-height:40px;padding:0 .65rem;border:1px solid var(--live-border);border-radius:0;background:#0b101c;color:#dce4f3;font:inherit}
+.ascii-live-controls input[type="range"]{width:100%;accent-color:#8da5e3}
+.ascii-live-controls .ascii-live-check{display:flex;grid-template-columns:auto 1fr;align-items:center;gap:.6rem}
+.ascii-live-check input{accent-color:#8da5e3}
+.ascii-live-options{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--live-border);border:1px solid var(--live-border)}
+.ascii-live-options button{min-height:38px;border:0;background:#0b101c;color:#9eaac1;font:600 .69rem/1 var(--font-sans);cursor:pointer}
+.ascii-live-options button:last-child:nth-child(odd){grid-column:1/-1}
+.ascii-live-options button[aria-pressed="true"]{background:#8299d5;color:#080c16}
+.ascii-live-actions{margin-top:1.6rem}
+.ascii-live-actions button{width:100%}
+.ascii-live-error{margin:1rem 0 0;color:#ffafa8;font-size:.72rem;line-height:1.45}
+.ascii-live-engine{margin:1rem 0 0;font:.62rem/1.5 var(--font-mono);color:#68748c}
+@media(max-width:800px){.ascii-live{padding:1rem}.ascii-live-header{grid-template-columns:1fr}.ascii-live-privacy{justify-self:start}.ascii-live-workspace{grid-template-columns:1fr}.ascii-live-stage{min-height:min(72svh,34rem);border-left:0}.ascii-live-controls{border-left:0}.ascii-live-header h1{font-size:clamp(3rem,17vw,5.5rem)}}

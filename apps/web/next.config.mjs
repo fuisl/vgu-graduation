@@ -2,6 +2,9 @@ const docsOrigin = (process.env.DOCS_ORIGIN || (process.env.NODE_ENV === "develo
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // ASCIIGen is installed from its private source repository and intentionally
+  // ships TypeScript rather than a compiled browser bundle.
+  transpilePackages: ["asciify"],
   async rewrites() {
     if (!docsOrigin) return [];
 

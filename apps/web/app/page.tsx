@@ -25,7 +25,7 @@ export default function Home() {
       </a>
       <nav className="landing-nav" aria-label="Main navigation">
         <a href="#gallery">Gallery</a>
-        <a href="#live-translate">Live translate</a>
+        <Link href="/ascii-live">ASCII live</Link>
         <Link className="landing-signin" href="/guest/prototype">Guest preview <ArrowUpRight /></Link>
       </nav>
     </header>
@@ -38,7 +38,7 @@ export default function Home() {
           <p>November 2026 / VGU Campus, HCMC</p>
           <span aria-hidden="true" />
         </div>
-        <div className="landing-visual" id="live-translate">
+        <div className="landing-visual">
           <Sculpture />
         </div>
         <div className="landing-message">

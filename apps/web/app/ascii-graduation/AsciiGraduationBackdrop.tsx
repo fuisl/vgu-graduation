@@ -202,8 +202,8 @@ export function AsciiGraduationBackdrop() {
       const x = column * CELL_W;
       const y = row * CELL_H;
       if (cell) {
-        target.shadowColor = "rgba(112,150,240,.85)";
-        target.shadowBlur = 11;
+        target.shadowColor = "rgba(112,150,240,.5)";
+        target.shadowBlur = 7;
         target.fillStyle = capColor(cell);
         target.fillText(char === " " ? "·" : char, x, y);
         target.shadowBlur = 0;

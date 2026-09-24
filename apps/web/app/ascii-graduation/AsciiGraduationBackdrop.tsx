@@ -7,13 +7,18 @@ const WORDS = [
   "SOFTWARE", "ENGINEERING", "DATA", "FINANCE", "INNOVATION", "WISHES", "GALLERY", "CEREMONY", "HCMC", "FOUR YEARS",
   "RSVP", "INVITATION", "PROUD", "FAMILY", "FRIENDS", "THANK YOU", "CONGRATULATIONS", "BEGIN", "WALK", "CAP & GOWN",
 ];
-const NOISE = "·.:-=+*#%@/\\|<>[]{}01";
+const NOISE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789·:/-+*#%@=<>";
 const CELL_W = 6.5;
 const CELL_H = 12;
 const SOURCE_CROP = { x: 70, y: 85, width: 830, height: 430 };
 const SUPERSAMPLE = 3;
+const KEY = 10000;
+const TICK_MS = 140;
+const SCRAMBLE_REACH = 15; // cells; scramble probability falls off as exp(-distance / reach)
+const SCRAMBLE_RATE = 0.012; // per tick at full strength
+const SHADOW_OFFSET = { column: 3, row: 3 };
 
-// Deterministic PRNG so the field is stable per size and never depends on render-time randomness.
+// Deterministic PRNG so the wall is stable per size and never depends on render-time randomness.
 function seeded(seed: number) {
   let state = seed >>> 0;
   return () => {
@@ -34,7 +39,8 @@ function buildRows(columns: number, rows: number) {
   });
 }
 
-type Blip = { row: number; column: number; born: number; life: number; char: string };
+type CapCell = { level: number; shade: number };
+type Scramble = { until: number; char: string };
 
 export function AsciiGraduationBackdrop() {
   const stageRef = useRef<HTMLElement>(null);
@@ -55,16 +61,18 @@ export function AsciiGraduationBackdrop() {
     let columns = 0;
     let rowCount = 0;
     let dpr = 1;
-    let blips: Blip[] = [];
-    let mask = new Map<number, number>();
+    let cap = new Map<number, CapCell>();
+    let candidates: { key: number; chance: number }[] = [];
+    let active = new Map<number, Scramble>();
     let frame: number | undefined;
     let visible = false;
     let lastAt = 0;
     let disposed = false;
 
-    // Per-cell brightness of the cap (0-1): mean ink plus an edge term so outlines and cloud texture read as light.
-    const buildMask = (width: number, height: number) => {
-      const next = new Map<number, number>();
+    // Per-cell brightness of the cap plus a lighting term. Level is ink + edges; shade treats level as a
+    // height field lit from the upper left, so rims facing the light are icy and the far sides fall to violet.
+    const buildCap = (width: number) => {
+      const next = new Map<number, CapCell>();
       if (!image.naturalWidth) return next;
       const compact = width < 720;
       const capWidth = compact ? width * 0.86 : Math.min(720, Math.max(320, width * 0.36));
@@ -92,6 +100,7 @@ export function AsciiGraduationBackdrop() {
         // The cutoff removes the white page and the pale stock watermark.
         signal[index] = value < 28 ? 0 : Math.min(255, value) / 255;
       }
+      const level = new Float32Array(capColumns * capRows);
       for (let row = 0; row < capRows; row += 1) {
         for (let column = 0; column < capColumns; column += 1) {
           let sum = 0;
@@ -106,11 +115,105 @@ export function AsciiGraduationBackdrop() {
             }
           }
           const mean = sum / (SUPERSAMPLE * SUPERSAMPLE);
-          const level = Math.min(1, Math.pow(mean * 1.5 + (high - low) * 1.1, 0.7));
-          if (level > 0.1) next.set((top + row) * 10000 + left + column, level);
+          level[row * capColumns + column] = Math.min(1, Math.pow(mean * 1.5 + (high - low) * 1.1, 0.7));
+        }
+      }
+      // Height field: smooth the level over a 5x5 window so the slope reads as form, not as pixel noise.
+      const height = new Float32Array(level.length);
+      for (let row = 0; row < capRows; row += 1) {
+        for (let column = 0; column < capColumns; column += 1) {
+          let sum = 0;
+          let count = 0;
+          for (let y = -2; y <= 2; y += 1) {
+            for (let x = -2; x <= 2; x += 1) {
+              const r = row + y;
+              const c = column + x;
+              if (r < 0 || c < 0 || r >= capRows || c >= capColumns) continue;
+              sum += level[r * capColumns + c];
+              count += 1;
+            }
+          }
+          height[row * capColumns + column] = sum / count;
+        }
+      }
+      const at = (row: number, column: number) => height[Math.min(capRows - 1, Math.max(0, row)) * capColumns + Math.min(capColumns - 1, Math.max(0, column))];
+      for (let row = 0; row < capRows; row += 1) {
+        for (let column = 0; column < capColumns; column += 1) {
+          const value = level[row * capColumns + column];
+          if (value <= 0.1) continue;
+          const slopeX = at(row, column + 1) - at(row, column - 1);
+          const slopeY = at(row + 1, column) - at(row - 1, column);
+          const shade = Math.min(1, Math.max(0, 0.5 - (slopeX * 0.75 + slopeY * 1.0) * 5));
+          next.set((top + row) * KEY + left + column, { level: value, shade });
         }
       }
       return next;
+    };
+
+    // Chamfer distance (in cells) from the cap, used to fade the scramble out with distance.
+    const buildCandidates = () => {
+      const distance = new Float32Array(columns * rowCount).fill(1e6);
+      cap.forEach((cell, key) => {
+        if (cell.level < 0.3) return;
+        const row = Math.floor(key / KEY);
+        const column = key % KEY;
+        if (row < rowCount && column < columns) distance[row * columns + column] = 0;
+      });
+      for (let row = 0; row < rowCount; row += 1) {
+        for (let column = 0; column < columns; column += 1) {
+          const i = row * columns + column;
+          if (column > 0) distance[i] = Math.min(distance[i], distance[i - 1] + 1);
+          if (row > 0) distance[i] = Math.min(distance[i], distance[i - columns] + 1);
+          if (row > 0 && column > 0) distance[i] = Math.min(distance[i], distance[i - columns - 1] + 1.4);
+        }
+      }
+      for (let row = rowCount - 1; row >= 0; row -= 1) {
+        for (let column = columns - 1; column >= 0; column -= 1) {
+          const i = row * columns + column;
+          if (column < columns - 1) distance[i] = Math.min(distance[i], distance[i + 1] + 1);
+          if (row < rowCount - 1) distance[i] = Math.min(distance[i], distance[i + columns] + 1);
+          if (row < rowCount - 1 && column < columns - 1) distance[i] = Math.min(distance[i], distance[i + columns + 1] + 1.4);
+        }
+      }
+      const list: { key: number; chance: number }[] = [];
+      for (let row = 0; row < rowCount; row += 1) {
+        for (let column = 0; column < columns; column += 1) {
+          if (rows[row][column] === " " && !cap.has(row * KEY + column)) continue;
+          const chance = Math.exp(-distance[row * columns + column] / SCRAMBLE_REACH);
+          if (chance > 0.03) list.push({ key: row * KEY + column, chance });
+        }
+      }
+      return list;
+    };
+
+    const capColor = (cell: CapCell) => {
+      const lift = cell.level * (0.35 + cell.shade * 0.95);
+      // Violet shadow -> blue midtone -> icy highlight, matching the sculpture's shader gradient.
+      const red = Math.round(118 + cell.shade * 118);
+      const green = Math.round(128 + cell.shade * 116);
+      const blue = Math.round(226 + cell.shade * 29);
+      return `rgba(${red},${green},${blue},${Math.min(1, 0.22 + lift * 0.85)})`;
+    };
+    const WALL_COLOR = "rgba(143,158,194,.11)";
+    const SHADOW_COLOR = "rgba(143,158,194,.035)";
+
+    const drawCell = (target: CanvasRenderingContext2D, row: number, column: number, char: string) => {
+      const cell = cap.get(row * KEY + column);
+      const x = column * CELL_W;
+      const y = row * CELL_H;
+      if (cell) {
+        target.shadowColor = "rgba(112,150,240,.85)";
+        target.shadowBlur = 11;
+        target.fillStyle = capColor(cell);
+        target.fillText(char === " " ? "·" : char, x, y);
+        target.shadowBlur = 0;
+        return;
+      }
+      if (char === " ") return;
+      // Cells just down-right of the cap dim further, so the cap floats above the wall.
+      const under = cap.get((row - SHADOW_OFFSET.row) * KEY + column - SHADOW_OFFSET.column);
+      target.fillStyle = under && under.level > 0.35 ? SHADOW_COLOR : WALL_COLOR;
+      target.fillText(char, x, y);
     };
 
     const layout = () => {
@@ -120,7 +223,9 @@ export function AsciiGraduationBackdrop() {
       columns = Math.ceil(width / CELL_W);
       rowCount = Math.ceil(height / CELL_H);
       rows = buildRows(columns, rowCount);
-      mask = buildMask(width, height);
+      cap = buildCap(width);
+      candidates = buildCandidates();
+      active = new Map();
       field.width = Math.round(width * dpr);
       field.height = Math.round(height * dpr);
       base = document.createElement("canvas");
@@ -131,29 +236,18 @@ export function AsciiGraduationBackdrop() {
       baseContext.scale(dpr, dpr);
       baseContext.font = font;
       baseContext.textBaseline = "top";
-      baseContext.fillStyle = "rgba(143,158,194,.22)";
       rows.forEach((line, row) => {
-        for (let column = 0; column < line.length; column += 1) {
-          if (mask.has(row * 10000 + column)) continue;
-          if (line[column] !== " ") baseContext.fillText(line[column], column * CELL_W, row * CELL_H);
-        }
+        for (let column = 0; column < line.length; column += 1) drawCell(baseContext, row, column, line[column]);
       });
-      // The cap: the same wall of text, lit by the mask (brightness and glow follow ink and edges).
-      baseContext.shadowColor = "rgba(112,150,240,.9)";
-      baseContext.shadowBlur = 12;
-      mask.forEach((level, key) => {
-        const row = Math.floor(key / 10000);
-        const column = key % 10000;
-        const char = rows[row]?.[column];
-        baseContext.fillStyle = level > 0.8 ? `rgba(226,242,255,${0.8 + level * 0.2})` : `rgba(150,182,245,${0.42 + level * 0.5})`;
-        baseContext.fillText(char && char !== " " ? char : "·", column * CELL_W, row * CELL_H);
+      cap.forEach((_, key) => {
+        const row = Math.floor(key / KEY);
+        const column = key % KEY;
+        if (row < rowCount && column < columns && rows[row][column] === " ") drawCell(baseContext, row, column, " ");
       });
-      baseContext.shadowBlur = 0;
-      blips = [];
-      paint(performance.now());
+      paint();
     };
 
-    const paint = (now: number) => {
+    const paint = () => {
       if (!base) return;
       context.setTransform(1, 0, 0, 1, 0, 0);
       context.clearRect(0, 0, field.width, field.height);
@@ -161,41 +255,29 @@ export function AsciiGraduationBackdrop() {
       context.setTransform(dpr, 0, 0, dpr, 0, 0);
       context.font = font;
       context.textBaseline = "top";
-      for (const blip of blips) {
-        const age = (now - blip.born) / blip.life;
-        if (age < 0 || age > 1) continue;
-        const x = blip.column * CELL_W;
-        const y = blip.row * CELL_H;
-        const original = rows[blip.row]?.[blip.column] ?? " ";
-        // Switch through noise glyphs, settle on the real character, then fade with a soft glow.
-        const settled = age > 0.45;
-        const char = settled ? original : blip.char;
-        const strength = age < 0.15 ? age / 0.15 : 1 - Math.max(0, (age - 0.55) / 0.45);
-        if (!settled) context.clearRect(x, y, CELL_W, CELL_H);
-        context.shadowColor = `rgba(126,164,255,${0.85 * strength})`;
-        context.shadowBlur = 12;
-        context.fillStyle = settled ? `rgba(190,226,255,${0.9 * strength})` : `rgba(150,176,240,${0.95 * strength})`;
-        context.fillText(char === " " ? "·" : char, x, y);
-      }
-      context.shadowBlur = 0;
+      active.forEach((scramble, key) => {
+        const row = Math.floor(key / KEY);
+        const column = key % KEY;
+        context.clearRect(column * CELL_W, row * CELL_H, CELL_W, CELL_H);
+        // Same color as the resting glyph: the scramble changes the letter, never the brightness.
+        drawCell(context, row, column, scramble.char);
+      });
     };
 
     const tick = (now: number) => {
       frame = undefined;
       if (disposed || !visible || document.hidden) return;
-      if (now - lastAt >= 66) {
+      if (now - lastAt >= TICK_MS) {
         lastAt = now;
-        blips = blips.filter((blip) => now - blip.born < blip.life);
-        const target = Math.max(10, Math.round((columns * rowCount) / 340));
-        const random = Math.random;
-        while (blips.length < target) {
-          const row = Math.floor(random() * rowCount);
-          const column = Math.floor(random() * columns);
-          if (rows[row]?.[column] === " " || mask.has(row * 10000 + column)) continue;
-          blips.push({ row, column, born: now + random() * 400, life: 700 + random() * 1300, char: NOISE[Math.floor(random() * NOISE.length)] });
+        active.forEach((scramble, key) => {
+          if (now >= scramble.until) active.delete(key);
+          else if (Math.random() > 0.7) scramble.char = NOISE[Math.floor(Math.random() * NOISE.length)];
+        });
+        for (const { key, chance } of candidates) {
+          if (active.has(key) || Math.random() > chance * SCRAMBLE_RATE) continue;
+          active.set(key, { until: now + 700 + Math.random() * 1100, char: NOISE[Math.floor(Math.random() * NOISE.length)] });
         }
-        for (const blip of blips) if (random() > 0.55) blip.char = NOISE[Math.floor(random() * NOISE.length)];
-        paint(now);
+        paint();
       }
       frame = window.requestAnimationFrame(tick);
     };
@@ -215,8 +297,8 @@ export function AsciiGraduationBackdrop() {
     const resize = new ResizeObserver(layout);
     const handleVisibility = () => schedule();
     const handleMotion = () => {
-      blips = [];
-      paint(performance.now());
+      active = new Map();
+      paint();
       schedule();
     };
 

@@ -81,6 +81,15 @@ The scene renders normally, then passes through a two-stage GPU character render
 
 `docs/design/reference/landing-desktop.png` and `landing-mobile.png` exist but predate this pass — the sculpture set, wordmark, and background layers have all changed since they were captured. Recapture both from a local production build before treating them as current.
 
+## Graduation ASCII chapter
+
+The hero is followed directly by a dark archive chapter with background art only, leaving the left side free for later editorial content. Two layers:
+
+- **Text field** — a full-bleed canvas of varied GRAD/VGU vocabulary (seeded, so it never repeats one phrase), drawn dim once to an offscreen layer. A few dozen cells at a time (outside the cap) switch through noise glyphs, settle on their real character and fade out with a soft blue glow — the same blinking, switching behavior as the reference, in the landing palette. Redraw is capped near 15fps, pauses offscreen or in a hidden tab, and reduced motion shows the static dim field.
+- **Cap** — `public/media/graduation-cap.png` is never shown. It is sampled at 3× into a per-cell brightness mask (mean ink plus an edge term, so outlines and cloud texture read as light); the white page and pale watermark fall below a cutoff. Cells inside the mask draw the wall's own characters, brighter and with a blue glow in proportion to the mask, so the cap is the wall of text lighting up. It sits smaller on the right (about 34% of the width, centered vertically) and centers low on phones. No asciify pass is involved.
+
+The source image is a watermarked stock preview; swap in the licensed file at the same path before launch.
+
 ## Guest badge prototype
 
 `/guest/prototype` reuses the landing background. On laptops, the title and suspended badge occupy the right half of the screen; the left half stays quiet. On narrow screens, the title sits beside the lanyard and the badge stays centered. The thin, dark card has a static ASCII artwork placeholder and a compact, bold guest label. Its narrow metallic edge and the two white and blue environment light strips give it a restrained reflective highlight. The single-color lanyard prints `GRADUATION '26` in the correct reading direction. The server-rendered CSS badge mirrors the layout for reduced motion, loading, and WebGL failure.

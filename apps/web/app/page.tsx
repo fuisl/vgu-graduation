@@ -7,9 +7,11 @@ import { BrandName } from "./logo/BrandName";
 import { Sculpture } from "./sculpture/Sculpture";
 import { DecodeText } from "./landing-title/DecodeText";
 import { WaveTitle } from "./landing-title/WaveTitle";
+import { AsciiGraduationBackdrop } from "./ascii-graduation/AsciiGraduationBackdrop";
 
 export default function Home() {
-  return <main className="landing">
+  return <main className="landing-page">
+    <section className="landing" aria-label="GRAD '26 introduction">
     <BackgroundMotion />
     <div className="landing-aurora" aria-hidden="true">
       <span className="landing-aurora-blob" />
@@ -52,6 +54,8 @@ export default function Home() {
       </div>
     </section>
 
-    <p className="landing-credit"><DecodeText text="Duong" delay={1080} /> <DecodeText className="landing-credit-alias" text="(aka. James)" delay={1150} /></p>
+      <p className="landing-credit"><DecodeText text="Duong" delay={1080} /> <DecodeText className="landing-credit-alias" text="(aka. James)" delay={1150} /></p>
+    </section>
+    <AsciiGraduationBackdrop />
   </main>;
 }

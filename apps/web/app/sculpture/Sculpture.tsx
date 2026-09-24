@@ -5,27 +5,37 @@ import { Component, useEffect, useMemo, useRef, useState } from "react";
 import type { ErrorInfo, ReactNode } from "react";
 import {
   BufferAttribute, BufferGeometry, CanvasTexture, DynamicDrawUsage,
-  LinearFilter, Points, SRGBColorSpace, Vector2,
+  LinearFilter, NearestFilter, NoBlending, Points, ShaderMaterial,
+  SRGBColorSpace, Vector2, WebGLRenderTarget,
 } from "three";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { FullScreenQuad, Pass } from "three/addons/postprocessing/Pass.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
-import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { POINT_COUNT, sequenceAt, SHADES, SHAPES, SHAPE_NAMES } from "./shapes";
 import { ShapeCodeBackdrop } from "./CodeBackdrop";
 
-const GLYPHS = " .:-=+*#";
+const GLYPHS = " .:-=+*#%@";
+
+const passVertexShader = `varying vec2 vUv;
+  void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+
+function monoFontFamily() {
+  return getComputedStyle(document.documentElement).getPropertyValue("--font-geist-mono").trim() || "monospace";
+}
 
 function glyphTexture() {
   const canvas = document.createElement("canvas");
-  canvas.width = GLYPHS.length * 32;
-  canvas.height = 32;
+  const cellWidth = 48;
+  const cellHeight = 64;
+  canvas.width = GLYPHS.length * cellWidth;
+  canvas.height = cellHeight;
   const context = canvas.getContext("2d")!;
   context.clearRect(0, 0, canvas.width, canvas.height);
   context.fillStyle = "#fff";
-  context.font = "bold 29px monospace";
+  context.font = `700 58px ${monoFontFamily()}`;
   context.textAlign = "center";
   context.textBaseline = "middle";
-  [...GLYPHS].forEach((glyph, index) => context.fillText(glyph, index * 32 + 16, 16));
+  [...GLYPHS].forEach((glyph, index) => context.fillText(glyph, index * cellWidth + cellWidth / 2, cellHeight / 2));
   const texture = new CanvasTexture(canvas);
   texture.colorSpace = SRGBColorSpace;
   texture.minFilter = LinearFilter;
@@ -33,37 +43,39 @@ function glyphTexture() {
   return texture;
 }
 
-const asciiShader = {
-  uniforms: {
-    tDiffuse: { value: null },
-    tGlyphs: { value: null },
-    uGrid: { value: new Vector2(80, 50) },
-  },
-  vertexShader: `varying vec2 vUv;
-    void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-  fragmentShader: `uniform sampler2D tDiffuse;
+const cellFragmentShader = `uniform sampler2D tDiffuse;
+  uniform vec2 uGrid;
+  varying vec2 vUv;
+  void main() {
+    vec2 center = (floor(vUv * uGrid) + 0.5) / uGrid;
+    vec3 source = vec3(0.0);
+    vec3 peak = vec3(0.0);
+    vec2 cellSize = 1.0 / uGrid;
+    for (int x = -1; x <= 1; x++) {
+      for (int y = -1; y <= 1; y++) {
+        vec3 sampleColor = texture2D(tDiffuse, center + vec2(float(x), float(y)) * cellSize * 0.29).rgb;
+        source += sampleColor;
+        peak = max(peak, sampleColor);
+      }
+    }
+    float coverage = dot(source / 9.0, vec3(0.212656, 0.715158, 0.072186));
+    float highlight = dot(peak, vec3(0.212656, 0.715158, 0.072186));
+    float lightness = pow(clamp(coverage * 2.35 + highlight * 0.23, 0.0, 1.0), 0.78);
+    gl_FragColor = vec4(lightness, 0.0, 0.0, 1.0);
+  }`;
+
+const drawFragmentShader = `uniform sampler2D tCells;
     uniform sampler2D tGlyphs;
     uniform vec2 uGrid;
+    uniform float uGlyphCount;
     varying vec2 vUv;
     void main() {
       vec2 cell = floor(vUv * uGrid);
       vec2 center = (cell + 0.5) / uGrid;
-      vec3 source = vec3(0.0);
-      vec3 peak = vec3(0.0);
-      vec2 cellSize = 1.0 / uGrid;
-      for (int x = -1; x <= 1; x++) {
-        for (int y = -1; y <= 1; y++) {
-          vec3 sampleColor = texture2D(tDiffuse, center + vec2(float(x), float(y)) * cellSize * 0.29).rgb;
-          source += sampleColor;
-          peak = max(peak, sampleColor);
-        }
-      }
-      float coverage = dot(source / 9.0, vec3(0.2126, 0.7152, 0.0722));
-      float highlight = dot(peak, vec3(0.2126, 0.7152, 0.0722));
-      float lightness = pow(clamp(coverage * 2.35 + highlight * 0.23, 0.0, 1.0), 0.78);
-      float index = floor(lightness * 7.99);
+      float lightness = texture2D(tCells, center).r;
+      float index = floor(lightness * (uGlyphCount - 0.01));
       vec2 local = fract(vUv * uGrid);
-      vec2 glyphUv = vec2((index + local.x) / 8.0, 1.0 - local.y);
+      vec2 glyphUv = vec2((index + local.x) / uGlyphCount, 1.0 - local.y);
       float glyph = texture2D(tGlyphs, glyphUv).a;
       vec3 shadow = vec3(0.52, 0.42, 0.82);
       vec3 midtone = vec3(0.44, 0.62, 0.96);
@@ -71,8 +83,70 @@ const asciiShader = {
       vec3 color = lightness < 0.5 ? mix(shadow, midtone, lightness * 2.0) : mix(midtone, highlightColor, (lightness - 0.5) * 2.0);
       float strength = glyph * (0.72 + 0.28 * lightness);
       gl_FragColor = vec4(color * strength, strength);
-    }`,
-};
+    }`;
+
+/** Two-stage character renderer adapted from ASCIIGen's GPU pipeline. */
+class AsciiEnginePass extends Pass {
+  private readonly cells = new WebGLRenderTarget(80, 50, {
+    minFilter: NearestFilter,
+    magFilter: NearestFilter,
+    depthBuffer: false,
+  });
+  private readonly cellMaterial = new ShaderMaterial({
+    uniforms: { tDiffuse: { value: null }, uGrid: { value: new Vector2(80, 50) } },
+    vertexShader: passVertexShader,
+    fragmentShader: cellFragmentShader,
+    blending: NoBlending,
+    depthTest: false,
+    depthWrite: false,
+  });
+  private readonly drawMaterial: ShaderMaterial;
+  private readonly cellQuad = new FullScreenQuad(this.cellMaterial);
+  private readonly drawQuad: FullScreenQuad;
+
+  constructor(private readonly atlas: CanvasTexture) {
+    super();
+    this.needsSwap = true;
+    this.drawMaterial = new ShaderMaterial({
+      uniforms: {
+        tCells: { value: this.cells.texture },
+        tGlyphs: { value: atlas },
+        uGrid: { value: new Vector2(80, 50) },
+        uGlyphCount: { value: GLYPHS.length },
+      },
+      vertexShader: passVertexShader,
+      fragmentShader: drawFragmentShader,
+      transparent: true,
+      blending: NoBlending,
+      depthTest: false,
+      depthWrite: false,
+    });
+    this.drawQuad = new FullScreenQuad(this.drawMaterial);
+  }
+
+  setGrid(columns: number, rows: number) {
+    this.cells.setSize(columns, rows);
+    this.cellMaterial.uniforms.uGrid.value.set(columns, rows);
+    this.drawMaterial.uniforms.uGrid.value.set(columns, rows);
+  }
+
+  render(renderer: Parameters<Pass["render"]>[0], writeBuffer: Parameters<Pass["render"]>[1], readBuffer: Parameters<Pass["render"]>[2]) {
+    this.cellMaterial.uniforms.tDiffuse.value = readBuffer.texture;
+    renderer.setRenderTarget(this.cells);
+    this.cellQuad.render(renderer);
+    renderer.setRenderTarget(this.renderToScreen ? null : writeBuffer);
+    this.drawQuad.render(renderer);
+  }
+
+  dispose() {
+    this.cells.dispose();
+    this.atlas.dispose();
+    this.cellMaterial.dispose();
+    this.drawMaterial.dispose();
+    this.cellQuad.dispose();
+    this.drawQuad.dispose();
+  }
+}
 
 function AsciiPass({ onFirstFrame }: { onFirstFrame: () => void }) {
   const { gl, scene, camera, size } = useThree();
@@ -80,8 +154,7 @@ function AsciiPass({ onFirstFrame }: { onFirstFrame: () => void }) {
   const composer = useMemo(() => {
     const effect = new EffectComposer(gl);
     effect.addPass(new RenderPass(scene, camera));
-    const pass = new ShaderPass(asciiShader);
-    pass.uniforms.tGlyphs.value = glyphTexture();
+    const pass = new AsciiEnginePass(glyphTexture());
     effect.addPass(pass);
     return { effect, pass };
   }, [gl, scene, camera]);
@@ -90,14 +163,14 @@ function AsciiPass({ onFirstFrame }: { onFirstFrame: () => void }) {
     composer.effect.setSize(size.width, size.height);
     const cellWidth = size.width < 500 ? 6 : 7;
     const cellHeight = size.width < 500 ? 8 : 9;
-    composer.pass.uniforms.uGrid.value.set(
+    composer.pass.setGrid(
       Math.max(24, Math.floor(size.width / cellWidth)),
       Math.max(20, Math.floor(size.height / cellHeight)),
     );
   }, [composer, size]);
 
   useEffect(() => () => {
-    (composer.pass.uniforms.tGlyphs.value as CanvasTexture).dispose();
+    composer.pass.dispose();
     composer.effect.dispose();
   }, [composer]);
 
@@ -207,6 +280,7 @@ export function Sculpture() {
   const [visible, setVisible] = useState(true);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [fontReady, setFontReady] = useState(false);
   const [shapeIndex, setShapeIndex] = useState(0);
   const [departing, setDeparting] = useState(false);
 
@@ -227,10 +301,18 @@ export function Sculpture() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    const ready = () => { if (!cancelled) setFontReady(true); };
+    if (!document.fonts) ready();
+    else void document.fonts.load(`700 58px ${monoFontFamily()}`).then(ready, ready);
+    return () => { cancelled = true; };
+  }, []);
+
   return <div className="sculpture" aria-label={`Animated ASCII sculpture: ${SHAPE_NAMES[shapeIndex]}`} role="img">
     <div className="sculpture-halo" aria-hidden="true" />
     <ShapeCodeBackdrop index={shapeIndex} animate={enabled && ready && visible && !failed} departing={departing} />
-    <pre className={`sculpture-fallback${ready && enabled && !failed ? " is-hidden" : ""}`} aria-hidden="true">{`             .   :   .
+    <pre className={`sculpture-fallback${ready && fontReady && enabled && !failed ? " is-hidden" : ""}`} aria-hidden="true">{`             .   :   .
        .  :  +  *  +  :  .
     . : + * # % @ % # * + : .
   . : + * # % @ @ @ % # * + : .
@@ -239,7 +321,7 @@ export function Sculpture() {
     . : + * # % @ % # * + : .
        .  :  +  *  +  :  .
              .   :   .`}</pre>
-    {enabled && !failed && <WebGLErrorBoundary onError={() => setFailed(true)}>
+    {enabled && fontReady && !failed && <WebGLErrorBoundary onError={() => setFailed(true)}>
       <Canvas
         className="sculpture-canvas"
         frameloop={visible ? "always" : "never"}

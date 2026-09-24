@@ -66,9 +66,10 @@ Each point's brightness (`SHADES`, precomputed once per shape) drives glyph dens
 
 ## ASCII rendering
 
-The scene renders normally, then gets sampled into a fixed ASCII grid by a GPU shader (`asciiShader` in `Sculpture.tsx`): each cell averages a 3×3 neighborhood and tracks its peak brightness, blends the two, and indexes into an 8-glyph ramp (space, then `.:-=+*#`, sparsest to densest). Color follows that same blended lightness through a 3-stop gradient (violet shadow → blue midtone → icy cyan highlight) — color follows lighting, not screen position.
+The scene renders normally, then passes through a two-stage GPU character renderer in `Sculpture.tsx`, adapted from ASCIIGen's live WebGL2 pipeline. The first stage runs at character-grid resolution: each cell averages a 3×3 neighborhood, tracks peak brightness, and stores one calibrated lightness value. The full-resolution second stage draws a font atlas using a 10-glyph ramp (space, then `.:-=+*#%@`, sparsest to densest). This avoids repeating nine source samples for every output pixel. Color follows that same blended lightness through a 3-stop gradient (violet shadow → blue midtone → icy cyan highlight) — color follows lighting, not screen position.
 
 - Device pixel ratio capped at 1.25; grid cell size adapts for phones (6×8px) vs. desktop (7×9px).
+- The glyph atlas uses the same self-hosted Geist Mono face as the page and is created only after the font is ready, avoiding platform-dependent `monospace` substitutions.
 - The render loop pauses entirely when the document is hidden (`frameloop="never"`).
 - A static ASCII motif ships in server-rendered HTML and stays visible whenever the canvas isn't: reduced motion, no WebGL, a render error, or WebGL context loss.
 

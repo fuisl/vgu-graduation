@@ -8,8 +8,8 @@ const WORDS = [
   "RSVP", "INVITATION", "PROUD", "FAMILY", "FRIENDS", "THANK YOU", "CONGRATULATIONS", "BEGIN", "WALK", "CAP & GOWN",
 ];
 const NOISE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789·:/-+*#%@=<>";
-const CELL_W = 6.5;
-const CELL_H = 12;
+const CELL_W = 7.8;
+const CELL_H = 14;
 const SOURCE_CROP = { x: 70, y: 85, width: 830, height: 430 };
 const SUPERSAMPLE = 3;
 const KEY = 10000;
@@ -55,7 +55,7 @@ export function AsciiGraduationBackdrop() {
     if (!stage || !field || !image || !context) return;
 
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const font = "600 8.5px var(--font-mono), ui-monospace, monospace";
+    const font = "600 10px var(--font-mono), ui-monospace, monospace";
     let base: HTMLCanvasElement | undefined;
     let rows: string[] = [];
     let columns = 0;

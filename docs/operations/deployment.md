@@ -15,7 +15,7 @@ For **both** projects:
 
 1. Import this repository and select the Root Directory shown above. Set the Framework Preset to Next.js.
 2. Enable **Include source files outside of the Root Directory in the Build Step**. Both apps use workspace packages; docs also reads repository-level Markdown.
-3. Leave the Install Command on **Automatic** for docs. For web, private ASCIIGen access requires the install override and `GITHUB_READ_TOKEN` described in [`docs/development/private-dependencies.md`](../development/private-dependencies.md); the script still uses the pnpm version selected by the root `packageManager` and frozen lockfile.
+3. Leave the Install Command on **Automatic** for docs. For web, the committed `apps/web/vercel.json` provides the private-dependency install command; add the `GITHUB_READ_TOKEN` described in [`docs/development/private-dependencies.md`](../development/private-dependencies.md). The script still uses the pnpm version selected by the root `packageManager` and frozen lockfile.
 4. Use the detected Turborepo build command and the framework's default Output Directory. If setting the command manually, use `turbo build` with the app Root Directory selected.
 
 Deploy the docs project first. Its project URL will serve the handbook at `https://<docs-project>.vercel.app/docs`.

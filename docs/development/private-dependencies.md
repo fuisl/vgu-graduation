@@ -19,7 +19,7 @@ Do not put a GitHub token in `package.json`, `.npmrc`, the lockfile, or a commit
 
 1. In GitHub, create a fine-grained personal access token owned by an account that can read `semicolons-dev/asciify`. Select only that repository. Grant **Contents: Read-only**; **Metadata: Read-only** is included for repository access. Prefer an expiry date and rotate the token before it expires. Organization policy may require an administrator to approve the token.
 2. In the Vercel project, open **Settings → Environment Variables**. Create a sensitive variable named `GITHUB_READ_TOKEN`, paste the token, and enable it for Production and Preview (plus Development only if Vercel-hosted development needs installs).
-3. Open **Settings → Build and Deployment → Install Command**, enable the override, and set it to the following. The `../../` prefix is required because this repository's web Vercel project uses `apps/web` as its Root Directory:
+3. The committed `apps/web/vercel.json` sets the Install Command shown below. The `../../` prefix is required because this repository's web Vercel project uses `apps/web` as its Root Directory. You do not need a dashboard override; if one already exists, either remove it or set it to the same value:
 
    ```sh
    ../../scripts/install-private-dependencies.sh

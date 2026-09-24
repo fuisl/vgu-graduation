@@ -31,6 +31,8 @@ export function DecodeText({
   delay = 0,
   duration = 760,
   repeatDelay,
+  variant = "decode",
+  sweepWidth = 5,
   className = "",
   ariaHidden = false,
 }: {
@@ -38,6 +40,8 @@ export function DecodeText({
   delay?: number;
   duration?: number;
   repeatDelay?: number;
+  variant?: "decode" | "sweep";
+  sweepWidth?: number;
   className?: string;
   ariaHidden?: boolean;
 }) {
@@ -75,12 +79,15 @@ export function DecodeText({
 
       const tick = (now: number) => {
         const progress = Math.min(1, (now - startedAt) / duration);
-        const resolved = Math.floor(progress * (positions.length + 1));
         const frame = Math.floor((now - startedAt) / 34);
 
         if (frame !== lastFrame) {
           const next: Record<number, NoiseGlyph> = {};
-          for (let position = resolved; position < positions.length; position++) {
+          const travel = progress * (positions.length + sweepWidth);
+          const sweepStart = Math.floor(travel) - sweepWidth;
+          const start = variant === "sweep" ? Math.max(0, sweepStart) : Math.floor(progress * (positions.length + 1));
+          const end = variant === "sweep" ? Math.min(positions.length, sweepStart + sweepWidth) : positions.length;
+          for (let position = start; position < end; position++) {
             const index = positions[position];
             next[index] = noiseAt(index, frame, cycle);
           }
@@ -113,7 +120,7 @@ export function DecodeText({
       preference.removeEventListener("change", syncMotion);
       document.removeEventListener("visibilitychange", syncMotion);
     };
-  }, [delay, duration, repeatDelay, text]);
+  }, [delay, duration, repeatDelay, sweepWidth, text, variant]);
 
   let characterIndex = 0;
   const words = text.split(" ");

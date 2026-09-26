@@ -51,3 +51,8 @@ a { color: inherit; text-decoration: none; }
   .doc-grid { grid-template-columns: 1fr; }
   .doc-grid a { min-height: 7rem; }
 }
+.prose table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; font-size: .9rem; line-height: 1.5; }
+.prose th, .prose td { padding: .55rem .8rem; border: 1px solid var(--border); text-align: left; vertical-align: top; }
+.prose th { color: var(--fg); background: var(--surface); font-weight: 600; white-space: nowrap; }
+.prose td { color: var(--muted); }
+.prose pre code { font-size: .85em; }

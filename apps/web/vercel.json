@@ -1,4 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "../../scripts/install-private-dependencies.sh"
+  "installCommand": "../../scripts/install-private-dependencies.sh",
+  "regions": ["sin1"]
 }

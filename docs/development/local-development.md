@@ -12,6 +12,8 @@ To run just one app, `pnpm dev:web`, `pnpm dev:api` or `pnpm dev:docs`. Node 24 
 
 `apps/api` needs Postgres: `pnpm db:up` starts it via `docker-compose.yml` (seeded from `docker/postgres/init/`), `pnpm db:down` stops it, `pnpm db:logs` tails it. Copy `.env.example` to `.env` first.
 
+`apps/web` calls the API through a thin BFF layer (`apps/web/lib/api`, §4.1): a `fetch` wrapper with the caching policy from that section's table, and API responses validated against `packages/contract` before use. Copy `apps/web/.env.example` to `apps/web/.env.local` (Next.js reads env files from the app directory, not the repo root) and point `API_ORIGIN` at a running `apps/api`.
+
 ## Testing cookie scoping locally (optional)
 
 Production scopes the invitation cookie to `.grad26.fuisloy.dev` (ADR-003) so it reaches the API host but nothing else. `localhost:3000`/`localhost:4000` can't reproduce that, because they aren't the same site. `dev/Caddyfile` sets up a local-only stand-in:

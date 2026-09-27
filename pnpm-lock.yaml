@@ -103,6 +103,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@grad/contract':
+        specifier: workspace:*
+        version: link:../../packages/contract
       '@grad/design-tokens':
         specifier: workspace:*
         version: link:../../packages/design-tokens

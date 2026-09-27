@@ -9,7 +9,9 @@
       "dependsOn": [
         "^build"
       ],
-      "outputs": []
+      "outputs": [
+        "dist/**"
+      ]
     },
     "@grad/web#build": {
       "dependsOn": [

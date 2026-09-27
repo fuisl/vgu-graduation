@@ -25,6 +25,7 @@ Vercel-served hostnames are unaffected by ADR-009: Vercel still terminates its o
 ## 8.3 Vercel configuration
 
 - Web project environment variables: `API_ORIGIN=https://api.grad26.fuisloy.dev`, `DOCS_ORIGIN` as already documented, `ADMIN_SESSION_SECRET` matching the API's Secret, `COOKIE_DOMAIN=.grad26.fuisloy.dev`.
+- Admin sign-in (#41): a GitHub OAuth App registered 2026-09-28, name "GRAD '26 Admin", homepage `https://grad26.fuisloy.dev`, redirect URIs `https://grad26.fuisloy.dev/admin/auth/callback` and `http://localhost:3000/admin/auth/callback` (no wildcard matching, no device flow, no token expiry/refresh — the GitHub access token is used once at login to read the handle, then discarded in favor of our own session token). `GITHUB_CLIENT_ID=Ov23li1WOsrS2ZKdefpp` (not secret, safe to commit); `GITHUB_CLIENT_SECRET` is a Vercel encrypted environment variable, never committed.
 - Function region: `sin1`, set in `apps/web/vercel.json` under `regions`.
 - Previews: point `API_ORIGIN` at a staging hostname if one is added; otherwise previews must not carry production credentials.
 - Domains: apex and `www` on the web project only, as in `operations/deployment.md`.

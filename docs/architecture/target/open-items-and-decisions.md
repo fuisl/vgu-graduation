@@ -35,3 +35,4 @@ Decided 2026-09-27:
 - SSH access to the homelab node, decided 2026-09-27: `fuisl` (owner) and `nhientruong04` (backend), for the people who need to operate `apps/api` and its workload directly.
 - Guest data consent, retention and takedown, decided 2026-09-27: see `docs/product/principles.md` (§8) and the runbook's takedown procedure.
 - Code review routing, decided 2026-09-27: a single top-level `.github/CODEOWNERS` entry for `fuisl` across all areas, auto-requested as a reviewer but not required by the branch protection ruleset (#86). Split by area once the team grows into their areas.
+- Admin identity provider (#41), decided 2026-09-28: GitHub OAuth, superseding the "deferred" note in §4.1 — see §8.3 for the registered app and redirect URIs. A custom, minimal OAuth exchange (not Auth.js/NextAuth), since the API independently verifies its own short-lived session token rather than trusting a third-party session format.

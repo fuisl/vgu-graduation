@@ -14,4 +14,5 @@ export const config = {
   publicOrigin: process.env.PUBLIC_ORIGIN || "http://localhost:3000",
   cookieDomain: process.env.COOKIE_DOMAIN || "localhost",
   nodeEnv: process.env.NODE_ENV || "development",
+  adminSessionSecret: process.env.ADMIN_SESSION_SECRET || "dev-only-change-me",
 };

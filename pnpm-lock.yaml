@@ -35,6 +35,9 @@ importers:
       fastify:
         specifier: ^5.2.1
         version: 5.12.5
+      jose:
+        specifier: ^5.9.6
+        version: 5.10.0
       pg:
         specifier: ^8.13.3
         version: 8.23.0
@@ -124,6 +127,9 @@ importers:
       geist:
         specifier: ^1.7.2
         version: 1.7.2(next@15.5.25(@types/node@22.20.4)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))
+      jose:
+        specifier: ^5.9.6
+        version: 5.10.0
       meshline:
         specifier: ^3.3.1
         version: 3.3.1(three@0.186.0)
@@ -2508,6 +2514,9 @@ packages:
     resolution: {integrity: sha512-KLViCmWx94zOvpLwSlsx6yOCeMhZYaxrJV87Po5k/FoZzcPSahvK5qJ7fYhS61sZi5ikmh2S3Hz55A2l3U69ng==}
     peerDependencies:
       react: ^19.0.0
+
+  jose@5.10.0:
+    resolution: {integrity: sha512-s+3Al/p9g32Iq+oqXxkW//7jk2Vig6FF1CFqzVXoTUXt2qz89YWbL+OwS17NFYEvxC35n0FKeGO2LGYSxeM2Gg==}
 
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
@@ -6019,6 +6028,8 @@ snapshots:
       react: 19.3.0
     transitivePeerDependencies:
       - '@types/react'
+
+  jose@5.10.0: {}
 
   js-tokens@4.0.0: {}
 

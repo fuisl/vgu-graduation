@@ -14,6 +14,12 @@ To run just one app, `pnpm dev:web`, `pnpm dev:api` or `pnpm dev:docs`. Node 24 
 
 `apps/web` calls the API through a thin BFF layer (`apps/web/lib/api`, §4.1): a `fetch` wrapper with the caching policy from that section's table, and API responses validated against `packages/contract` before use. Copy `apps/web/.env.example` to `apps/web/.env.local` (Next.js reads env files from the app directory, not the repo root) and point `API_ORIGIN` at a running `apps/api`.
 
+## Trying the API by hand with Bruno
+
+[Bruno](https://www.usebruno.com) is a git-native API client — requests are plain-text `.bru` files, no cloud account. The collection lives in `dev/bruno/` (never runs in production, same spirit as `dev/Caddyfile`): open that folder in the Bruno app and select the "Local" environment.
+
+It currently covers the three implemented invitations endpoints. Set the `invitationToken` variable (a Bruno *secret* var, never committed) after running "Create Invitation" — never paste a real token into a request body or a non-secret var, since invitation tokens are bearer credentials (AGENTS.md). As more `apps/api` modules land, extend this collection to match; once routes are wired through `@grad/contract` with OpenAPI generation, prefer importing that spec over hand-writing requests, so the collection can't drift from the contract.
+
 ## Testing cookie scoping locally (optional)
 
 Production scopes the invitation cookie to `.grad26.fuisloy.dev` (ADR-003) so it reaches the API host but nothing else. `localhost:3000`/`localhost:4000` can't reproduce that, because they aren't the same site. `dev/Caddyfile` sets up a local-only stand-in:

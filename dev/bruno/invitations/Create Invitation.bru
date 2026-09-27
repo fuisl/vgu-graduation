@@ -1,0 +1,31 @@
+meta {
+  name: Create Invitation
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{apiOrigin}}/admin/invitations
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "guestName": "Jane Doe",
+    "guestEmail": "jane@example.com",
+    "inviterUserIds": ["{{adminInviterUserId}}"],
+    "maxPlusOnes": 1
+  }
+}
+
+docs {
+  `adminInviterUserId` must be a real user id from the local Postgres
+  (see docker/postgres/init/). The response's `token` is the raw
+  bearer token, shown once — copy it into the `invitationToken`
+  secret var to use "Get My Invitation".
+}

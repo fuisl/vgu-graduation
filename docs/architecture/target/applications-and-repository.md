@@ -87,7 +87,7 @@ deploy/
     controllers/              cert-manager, cloudnative-pg, plugin-barman-cloud, nvidia-device-plugin
     configs/                  namespaces, ClusterIssuer, RuntimeClass, Traefik middlewares, NetworkPolicies
   apps/
-    base/                     api, worker, postgres, garage, cloudflared, translation, printer, fallback, web-mirror
+    base/                     api, worker, postgres, garage, ddns, translation, printer, fallback, web-mirror
     home/                     kustomization.yaml + patches: translation on, printer off, web-mirror off
     venue/                    open item: printer on, web-mirror on
   charts/

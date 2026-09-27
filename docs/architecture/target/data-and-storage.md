@@ -11,7 +11,7 @@ Backups use the Barman Cloud plugin, which requires CloudNativePG 1.26 or newer 
 | Bucket | Content | Access key | Exposure |
 | --- | --- | --- | --- |
 | `grad-originals` | Full-resolution uploads, immutable, never served | `api-key` read and write | Cluster only |
-| `grad-derivatives` | Resized and stripped variants, random unguessable identifiers in the names | `api-key` read and write | Served by the API, cached by Cloudflare |
+| `grad-derivatives` | Resized and stripped variants, random unguessable identifiers in the names | `api-key` read and write | Served by the API; no edge cache (ADR-009), so every view round-trips to the home connection |
 | `grad-backups` | Postgres base backups and WAL | `backup-key` read and write | Cluster only |
 
 Keys are generated in advance, stored SOPS-encrypted, and imported into Garage during bootstrap so that git remains the source of truth for credentials. Garage runs with replication factor 1 on the single node.

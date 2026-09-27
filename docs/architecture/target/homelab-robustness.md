@@ -5,10 +5,12 @@ The homelab is mandatory. The concern is stated here plainly so it is a known, a
 | Risk | Mitigation | Residual |
 | --- | --- | --- |
 | Power loss | UPS with clean shutdown; BIOS power-on after loss; k3s starts on boot | Outage for the length of the power cut plus about two minutes |
-| ISP outage | Router with a 4G or 5G dongle as failover WAN; cloudflared reconnects automatically | Slower and metered while on failover |
+| ISP outage | Router with a 4G or 5G dongle as failover WAN; the Dynamic DNS updater (ADR-009) re-points the `A` record at the failover IP | Slower and metered while on failover, plus however long the DNS update and its TTL take to catch up |
 | Node hardware failure | Nightly backups in Garage and offsite; every manifest in git; documented rebuild time under one hour on any spare machine | Data since the last WAL archive; hours of downtime |
 | Disk failure | Mirrored data device if available; offsite copy regardless | Restore time |
-| Tunnel down while node up | Two cloudflared replicas; Vercel serves stale reads; static event info always cached | Writes fail with a visible retry state |
+| Router/port-forward down while node up | Vercel serves stale reads; static event info always cached | Writes fail with a visible retry state |
+| Direct internet exposure (ADR-009) | Traefik rate limiting on the sensitive endpoints; external uptime monitor; no Cloudflare WAF or DDoS scrubbing in front, unlike the earlier Tunnel design | Accepted: the home connection's real IP is directly reachable; a scanning or volumetric attack is not stopped before it reaches the router |
+| Dynamic DNS silently stops updating | External uptime monitor also checks that `api.grad26.fuisloy.dev` resolves to the current IP, not just that it responds | The hostname serves nothing (or the wrong host) until someone notices |
 | Silent failure | External uptime monitor on the public health endpoint with phone alerts; Flux alerts on failed reconciliation | Response time of a human |
 | Resource exhaustion on the day | Requests and limits on every pod; experimental services suspendable; budget in 7.8 | None if the budget holds |
 | Software drift | Everything pinned in git; upgrades are commits; rollback is a revert | None |

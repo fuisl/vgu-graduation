@@ -9,7 +9,9 @@
       "dependsOn": [
         "^build"
       ],
-      "outputs": []
+      "outputs": [
+        "dist/**"
+      ]
     },
     "@grad/web#build": {
       "dependsOn": [
@@ -43,11 +45,13 @@
     },
     "typecheck": {
       "dependsOn": [
+        "^build",
         "^typecheck"
       ]
     },
     "test": {
       "dependsOn": [
+        "^build",
         "^test"
       ],
       "outputs": []

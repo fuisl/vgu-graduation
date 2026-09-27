@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      # apps/web's `asciify` dependency is optional (see
+      # docs/development/private-dependencies.md): CI has no GitHub read
+      # access to semicolons-dev/asciify and needs none. pnpm skips it and
+      # the build falls back to apps/web/vendor/asciify-stub.
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache turbo
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ github.job }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ github.job }}-
+
+      - name: Lint
+        run: pnpm turbo lint --cache-dir=.turbo
+
+      - name: Typecheck
+        run: pnpm turbo typecheck --cache-dir=.turbo
+
+      - name: Test
+        run: pnpm turbo test --cache-dir=.turbo
+
+      - name: Build
+        run: pnpm turbo build --cache-dir=.turbo

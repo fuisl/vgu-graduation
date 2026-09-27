@@ -1,0 +1,22 @@
+# Local-only reverse proxy so cookie scoping (COOKIE_DOMAIN, ADR-003) behaves
+# the same in development as it will in production, without touching the
+# real fuisloy.dev zone or /etc/hosts.
+#
+# *.localhost always resolves to 127.0.0.1 (RFC 6761) in every modern
+# browser and OS, with no configuration. This never leaves your machine,
+# is unrelated to Traefik (the real cluster ingress, ADR-004) and has
+# nothing to do with the infra repository.
+#
+# Run: caddy run --config dev/Caddyfile
+# Stop: Ctrl-C
+{
+	auto_https off
+}
+
+http://grad26.localhost {
+	reverse_proxy localhost:3000
+}
+
+http://api.grad26.localhost {
+	reverse_proxy localhost:4000
+}

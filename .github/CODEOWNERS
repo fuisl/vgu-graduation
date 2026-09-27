@@ -1,0 +1,4 @@
+# Decided 2026-09-27 (#87): a single owner across all areas for now, auto-requested
+# as a reviewer but not required by the branch protection ruleset (#86).
+# Split by area (apps/api, apps/web, infra/deploy, docs/ADRs) once the team grows into them.
+* @fuisl

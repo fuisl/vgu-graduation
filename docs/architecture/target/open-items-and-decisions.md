@@ -2,9 +2,9 @@
 
 Open items:
 
-1. **Venue node machine.** Decided 2026-09-27: a second node runs at the venue, bootstrapped from `clusters/venue` with a rehearsed data handoff. Which machine it is remains open; it depends on hardware inventory (#81). Affects sections 4.6, 7.5, 8.7.
+1. **Venue node machine.** Decided 2026-09-27: a second node runs at the venue, bootstrapped from `clusters/venue` with a rehearsed data handoff. Which machine it is remains open; it depends on hardware inventory (#81). Default posture, decided 2026-09-27: the homelab laptop stays home and the venue connects back to it remotely; the laptop can travel as a fallback if a remote link isn't viable, but that isn't the plan. Affects sections 4.6, 7.5, 8.7.
 2. **Translation scope.** Deferred until after M1: languages, model size and latency budget. The homelab GPU has 6 GB of VRAM, so plan for small or int8 models. Affects GPU sizing in 7.8.
-3. **Ceremony date and time.** Not yet confirmed (#83). Working placeholder: November 2026, time to be confirmed, time zone Asia/Ho_Chi_Minh (UTC+7). Build against the placeholder and replace it in the event configuration once the official time is announced; nothing else should hard-code it. The venue is Ceremony Hall at VGU (Google Maps link recorded in #83).
+3. **Ceremony date and time.** Not yet confirmed (#83). Working placeholder: November 2026, time to be confirmed, time zone Asia/Ho_Chi_Minh (UTC+7). Build against the placeholder and replace it in the event configuration once the official time is announced; nothing else should hard-code it. The venue is Ceremony Hall at VGU. Map link updated 2026-09-27: <https://maps.app.goo.gl/meCAgQyakBbWh8LDA> (supersedes the earlier link recorded in #83).
 
 Recorded as ADRs in `adr/README.md` (all accepted 2026-09-27):
 
@@ -32,3 +32,6 @@ Decided 2026-09-27:
 - There is no staging namespace. Vercel previews use a dev API and never touch production data.
 - Guest photos are covered by a visible notice, not per-guest opt-in. Photos are not reviewed before display; admins can hide a photo quickly and remove one on request. The gallery and wishes are reachable by public link, using unguessable photo identifiers.
 - The homelab node is a laptop with an RTX 3060 Mobile (6 GB VRAM), see section 7.8.
+- SSH access to the homelab node, decided 2026-09-27: `fuisl` (owner) and `nhientruong04` (backend), for the people who need to operate `apps/api` and its workload directly.
+- Guest data consent, retention and takedown, decided 2026-09-27: see `docs/product/principles.md` (§8) and the runbook's takedown procedure.
+- Code review routing, decided 2026-09-27: a single top-level `.github/CODEOWNERS` entry for `fuisl` across all areas, auto-requested as a reviewer but not required by the branch protection ruleset (#86). Split by area once the team grows into their areas.

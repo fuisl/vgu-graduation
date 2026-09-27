@@ -43,11 +43,13 @@
     },
     "typecheck": {
       "dependsOn": [
+        "^build",
         "^typecheck"
       ]
     },
     "test": {
       "dependsOn": [
+        "^build",
         "^test"
       ],
       "outputs": []

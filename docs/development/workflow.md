@@ -9,6 +9,10 @@ PRs explain what/why, include UI evidence, testing and docs/schema impact. Prefe
 Move durable architectural decisions from chat into ADRs.
 Running the apps day to day, the API image and CI: `docs/development/local-development.md`.
 
+## Branch protection
+
+Decided 2026-09-27 (#86): `main` requires a pull request, at least one approving review, the `checks` CI status (lint/typecheck/test/build), and conversation resolution before merge. No force pushes or branch deletion. Merges are squash-only with the head branch auto-deleted. Admin bypass is enabled (`RepositoryRole` admin, always) so an event-day emergency fix doesn't get stuck behind review — using it is a deliberate exception, not the default path.
+
 ## Roles and area owners
 fuisl is the project owner: leads design, web and features, and approves ADRs.
 nhientruong04 leads backend and infra and sets up their foundations.

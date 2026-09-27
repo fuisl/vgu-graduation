@@ -19,7 +19,7 @@
 
 **Operational constraints** (decided in discussion):
 
-- Zero recurring cost beyond the domain. Vercel Hobby, Cloudflare Free, self-hosted everything else.
+- Zero recurring cost beyond the domain. Vercel Hobby, self-hosted everything else (ADR-009: no Cloudflare — DNS stays at Spaceship, the router port-forwards directly).
 - The stateful core runs on a homelab. This is mandatory; its risks are documented in section 9 rather than designed away.
 - The homelab runs k3s, managed by Flux from this repository with Kustomize overlays. Upstream Helm charts are used wherever a service ships one.
 - Object storage is Garage.

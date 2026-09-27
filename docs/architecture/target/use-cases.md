@@ -51,9 +51,9 @@ sequenceDiagram
   W->>P: UPDATE photo(awaiting moderation)
 ```
 
-Degradation: if Garage is down, uploads fail with a clear message and the guest is asked to retry later; the invitation and everything else keep working. If the home connection is down and the venue LAN overlay exists, uploads succeed over the LAN; otherwise they wait.
+Degradation: if Garage is down, uploads fail with a clear message and the guest is asked to retry later; the invitation and everything else keep working. If the tunnel is down and the venue LAN overlay exists, uploads succeed over the LAN; otherwise they wait.
 
-**Gallery.** Vercel renders the listing from a cached API call. Image URLs point at the API's derivative endpoint. Names still carry a random unguessable identifier so they're safe to share, but there is no edge cache in front of them (ADR-009): every view fetches the derivative from the home connection directly, which is slower for guests than the original Cloudflare-cache design and adds load there on the day. Only approved photos get derivative URLs, and those URLs are shown only to invited guests until a photo is flagged public. A moderator approving a photo revalidates the listing tag.
+**Gallery.** Vercel renders the listing from a cached API call. Image URLs point at the API's derivative endpoint, which Cloudflare caches at the edge with a long TTL because names carry a random unguessable identifier. Only approved photos get derivative URLs, and those URLs are shown only to invited guests until a photo is flagged public. A moderator approving a photo revalidates the listing tag.
 
 **Wishes.** Small text writes follow the RSVP pattern. Wishes appear on the event display once approved.
 
@@ -95,9 +95,9 @@ Degradation: the translation pod is a Flux Kustomization that can be suspended. 
 
 | Failure | Still works | Lost until recovery |
 | --- | --- | --- |
-| Homelab, router, or the home connection down | Landing, docs, cached invitations, cached event info, pass validation, static fallback | RSVP and wish writes, uploads, live features, admin |
+| Homelab or tunnel down | Landing, docs, cached invitations, cached event info, pass validation, static fallback | RSVP and wish writes, uploads, live features, admin |
 | Vercel down | Direct API paths: uploads, live, display, derivatives; venue LAN if present | All pages unless the web mirror is deployed |
-| Dynamic DNS stale (ADR-009) | Venue LAN only, until someone notices and fixes the record | Everything internet-facing that resolves the stale IP |
+| Cloudflare down | Venue LAN only | Everything internet-facing |
 | PostgreSQL down | Cached pages, static fallback via Traefik errors middleware | All API reads and writes |
 | Garage down | Invitations, RSVP, wishes, live translation | Uploads, uncached derivatives, backups |
 | Translation pod down | Everything else | Live translation |

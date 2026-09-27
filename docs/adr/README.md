@@ -19,4 +19,3 @@ Date: YYYY-MM-DD
 - [ADR-006: The homelab is the system of record](006-homelab-system-of-record.md)
 - [ADR-007: Venue audio enters through the API](007-venue-audio-ingest.md)
 - [ADR-008: Separate infrastructure repository](008-infrastructure-repository.md)
-- [ADR-009: Direct home network exposure, no Cloudflare Tunnel](009-direct-home-network-exposure.md)

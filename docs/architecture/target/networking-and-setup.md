@@ -2,25 +2,27 @@
 
 ## 8.1 Hostnames
 
-Decided 2026-09-27 (ADR-009): no Cloudflare Tunnel, no Cloudflare proxy. DNS stays at Spaceship. The router forwards ports 80 and 443 directly to Traefik.
+| Hostname | DNS record | Proxied | Points to | Purpose |
+| --- | --- | --- | --- | --- |
+| `grad26.fuisloy.dev`, `www` | A or CNAME to Vercel | No, DNS only | Vercel web project | Public site, guest pages, admin UI, `/docs` rewrite |
+| `api.grad26.fuisloy.dev` | CNAME to the tunnel | Yes | cloudflared to Traefik to api | JSON API, uploads, WebSockets, derivatives |
+| `ops.grad26.fuisloy.dev` (optional) | CNAME to the tunnel | Yes | Garage admin or metrics | Behind Cloudflare Access, admins only |
+| `venue.grad26.fuisloy.dev` (open item) | A to the node's LAN address | No | Traefik on the LAN | Venue overlay |
 
-| Hostname | DNS record | Points to | Purpose |
-| --- | --- | --- | --- |
-| `grad26.fuisloy.dev`, `www` | A or CNAME to Vercel | Vercel web project | Public site, guest pages, admin UI, `/docs` rewrite |
-| `api.grad26.fuisloy.dev` | A to the home connection's current public IP, kept current by a Dynamic DNS updater | Traefik directly, over the forwarded ports | JSON API, uploads, WebSockets, derivatives |
-| `ops.grad26.fuisloy.dev` (optional) | Same pattern as `api`, if used | Garage admin or metrics, behind its own auth | Admins only |
-| `venue.grad26.fuisloy.dev` (open item) | A to the node's LAN address | Traefik on the LAN | Venue overlay |
+Vercel-served hostnames stay DNS-only so Vercel terminates TLS and manages its own certificate. Only tunnel hostnames are proxied by Cloudflare.
 
-Vercel-served hostnames are unaffected by ADR-009: Vercel still terminates its own TLS and manages its own certificate, set up per Vercel's own instructions when the custom domain is added.
+## 8.2 Cloudflare configuration
 
-## 8.2 Direct exposure configuration
-
-1. At the router, forward TCP 80 and 443 to the k3s node's LAN address. Nothing else is forwarded — not Postgres, Garage, the GPU service, or the printer, all of which stay unreachable from the internet regardless of the router's forwarding table.
-2. At Spaceship's DNS panel, create the `A` record for `api.grad26.fuisloy.dev` (and `ops` if used). The home connection's IP is dynamic, so this record's value is not set once — the Dynamic DNS updater (below) owns keeping it current.
-3. Dynamic DNS: Spaceship has a real DNS API (`docs.spaceship.dev`) — `PUT /v1/dns/records/{domain}` with an `X-Api-Key`/`X-Api-Secret` pair (from the API Manager at `spaceship.com/application/api-manager/`, scoped to the `dnsrecords:write` permission), body `{"items":[{"type":"A","name":"api.grad26","address":"<ip>","ttl":300}]}`. A small updater (a CronJob, e.g. adapting the existing open-source `spaceship-ddns` project, or a short custom script) checks the current public IP and calls this endpoint when it changes. The key/secret pair is a SOPS-encrypted Secret, same as every other credential. Use a short TTL (e.g. 300s) on this record so a change propagates quickly.
-4. `cert-manager`'s `ClusterIssuer` uses the **HTTP-01** challenge, not DNS-01: DNS is not on Cloudflare, so there is no DNS API for cert-manager to automate against, and HTTP-01 needs nothing beyond port 80 already being forwarded. This also means no wildcard certificates; `venue.grad26.fuisloy.dev` will need its own HTTP-01 request when that open item is taken up.
-5. There is no WAF, no DDoS scrubbing, and no edge cache rule — all of that lived in Cloudflare's proxy layer, which is no longer in the path. Traefik's own rate-limiting middleware (section 7.6) is the only rate limiting; see section 9 and section 10 for the residual risk this leaves.
-6. TLS: Full end-to-end, terminated by Traefik itself using the cert-manager-issued certificate. There is no separate "origin certificate" step, unlike the Tunnel model — Traefik's certificate *is* the one clients see.
+1. Move the domain's nameservers to Cloudflare; keep the registrar.
+2. DNS: apex and `www` per Vercel's instructions, DNS only. The tunnel creates its own CNAME for `api` when a public hostname is added.
+3. Create an API token with `Zone:DNS:Edit` and `Zone:Zone:Read` limited to this zone. It goes into the SOPS-encrypted Secret `cloudflare-api-token` in the `cert-manager` namespace.
+4. Zero Trust, Networks, Tunnels: create a remotely managed tunnel, copy its token into the SOPS-encrypted Secret `cloudflared-token` in the `edge` namespace.
+5. Add public hostnames to the tunnel: `api.grad26.fuisloy.dev` with service `http://traefik.kube-system.svc.cluster.local:80`. Optionally `ops.grad26.fuisloy.dev` to the Garage admin Service. WebSockets are enabled by default on tunnel hostnames.
+6. If `ops` exists, create a Cloudflare Access application for it with a policy allowing only the admins' email addresses through a one-time PIN or GitHub identity.
+7. SSL/TLS: Full (strict) mode, Always Use HTTPS on, minimum TLS 1.2.
+8. WAF: the Free plan allows one rate-limiting rule. Scope it to `api.grad26.fuisloy.dev` on `/invitations/*` and `/rsvp` per client IP so token lookups cannot be brute-forced or hammered.
+9. Cache rule: cache `api.grad26.fuisloy.dev/media/*` at the edge with a long TTL. Derivative names carry a random unguessable identifier, so they never change under the same URL and cannot be guessed.
+10. Origin: no origin certificate is needed because cloudflared speaks HTTP to Traefik inside the cluster; the tunnel itself is encrypted.
 
 ## 8.3 Vercel configuration
 
@@ -31,9 +33,9 @@ Vercel-served hostnames are unaffected by ADR-009: Vercel still terminates its o
 
 ## 8.4 Cluster ingress
 
-- Traefik listens on the node's LAN address through ServiceLB on ports 80 and 443. From the internet, only the router's forwarded ports 80/443 reach it (ADR-009) — there is no `cloudflared` and no pod-network hop in front of it anymore.
-- Ingress resources use `ingressClassName: traefik`. Since ADR-009, the `api` Ingress *does* need a TLS section — a `Certificate` from the `letsencrypt-http01` `ClusterIssuer` (section 7.6), because Traefik itself now terminates TLS; there is no Cloudflare edge to do it instead. The same `ClusterIssuer` covers the LAN-path Ingress too.
-- Client IP: with no proxy in front, Traefik sees the real client IP directly on the connection; there is no forwarded-header trust configuration to set up (ADR-009 removes the `cloudflared`-specific `trustedIPs` config that section 7.2's Traefik customization used to need). The API reads it from the connection, same as Traefik, for rate limiting and audit.
+- Traefik listens on the node's LAN address through ServiceLB on ports 80 and 443. From the internet, only cloudflared reaches it, over the pod network on port 80.
+- Ingress resources use `ingressClassName: traefik`. The `api` Ingress has no TLS section for the tunnel path, because TLS terminates at Cloudflare. For the LAN path a `Certificate` from `letsencrypt-dns` is attached to the same Ingress.
+- Client IP: cloudflared sets `CF-Connecting-IP` and `X-Forwarded-For`. Traefik trusts forwarded headers from the pod CIDR; the API reads `CF-Connecting-IP` for rate limiting and audit.
 - WebSockets pass through Traefik with no extra configuration.
 - Body size is enforced by the API rather than by Traefik buffering, so uploads stream instead of being spooled.
 
@@ -41,7 +43,7 @@ Vercel-served hostnames are unaffected by ADR-009: Vercel still terminates its o
 
 | Service | DNS name | Port | Clients |
 | --- | --- | --- | --- |
-| Traefik | `traefik.kube-system.svc.cluster.local` | 80, 443 | the router's port forward, LAN |
+| Traefik | `traefik.kube-system.svc.cluster.local` | 80, 443 | cloudflared, LAN |
 | api | `api.grad.svc.cluster.local` | 80 to 3000 | Traefik, translation, printer |
 | translation | `translation.grad.svc.cluster.local` | 80 to 8000 | api, as audio proxy |
 | Postgres primary | `grad-db-rw.grad.svc.cluster.local` | 5432 | api, worker |
@@ -51,13 +53,11 @@ Vercel-served hostnames are unaffected by ADR-009: Vercel still terminates its o
 
 ## 8.6 Egress
 
-Outbound connections from the cluster are limited to: Docker Hub from the kubelet and Flux, GitHub from Flux, Let's Encrypt from cert-manager, Spaceship (or the DDNS provider) from the Dynamic DNS updater, the offsite target from rclone, and model downloads by the translation service on first start. Nothing else needs the internet.
-
-Inbound is no longer "nothing": per ADR-009, the home router forwards TCP 80 and 443 to Traefik. Nothing else is forwarded — Postgres, Garage, the GPU service, and the printer stay unreachable from the internet regardless.
+Outbound connections from the cluster are limited to: Cloudflare edge from cloudflared, GHCR from the kubelet and Flux, GitHub from Flux, Let's Encrypt and the Cloudflare API from cert-manager, the offsite target from rclone, and model downloads by the translation service on first start. Nothing else needs the internet. The home router needs no port forwarding at all.
 
 ## 8.7 Venue LAN exposure (open item)
 
-If a venue node exists, Traefik on that node serves the same Ingresses on the LAN address. `venue.grad26.fuisloy.dev` resolves to that address, its certificate is issued in advance through the HTTP-01 solver (ADR-009 — no DNS-01 available, since DNS is not on Cloudflare), and local DNS on the venue network answers for the name when the uplink is down. Guest phones need a secure context for the camera, which is why the certificate matters. Everything else about the venue is deferred to the open item.
+If a venue node exists, Traefik on that node serves the same Ingresses on the LAN address. `venue.grad26.fuisloy.dev` resolves to that address, its certificate is issued in advance through the DNS-01 solver, and local DNS on the venue network answers for the name when the uplink is down. Guest phones need a secure context for the camera, which is why the certificate matters. Everything else about the venue is deferred to the open item.
 
 ## 8.8 Request walkthroughs
 
@@ -65,35 +65,35 @@ Path A, invitation read:
 
 1. Browser to Vercel over HTTPS, `GET /invite`.
 2. Vercel function in `sin1` calls `https://api.grad26.fuisloy.dev/invitations/me` with the forwarded credential.
-3. The router forwards the connection to Traefik on port 443; Traefik terminates TLS with its cert-manager-issued certificate.
-4. Traefik matches the `api` Ingress, applies middlewares, forwards to `api:3000`.
-5. The API hashes the token, reads Postgres, returns JSON.
-6. Vercel caches the response under the invitation tag and renders HTML.
+3. Cloudflare edge terminates TLS, applies WAF and rate limit, forwards down the tunnel.
+4. cloudflared in the `edge` namespace forwards to Traefik on port 80 with the original Host header.
+5. Traefik matches the `api` Ingress, applies middlewares, forwards to `api:3000`.
+6. The API hashes the token, reads Postgres, returns JSON.
+7. Vercel caches the response under the invitation tag and renders HTML.
 
 Path B, photo upload:
 
 1. Browser posts to `https://api.grad26.fuisloy.dev/media` with the parent-domain cookie and `credentials: include`.
-2. The router forwards the connection to Traefik on port 443.
-3. Traefik forwards to the API, which enforces its own 25 MB cap, streams the body into Garage on port 3900, and writes the row.
+2. Cloudflare checks the body against its proxy limit, which is far above the API's own 25 MB cap, and forwards down the tunnel.
+3. Traefik forwards to the API, which streams the body into Garage on port 3900 and writes the row.
 
 ## 8.9 Setup checklist
 
-1. `api.grad26.fuisloy.dev` DNS record created at Spaceship; Vercel records added per Vercel's instructions; site verified at the apex.
-2. Dynamic DNS updater running and confirmed keeping the `A` record current as the public IP changes.
-3. Router forwarding TCP 80 and 443 to the node's LAN address; nothing else forwarded.
+1. Domain on Cloudflare DNS; Vercel records added DNS-only; site verified at the apex.
+2. Cloudflare API token created and stored as a SOPS Secret.
+3. Tunnel created; token stored as a SOPS Secret; public hostname for `api` added.
 4. Host prepared: OS, static IP, NVIDIA driver and Container Toolkit, UPS daemon, BIOS power-on.
 5. Traefik `HelmChartConfig` placed in the k3s manifests directory.
 6. k3s installed; `kubectl get nodes` ready; `nvidia` RuntimeClass present.
 7. age key generated; private key stored offline and in the `sops-age` Secret; public key in `.sops.yaml`.
 8. Flux bootstrapped with image automation components.
 9. Flux reconciles `infra-controllers`, then `infra-configs`, then `apps`; all Kustomizations report Ready.
-10. `cert-manager`'s HTTP-01 `ClusterIssuer` issues a certificate for `api.grad26.fuisloy.dev`; Traefik serves it.
-11. Garage layout applied, buckets created, keys imported.
-12. Postgres cluster healthy; first on-demand `Backup` succeeds and appears in `grad-backups`.
-13. `curl https://api.grad26.fuisloy.dev/healthz` returns OK from outside.
-14. Vercel environment variables set; region set; web project redeployed; an invitation renders end to end.
-15. Traefik's rate-limit middleware active on `/invitations/*` and `/rsvp` (no edge WAF exists to do this instead, see section 10).
-16. External uptime monitor watching `api.grad26.fuisloy.dev/healthz` with alerts, including an alert if the Dynamic DNS updater stops running.
-17. Offsite mirror configured; first sync completes; a restore of one file verified.
-18. Restore drill: Postgres restored into a scratch cluster from Garage.
-19. Power-loss drill: node recovers unattended, the router's port forward survives a reboot, and the Dynamic DNS record is still correct afterward.
+10. Garage layout applied, buckets created, keys imported.
+11. Postgres cluster healthy; first on-demand `Backup` succeeds and appears in `grad-backups`.
+12. `curl https://api.grad26.fuisloy.dev/healthz` returns OK from outside.
+13. Vercel environment variables set; region set; web project redeployed; an invitation renders end to end.
+14. WAF rate-limit rule and media cache rule active.
+15. External uptime monitor watching `api.grad26.fuisloy.dev/healthz` with alerts.
+16. Offsite mirror configured; first sync completes; a restore of one file verified.
+17. Restore drill: Postgres restored into a scratch cluster from Garage.
+18. Power-loss drill: node recovers unattended and the tunnel reports healthy.

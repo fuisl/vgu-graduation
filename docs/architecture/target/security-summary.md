@@ -7,5 +7,5 @@
 - Secrets exist in git only as SOPS-encrypted files; the age private key lives on the cluster and offline, never in the repository.
 - Images are private on GHCR, pinned by tag through image automation, and built without secrets in layers.
 - Every pod runs as non-root with a read-only root filesystem and dropped capabilities, except the printer daemon, which is confined to the venue overlay.
-- Traefik rate limiting protects token lookups, both from the internet and on the LAN. **Accepted residual risk (ADR-009):** there is no edge WAF or DDoS scrubbing in front of it — the home connection is directly port-forwarded, not hidden behind Cloudflare's proxy — so Traefik's rate limiting is the only defense against a volumetric or scanning attack, not a second layer behind one.
+- Cloudflare WAF rate limiting protects token lookups; Traefik rate limiting protects the same endpoints on the LAN.
 - Admin actions are audited in the database.

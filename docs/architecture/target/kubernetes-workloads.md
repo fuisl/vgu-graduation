@@ -34,6 +34,13 @@ spec:
               RequestPath: drop        # never write paths; tokens must not reach logs
           headers:
             defaultmode: drop
+    ports:
+      web:
+        forwardedHeaders:
+          trustedIPs: ["10.42.0.0/16"]  # pod CIDR, so cloudflared's X-Forwarded-* are honored
+      websecure:
+        forwardedHeaders:
+          trustedIPs: ["10.42.0.0/16"]
     providers:
       kubernetesCRD:
         enabled: true
@@ -139,7 +146,7 @@ flux suspend kustomization translation   # ceremony-day switch, reversible with 
 | `cnpg-system` | CloudNativePG operator and Barman Cloud plugin | Helm; plugin must share the operator's namespace |
 | `nvidia-device-plugin` | Device plugin DaemonSet | Helm |
 | `garage` | Garage StatefulSet | Helm, vendored chart |
-| `edge` | static fallback | Ingress-facing helpers. No `cloudflared` (ADR-009): the router forwards ports 80/443 straight to Traefik in `kube-system` |
+| `edge` | cloudflared, static fallback | Ingress-facing helpers |
 | `grad` | api, worker, Postgres cluster, translation, print | Application namespace |
 | `kube-system` | Traefik, CoreDNS, ServiceLB, local-path | Packaged with k3s |
 
@@ -155,9 +162,9 @@ flux suspend kustomization translation   # ceremony-day switch, reversible with 
 | garage | garage | HelmRelease | vendored `deploy/charts/garage` from the Garage repository | Garage v2.3.0 | 2 PVCs: meta 5 Gi, data sized to the archive | ClusterIP 3900 | apps |
 | grad-db | grad | CNPG Cluster | operator | Postgres 17 | PVC 20 Gi | ClusterIP 5432 | apps |
 | garage-backups | grad | ObjectStore + ScheduledBackup | plugin | n/a | uses Garage | none | apps |
-| api | grad | Deployment, Service, Ingress | `docker.io/fuisl/grad26-api` (public, no pull secret needed) | image automation | none | Ingress `api.grad26.fuisloy.dev`, port-forwarded (ADR-009) | apps |
+| api | grad | Deployment, Service, Ingress | `docker.io/fuisl/grad26-api` (public, no pull secret needed) | image automation | none | Ingress `api.grad26.fuisloy.dev` | apps |
 | worker | grad | Deployment | same image | image automation | none | none | apps |
-| ddns-updater | grad | CronJob | e.g. `ddclient` or a small custom script | pinned | none | outbound only | apps |
+| cloudflared | edge | Deployment x2 | `cloudflare/cloudflared` | pinned release | none | outbound only | apps |
 | fallback | edge | Deployment, Service, ConfigMap | static server image | pinned | none | via Traefik errors middleware | apps |
 | translation | grad | Deployment, Service | `ghcr.io/<owner>/grad-translation` | image automation | emptyDir for model cache or PVC | none, reached only from the API | apps, suspendable |
 | printer | grad | Deployment | `ghcr.io/<owner>/grad-printer` | image automation | none | none | venue overlay only |
@@ -188,20 +195,21 @@ spec:
     crds: { enabled: true }
 ```
 
-ClusterIssuer using the **HTTP-01** solver (ADR-009: DNS is not on Cloudflare, so there is no DNS API for a DNS-01 solver to use; HTTP-01 needs only port 80, already forwarded). No API token Secret is needed for this at all.
+ClusterIssuer using the Cloudflare DNS-01 solver. The API token Secret lives in the `cert-manager` namespace and is SOPS-encrypted. It needs `Zone:DNS:Edit` and `Zone:Zone:Read` scoped to the one zone.
 
 ```yaml
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
-metadata: { name: letsencrypt-http01 }
+metadata: { name: letsencrypt-dns }
 spec:
   acme:
     server: https://acme-v02.api.letsencrypt.org/directory
     email: YOUR_CONTACT_EMAIL_HERE
-    privateKeySecretRef: { name: letsencrypt-http01-account }
+    privateKeySecretRef: { name: letsencrypt-dns-account }
     solvers:
-      - http01:
-          ingress: { ingressClassName: traefik }
+      - dns01:
+          cloudflare:
+            apiTokenSecretRef: { name: cloudflare-api-token, key: api-token }
 ```
 
 **CloudNativePG operator, Barman Cloud plugin, and the database**
@@ -345,30 +353,35 @@ spec:
     runtimeClassName: nvidia
 ```
 
-**ddns-updater**
+**cloudflared**
 
-Per ADR-009: keeps Spaceship's `api.grad26.fuisloy.dev` `A` record pointed at the home connection's current public IP. Runs on a short interval rather than continuously, since it only needs to notice a change, not hold anything open.
+Remotely managed tunnel: public hostnames are configured in the Cloudflare dashboard, the connector only needs its token. Two replicas keep the tunnel up through a pod restart or an image upgrade.
 
 ```yaml
-apiVersion: batch/v1
-kind: CronJob
-metadata: { name: ddns-updater, namespace: grad }
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: cloudflared, namespace: edge }
 spec:
-  schedule: "*/5 * * * *"
-  jobTemplate:
+  replicas: 2
+  selector: { matchLabels: { app: cloudflared } }
+  template:
+    metadata: { labels: { app: cloudflared } }
     spec:
-      template:
-        spec:
-          restartPolicy: OnFailure
-          securityContext: { runAsNonRoot: true, runAsUser: 65532 }
-          containers:
-            - name: ddns-updater
-              image: TBD   # a small script calling PUT https://spaceship.dev/api/v1/dns/records/fuisloy.dev (section 8.2)
-              envFrom:
-                - secretRef: { name: ddns-credentials }   # X-Api-Key / X-Api-Secret from spaceship.com/application/api-manager/
-              resources:
-                requests: { cpu: 10m, memory: 32Mi }
-                limits: { memory: 64Mi }
+      securityContext: { runAsNonRoot: true, runAsUser: 65532 }
+      containers:
+        - name: cloudflared
+          image: cloudflare/cloudflared:2025.9.0   # re-pin at implementation
+          args: ["tunnel", "--no-autoupdate", "--loglevel", "info", "--output", "json", "--metrics", "0.0.0.0:2000", "run"]
+          env:
+            - name: TUNNEL_TOKEN
+              valueFrom: { secretKeyRef: { name: cloudflared-token, key: token } }
+          livenessProbe:
+            httpGet: { path: /ready, port: 2000 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 128Mi }
 ```
 
 **API and worker**
@@ -446,7 +459,7 @@ spec:
             limits: { memory: 1Gi }
 ```
 
-Ingress and Traefik middlewares. The errors middleware returns the static fallback page whenever the API answers with a gateway error or is unreachable. The rate-limit middleware reads the connection's real IP directly (ADR-009: no proxy in front sets a header for it, unlike the earlier `CF-Connecting-IP`). The Ingress now carries its own TLS section since Traefik terminates TLS itself.
+Ingress and Traefik middlewares. The errors middleware returns the static fallback page whenever the API answers with a gateway error or is unreachable.
 
 ```yaml
 apiVersion: traefik.io/v1alpha1
@@ -466,7 +479,7 @@ spec:
     average: 50
     burst: 100
     sourceCriterion:
-      ipStrategy: {}   # the connection's real remote IP; nothing sits in front to trust a header from instead
+      requestHeaderName: CF-Connecting-IP
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -484,12 +497,8 @@ metadata:
   namespace: grad
   annotations:
     traefik.ingress.kubernetes.io/router.middlewares: grad-api-headers@kubernetescrd,grad-api-ratelimit@kubernetescrd,grad-api-fallback@kubernetescrd
-    cert-manager.io/cluster-issuer: letsencrypt-http01
 spec:
   ingressClassName: traefik
-  tls:
-    - hosts: [api.grad26.fuisloy.dev]
-      secretName: api-tls
   rules:
     - host: api.grad26.fuisloy.dev
       http:
@@ -518,7 +527,7 @@ spec:
   # per push to main. A short git SHA has no ordering Flux can sort on, so this
   # filter/policy is a placeholder, not yet correct — needs either a sortable tag
   # added to CI (e.g. a timestamp or build number) or a digest-pinned policy
-  # instead of tag-based. Follow-up, not resolved by ADR-009.
+  # instead of tag-based.
   filterTags:
     pattern: '^sha-[a-fA-F0-9]+$'
   policy:
@@ -707,8 +716,8 @@ Label selectors for Traefik and Garage pods must be checked against the deployed
 | worker | 250m | 512 Mi | 1 Gi |
 | grad-db | 250m | 512 Mi | 1 Gi |
 | garage | 250m | 256 Mi | 1 Gi |
+| cloudflared x2 | 100m | 128 Mi | 256 Mi |
 | traefik | 100m | 128 Mi | 256 Mi |
-| ddns-updater | 10m | 32 Mi | 64 Mi |
 | cert-manager, cnpg operator, plugin, flux, device plugin | 500m | 700 Mi | 1.5 Gi |
 | fallback | 10m | 16 Mi | 32 Mi |
 | translation | 1 | 4 Gi | 8 Gi, plus GPU |
@@ -722,5 +731,5 @@ The planned node is a laptop (ROG Zephyrus G15) running Ubuntu 24.04: Ryzen 9 69
 - Upgrades: bump chart versions and image tags in git; Flux applies them. Roll back by reverting the commit.
 - Switching experimental features off: suspend the Flux Kustomization; resume to bring it back. No manifest change required on the day.
 - Secret rotation: re-encrypt with SOPS, commit, Flux applies; restart the consuming Deployment.
-- Node reboot: k3s starts on boot, local-path volumes reattach, the router's port forward survives (it's a router config, not a cluster one) and Traefik comes back up. Expected recovery is under two minutes from power, plus however long it takes the DDNS updater's next scheduled run to confirm the IP is still correct.
+- Node reboot: k3s starts on boot, local-path volumes reattach, cloudflared reconnects. Expected recovery is under two minutes from power.
 - Drills before the ceremony: restore Postgres from Garage into a scratch cluster, restore a sample of originals from the offsite copy, pull the power on the node and time recovery.

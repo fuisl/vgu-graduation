@@ -19,7 +19,7 @@ Used for photo uploads, live translation on phones, and the event display feed. 
 
 ```mermaid
 flowchart LR
-  B["Browser or kiosk"] -- "HTTPS, cookie on .grad26.example" --> C["Cloudflare edge, WAF, cache"]
+  B["Browser or kiosk"] -- "HTTPS, cookie on .grad26.fuisloy.dev" --> C["Cloudflare edge, WAF, cache"]
   C -- "tunnel" --> T["Traefik"] --> A["apps/api"]
 ```
 
@@ -46,6 +46,7 @@ Used by the translation service pushing segments, the worker reading and writing
 | Event display | apps/api WebSocket | page shell only | display feed | B |
 | Printing | apps/api | admin page | print queue | A for admin, C for daemon |
 | Admin moderation | Vercel pages | admin UI | admin endpoints | A |
+| Venue audio ingest | capture client to `WS /live/ingest` on apps/api | not involved | authenticate and proxy audio to the translation service | B, then C |
 | Translation ingest | none | none | receives segments | C |
 
 Rule of thumb: anything that touches the database, holds a connection open, or moves large bytes lives in apps/api. Anything that renders HTML or shapes one page's data lives in the Vercel layer. The Vercel layer must stay thin enough to delete.

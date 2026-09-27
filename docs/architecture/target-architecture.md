@@ -4,7 +4,7 @@ Status: Proposed. Date: 2026-09-26. Supersedes the diagram in `architecture/over
 
 This document is the complete description of the GRAD '26 platform: what runs where, why, how each product use case flows through it, how the homelab Kubernetes cluster is built, and everything that has to be configured on the network side. It is written for a free-tier budget with a mandatory homelab. Where a choice is still open it is marked as such.
 
-Placeholders: `grad26.example` stands for the real domain, `<owner>` for the GitHub owner of the repository and container images. Versions are the ones current at the time of writing and must be re-pinned when manifests are written.
+The real domain is `fuisloy.dev`, registered at Spaceship. The web app is served at `grad26.fuisloy.dev`, the API at `api.grad26.fuisloy.dev`, and the invitation cookie is scoped to `.grad26.fuisloy.dev`. Placeholder: `<owner>` stands for the GitHub owner of the repository and container images. Versions are the ones current at the time of writing and must be re-pinned when manifests are written.
 
 ## Contents
 

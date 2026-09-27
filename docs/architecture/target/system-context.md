@@ -35,13 +35,13 @@ flowchart TB
   Kiosk --> CFEdge
   CFEdge --> CFD --> Traefik
   Traefik --> API
-  Traefik --> Trans
   Traefik --> Fallback
   API --> PG
   API --> Garage
   Worker --> PG
   Worker --> Garage
-  AV --> Trans
+  AV -- "audio over WebSocket" --> CFEdge
+  API -- "audio proxy, cluster network" --> Trans
   Trans --> API
   PrintD --> API
   PrintD --> Printer
@@ -70,7 +70,7 @@ flowchart TB
 | Zone | Contains | Reachable from | Authentication |
 | --- | --- | --- | --- |
 | Public edge | Vercel pages, docs | Internet | None for public pages; invitation cookie for guest pages |
-| Public API hostname | `api.grad26.example` through the tunnel | Internet, via Cloudflare only | Invitation bearer token or cookie, admin session, service tokens |
+| Public API hostname | `api.grad26.fuisloy.dev` through the tunnel | Internet, via Cloudflare only | Invitation bearer token or cookie, admin session, service tokens |
 | Cluster network | Postgres, Garage, worker, translation ingest, printer | Pods allowed by NetworkPolicy | Database credentials, S3 keys, service tokens |
 | Ops hostname (optional) | Garage admin, metrics | Internet, via tunnel, behind Cloudflare Access | Cloudflare Access identity |
 | Venue LAN | Traefik on the node's LAN address | Devices on the venue network | Same as public API; open item, see section 11 |

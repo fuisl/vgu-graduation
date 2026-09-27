@@ -36,7 +36,7 @@ One Node 22 process built with a small HTTP framework that supports WebSockets n
 | media | Upload originals, list gallery, serve derivatives, moderation | `POST /media`, `GET /gallery`, `GET /media/{id}/{variant}`, `POST /admin/media/{id}/moderate` |
 | wishes | Submit and list wishes with moderation | `POST /wishes`, `GET /wishes`, `POST /admin/wishes/{id}/moderate` |
 | live | WebSocket fan-out for translation and display | `WS /live/translation`, `WS /live/display` |
-| translation | Ingest segments from the GPU service | `POST /internal/translation/segments` |
+| translation | Ingest segments from the GPU service; authenticate venue audio and proxy it to the GPU service | `POST /internal/translation/segments`, `WS /live/ingest` |
 | print | Print job queue | `POST /print/jobs`, `GET /internal/print/jobs/next`, `POST /internal/print/jobs/{id}/done` |
 | admin | Cross-cutting admin queries | `GET /admin/overview` |
 | system | Health and metrics | `GET /healthz`, `GET /readyz`, `GET /metrics` |
@@ -45,9 +45,9 @@ Runtime behavior:
 
 - Migrations run in an init container of the API Deployment using an advisory lock, so a rollout never races itself.
 - The worker is the same image started with a worker entrypoint. It polls a `jobs` table in Postgres for derivative generation, moderation notifications and print job dispatch. No message broker.
-- Authentication: invitation tokens arrive as `Authorization: Bearer` from Vercel or as an `HttpOnly` cookie scoped to `.grad26.example` from browsers on path B. Tokens are 128-bit random values; only a SHA-256 hash is stored; comparison is constant-time. Service calls on path C use static bearer tokens from Secrets. Admin calls carry a session token signed by the web app.
+- Authentication: invitation tokens arrive as `Authorization: Bearer` from Vercel or as an `HttpOnly` cookie scoped to `.grad26.fuisloy.dev` from browsers on path B. Tokens are 128-bit random values; only a SHA-256 hash is stored; comparison is constant-time. Service calls on path C use static bearer tokens from Secrets. Admin calls carry a session token signed by the web app.
 - Logging: structured JSON; `Authorization`, `Cookie` and any field named `token` are redacted at the logger. Request paths never contain tokens.
-- CORS: allows `https://grad26.example` with credentials, nothing else.
+- CORS: allows `https://grad26.fuisloy.dev` with credentials, nothing else.
 - Uploads: multipart streaming straight to Garage, size-capped at 25 MB per file, content-type sniffed, EXIF stripped by the worker when generating derivatives.
 
 Configuration is environment-only:
@@ -64,13 +64,15 @@ Configuration is environment-only:
 
 ## 4.4 apps/translation (k3s, GPU)
 
-Python service. It exposes one WebSocket ingest endpoint for audio and pushes finished segments to the API over the cluster network with its service token. It never touches the database or storage and can be absent without the API noticing. Audio reaches it from a small capture client running on the AV laptop at the mixer. Where the GPU machine physically sits on ceremony day is an open item (section 11).
+Python service. It exposes one WebSocket ingest endpoint for audio, reachable only from the API over the cluster network, and pushes finished segments to the API with its service token. It has no Ingress and no public hostname. It never touches the database or storage and can be absent without the API noticing. A small capture client running on the AV laptop at the mixer connects to `WS /live/ingest` on the API with a service token, and the API proxies the audio to the translation service (decided 2026-09-27). Where the GPU machine physically sits on ceremony day is an open item (section 11).
 
 ## 4.5 packages/contract (new)
 
 Request and response schemas shared by apps/web and apps/api, written once as runtime validators with inferred TypeScript types. A change to an endpoint fails the web app's typecheck instead of failing at the venue.
 
 ## 4.6 deploy/ (new): everything Flux reconciles
+
+Decided 2026-09-27: `deploy/` and the SOPS-encrypted secrets live in a separate infrastructure repository, `fuisl/vgu-graduation-deployment`, not in this repository. It is public; only SOPS/age ciphertext is committed. The layout below is the root of that repository, and the `.sops.yaml` rules file sits at its root. Flux watches the infrastructure repository, and image automation commits tag bumps there.
 
 ```
 deploy/

@@ -73,7 +73,7 @@ kubectl create namespace flux-system
 cat age.agekey | kubectl create secret generic sops-age --namespace=flux-system --from-file=age.agekey=/dev/stdin
 
 flux bootstrap github \
-  --owner=<owner> --repository=vgu-graduation --branch=main \
+  --owner=<owner> --repository=<infra-repo> --branch=main \
   --path=deploy/clusters/home --personal \
   --components-extra=image-reflector-controller,image-automation-controller
 ```
@@ -162,11 +162,11 @@ flux suspend kustomization translation   # ceremony-day switch, reversible with 
 | garage | garage | HelmRelease | vendored `deploy/charts/garage` from the Garage repository | Garage v2.3.0 | 2 PVCs: meta 5 Gi, data sized to the archive | ClusterIP 3900 | apps |
 | grad-db | grad | CNPG Cluster | operator | Postgres 17 | PVC 20 Gi | ClusterIP 5432 | apps |
 | garage-backups | grad | ObjectStore + ScheduledBackup | plugin | n/a | uses Garage | none | apps |
-| api | grad | Deployment, Service, Ingress | `ghcr.io/<owner>/grad-api` | image automation | none | Ingress `api.grad26.example` | apps |
+| api | grad | Deployment, Service, Ingress | `ghcr.io/<owner>/grad-api` | image automation | none | Ingress `api.grad26.fuisloy.dev` | apps |
 | worker | grad | Deployment | same image | image automation | none | none | apps |
 | cloudflared | edge | Deployment x2 | `cloudflare/cloudflared` | pinned release | none | outbound only | apps |
 | fallback | edge | Deployment, Service, ConfigMap | static server image | pinned | none | via Traefik errors middleware | apps |
-| translation | grad | Deployment, Service | `ghcr.io/<owner>/grad-translation` | image automation | emptyDir for model cache or PVC | Ingress `api.grad26.example/ingest` only | apps, suspendable |
+| translation | grad | Deployment, Service | `ghcr.io/<owner>/grad-translation` | image automation | emptyDir for model cache or PVC | none, reached only from the API | apps, suspendable |
 | printer | grad | Deployment | `ghcr.io/<owner>/grad-printer` | image automation | none | none | venue overlay only |
 | web-mirror | grad | Deployment, Service, Ingress | `ghcr.io/<owner>/grad-web` | image automation | none | LAN hostname | venue overlay only |
 | offsite-mirror | garage | CronJob | `rclone/rclone` | pinned | none | outbound only | apps |
@@ -502,12 +502,9 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: api.grad26.example
+    - host: api.grad26.fuisloy.dev
       http:
         paths:
-          - path: /ingest
-            pathType: Prefix
-            backend: { service: { name: translation, port: { number: 80 } } }
           - path: /
             pathType: Prefix
             backend: { service: { name: api, port: { number: 80 } } }
@@ -688,13 +685,12 @@ spec:
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
-metadata: { name: translation-from-traefik, namespace: grad }
+metadata: { name: translation-from-api, namespace: grad }
 spec:
   podSelector: { matchLabels: { app: translation } }
   ingress:
     - from:
-        - namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: kube-system } }
-          podSelector: { matchLabels: { app.kubernetes.io/name: traefik } }
+        - podSelector: { matchLabels: { app: api } }
       ports: [{ port: 8000 }]
 ---
 apiVersion: networking.k8s.io/v1
@@ -727,7 +723,7 @@ Label selectors for Traefik and Garage pods must be checked against the deployed
 | Total without translation | about 1.7 | about 2.5 Gi | about 5.5 Gi |
 | Total with translation | about 2.7 | about 6.5 Gi | about 13.5 Gi |
 
-A node with 4 cores, 16 GB of RAM and a GPU with at least 8 GB of VRAM covers this with headroom. Whisper large-class models need roughly 10 GB of VRAM; medium fits in 5 GB.
+The planned node is a laptop (ROG Zephyrus G15) running Ubuntu 24.04: Ryzen 9 6900HS with 8 cores, about 15 GB of RAM, 913 GB on the root disk, and an RTX 3060 Mobile with 6 GB of VRAM. CPU and RAM cover this with headroom. VRAM is the limit: Whisper large-class models need roughly 10 GB, so they do not fit; medium fits in about 5 GB but leaves little room, so plan on small or int8-quantised models and test them on the node. Because the node is a laptop, power, thermals and lid behaviour are part of the event-day risk (see the drills below).
 
 ## 7.9 Day-two operations
 

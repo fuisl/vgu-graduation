@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from "fastify";
+import { requireAdmin } from "../admin/admin-auth.js";
 import { InvitationsService } from "./invitations.service.js";
 import type { CreateInvitationDTO } from "./invitations.types.js";
 
@@ -45,6 +46,7 @@ export const invitationsRoutes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.post<{ Body: CreateInvitationDTO }>(
     "/admin/invitations",
+    { preHandler: requireAdmin },
     async (request, reply) => {
       const { guestName, guestEmail, guestPhone, inviterUserIds, maxPlusOnes } =
         request.body || {};
@@ -89,6 +91,7 @@ export const invitationsRoutes: FastifyPluginAsync = async (fastify) => {
    */
   fastify.post<{ Params: { id: string } }>(
     "/admin/invitations/:id/rotate",
+    { preHandler: requireAdmin },
     async (request, reply) => {
       const { id } = request.params;
       const result = await service.rotateInvitationToken(id);

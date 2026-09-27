@@ -1,0 +1,38 @@
+# Local development
+
+## Everything lives here; the infra repo only distributes it
+
+`apps/web`, `apps/api`, `apps/docs` and `packages/*` are all developed and reviewed in this repository. `fuisl/vgu-graduation-deployment` (ADR-008) holds no application source — only the Flux/Kustomize manifests that reference a built image tag. If you're writing web or API code, you're always in this repo; you never need to touch the infra repo to do that.
+
+## Running everything at once
+
+`pnpm dev` runs `turbo dev`, which starts `apps/web`, `apps/api` and `apps/docs` together. Turborepo's terminal UI (`"ui": "tui"` in `turbo.json`) splits this into one pane per app inside a single terminal window: switch panes with the arrow keys, `m` opens the task list, and each pane scrolls its own logs independently. If you'd rather see plain interleaved output (e.g. in a CI-like shell), pass `--ui=stream`.
+
+To run just one app, `pnpm dev:web`, `pnpm dev:api` or `pnpm dev:docs`. Node 24 is required (see `.nvmrc` and `package.json`'s `engines` field); Node 22 is Maintenance LTS and Node 26 isn't LTS yet.
+
+`apps/api` needs Postgres: `pnpm db:up` starts it via `docker-compose.yml` (seeded from `docker/postgres/init/`), `pnpm db:down` stops it, `pnpm db:logs` tails it. Copy `.env.example` to `.env` first.
+
+## Testing cookie scoping locally (optional)
+
+Production scopes the invitation cookie to `.grad26.fuisloy.dev` (ADR-003) so it reaches the API host but nothing else. `localhost:3000`/`localhost:4000` can't reproduce that, because they aren't the same site. `dev/Caddyfile` sets up a local-only stand-in:
+
+```sh
+brew install caddy   # once
+caddy run --config dev/Caddyfile
+```
+
+This proxies `http://grad26.localhost` → `:3000` and `http://api.grad26.localhost` → `:4000`. `*.localhost` always resolves to `127.0.0.1` (RFC 6761) in every modern browser, so no `/etc/hosts` edit and no real DNS is involved — this never touches the `fuisloy.dev` zone. Set `PUBLIC_ORIGIN=http://grad26.localhost` and `COOKIE_DOMAIN=grad26.localhost` in `.env` to exercise the same scoping the real cookie will use once issued (#29). Skip this entirely if you don't need to test cookie behavior; the API and web app work fine talking to each other on plain `localhost`.
+
+This is unrelated to Traefik, the actual cluster ingress (ADR-004, `docs/architecture/target/networking-and-setup.md`) — Caddy here never runs in production and has no equivalent in the infra repo.
+
+## Pre-commit: secret scanning
+
+`git commit` runs `secretlint` (via husky, `.husky/pre-commit`) over staged files, checking for AWS/GCP keys, private keys, GitHub/Slack/Stripe/npm tokens and similar (`.secretlintrc.json`, `@secretlint/secretlint-rule-preset-recommend`). It only scans what's staged and only blocks the commit if it finds something; it doesn't run lint or typecheck (those run in CI, see below). Installed automatically by `pnpm install` via the `prepare` script.
+
+## CI and the API image
+
+- **`.github/workflows/ci.yml`** — every PR and push to `main`: install, lint, typecheck, test, build, all via Turborepo with its own cache. `apps/web`'s `asciify` dependency is optional (`docs/development/private-dependencies.md`), so this needs no secret and is safe on PRs from forks.
+- **`.github/workflows/docker-api.yml`** — builds `apps/api/Dockerfile` on every PR (build-only, catches a broken image early) and, on push to `main`, also pushes to Docker Hub as `fuisl/grad26-api:latest` and `fuisl/grad26-api:sha-<short>`. Only the push step (main only) uses the `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN` repo secrets, so a fork PR never sees them.
+- **The infra repo never runs this repo's CI.** Flux's image automation there (ADR-004, #47) watches `fuisl/grad26-api` on Docker Hub and bumps the deployed tag on its own; this repo's job ends at "pushed a tagged image."
+
+`apps/api/Dockerfile` builds from the repo root (`docker build -f apps/api/Dockerfile .`) using `turbo prune @grad/api --docker` to isolate just that app's subgraph, then `pnpm deploy --prod --legacy` for a production-only `node_modules`, so the final image never carries `apps/web`, `apps/docs`, dev dependencies, or unrelated workspace packages.

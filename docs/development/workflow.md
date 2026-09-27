@@ -7,6 +7,7 @@ Recommended Project fields: Status, Priority, Area, Size, Risk, Iteration, Owner
 Issues include context, requirements, acceptance criteria, design/docs links, dependencies and explicit out-of-scope.
 PRs explain what/why, include UI evidence, testing and docs/schema impact. Prefer squash merge.
 Move durable architectural decisions from chat into ADRs.
+Running the apps day to day, the API image and CI: `docs/development/local-development.md`.
 
 ## Roles and area owners
 fuisl is the project owner: leads design, web and features, and approves ADRs.

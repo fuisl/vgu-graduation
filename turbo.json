@@ -1,20 +1,56 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalPassThroughEnv": ["DOCS_ORIGIN"],
+  "ui": "tui",
+  "globalPassThroughEnv": [
+    "DOCS_ORIGIN"
+  ],
   "tasks": {
-    "build": { "dependsOn": ["^build"], "outputs": [] },
+    "build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": []
+    },
     "@grad/web#build": {
-      "dependsOn": ["^build"],
-      "env": ["DOCS_ORIGIN"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "dependsOn": [
+        "^build"
+      ],
+      "env": [
+        "DOCS_ORIGIN"
+      ],
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**"
+      ]
     },
     "@grad/docs#build": {
-      "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**"
+      ]
     },
-    "dev": { "cache": false, "persistent": true },
-    "lint": { "dependsOn": ["^lint"] },
-    "typecheck": { "dependsOn": ["^typecheck"] },
-    "test": { "dependsOn": ["^test"], "outputs": [] }
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "dependsOn": [
+        "^lint"
+      ]
+    },
+    "typecheck": {
+      "dependsOn": [
+        "^typecheck"
+      ]
+    },
+    "test": {
+      "dependsOn": [
+        "^test"
+      ],
+      "outputs": []
+    }
   }
 }

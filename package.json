@@ -1,1 +1,28 @@
-{"name":"vgu-graduation","private":true,"packageManager":"pnpm@10.17.1","scripts":{"build":"turbo build","dev":"turbo dev","lint":"turbo lint","typecheck":"turbo typecheck","test":"turbo test"},"devDependencies":{"turbo":"^2.5.0"}}
+{
+  "name": "vgu-graduation",
+  "private": true,
+  "packageManager": "pnpm@10.17.1",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "dev:web": "turbo dev --filter=@grad/web",
+    "dev:api": "turbo dev --filter=@grad/api",
+    "dev:docs": "turbo dev --filter=@grad/docs",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f postgres",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@secretlint/secretlint-rule-preset-recommend": "^13.0.6",
+    "husky": "^9.1.7",
+    "secretlint": "^13.0.6",
+    "turbo": "^2.5.0"
+  }
+}

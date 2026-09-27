@@ -1,0 +1,16 @@
+meta {
+  name: Rotate Invitation Token
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{apiOrigin}}/admin/invitations/{{invitationId}}/rotate
+  body: none
+  auth: none
+}
+
+docs {
+  `invitationId` is the `invitationId` field returned by "Create
+  Invitation". Invalidates the previous token and returns a new one.
+}

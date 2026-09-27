@@ -8,4 +8,5 @@ Core concepts:
 - `Photo`: original + derivatives, contributor and moderation state.
 - `Wish`: message with moderation/display state.
 - `TranslationSegment`: timestamped transcript/translation.
+
 Never put sensitive data in public slugs, analytics, client logs or URLs beyond the necessary invitation credential.

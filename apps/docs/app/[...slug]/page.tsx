@@ -19,9 +19,9 @@ export default async function Doc({ params }: { params: Promise<{ slug: string[]
 
   return (
     <Shell>
-      <article className="prose">
+      <div className="prose">
         {Markdoc.renderers.react(content, React, { components: { MermaidDiagram } })}
-      </article>
+      </div>
     </Shell>
   );
 }

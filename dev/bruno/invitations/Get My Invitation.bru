@@ -1,0 +1,22 @@
+meta {
+  name: Get My Invitation
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{apiOrigin}}/invitations/me
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{invitationToken}}
+}
+
+docs {
+  Resolves the caller's invitation by bearer token.
+  Set `invitationToken` in the Local environment (Bruno secret var) to
+  the raw token printed by "Create Invitation" — never commit a real
+  value, invitation tokens are bearer credentials.
+}

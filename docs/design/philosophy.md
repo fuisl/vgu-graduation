@@ -6,6 +6,7 @@ Precise, quiet, technical, editorial, experimental, warm without becoming sentim
 - Vercel Ship: composition, restraint, event identity, selective 3D spectacle.
 - Firecrawl: developer character, ASCII/pixel motifs, technical texture.
 - Linear-like admin surfaces: hierarchy and utility.
+
 References are inspiration, not templates. Approved GRAD screens eventually supersede them.
 ## Hierarchy
 Prefer **typography → whitespace → border → surface → motion**.

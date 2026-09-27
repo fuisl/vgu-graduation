@@ -49,8 +49,17 @@ export function AsciiLive() {
   const [error, setError] = useState("");
   const [grid, setGrid] = useState({ columns: 0, rows: 0 });
   const [fps, setFps] = useState(0);
+  const [engineMissing, setEngineMissing] = useState(false);
 
   settingsRef.current = settings;
+
+  useEffect(() => {
+    try {
+      gpuSupported();
+    } catch (cause) {
+      if (cause instanceof Error && cause.message === "ASCIIFY_NOT_INSTALLED") setEngineMissing(true);
+    }
+  }, []);
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -178,7 +187,17 @@ export function AsciiLive() {
       <p className="ascii-live-privacy">Your camera stays in this browser. No frames are uploaded or saved.</p>
     </header>
 
-    <section className="ascii-live-workspace" aria-label="Live ASCII camera studio">
+    {engineMissing && <section className="ascii-live-workspace" aria-label="ASCII engine unavailable">
+      <div className="ascii-live-stage">
+        <div className="ascii-live-empty">
+          <span aria-hidden="true">.:+*#@</span>
+          <h2>Not available in this build</h2>
+          <p>The ASCIIGen engine is a private, optional dependency. It isn&apos;t installed here, so this page can&apos;t render the camera effect — the rest of the app is unaffected.</p>
+        </div>
+      </div>
+    </section>}
+
+    {!engineMissing && <section className="ascii-live-workspace" aria-label="Live ASCII camera studio">
       <div className="ascii-live-stage">
         <video ref={videoRef} muted playsInline aria-hidden="true" />
         <canvas ref={canvasRef} aria-label="Live camera rendered as ASCII art" />
@@ -240,6 +259,6 @@ export function AsciiLive() {
         {error && <p className="ascii-live-error" role="alert">{error}</p>}
         <p className="ascii-live-engine">Rendered locally with the pinned ASCIIGen WebGL2 engine.</p>
       </aside>
-    </section>
+    </section>}
   </main>;
 }

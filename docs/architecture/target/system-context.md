@@ -13,12 +13,8 @@ flowchart TB
     Web["apps/web, Next.js"]
     Docs["apps/docs, static handbook"]
   end
-  subgraph cf ["Cloudflare, Free plan"]
-    CFEdge["DNS, WAF, cache, tunnel edge"]
-  end
   subgraph k3s ["Homelab, single-node k3s"]
-    CFD["cloudflared x2"]
-    Traefik["Traefik ingress"]
+    Traefik["Traefik ingress, TLS via cert-manager"]
     API["apps/api"]
     Worker["apps/api worker"]
     PG[("PostgreSQL via CloudNativePG")]
@@ -30,17 +26,16 @@ flowchart TB
   Guest --> Web
   Admin --> Web
   Web -- "/docs/*" --> Docs
-  Web -- "JSON over HTTPS" --> CFEdge
-  Guest -- "uploads, live streams" --> CFEdge
-  Kiosk --> CFEdge
-  CFEdge --> CFD --> Traefik
+  Web -- "JSON over HTTPS" --> Traefik
+  Guest -- "uploads, live streams" --> Traefik
+  Kiosk --> Traefik
   Traefik --> API
   Traefik --> Fallback
   API --> PG
   API --> Garage
   Worker --> PG
   Worker --> Garage
-  AV -- "audio over WebSocket" --> CFEdge
+  AV -- "audio over WebSocket" --> Traefik
   API -- "audio proxy, cluster network" --> Trans
   Trans --> API
   PrintD --> API
@@ -53,16 +48,16 @@ flowchart TB
 | --- | --- | --- | --- | --- |
 | apps/web | Vercel | Next.js 15, React 19 | Nothing, stateless | Built, landing and prototypes only |
 | apps/docs | Vercel | Next.js, Markdoc | Nothing, static | Built |
-| apps/api | k3s | Node 22, TypeScript, one process with modules | All domain logic, all writes | Not started |
+| apps/api | k3s | Node 24, TypeScript, one process with modules | All domain logic, all writes | Container image built, verified end to end; not deployed to k3s |
 | apps/api worker | k3s | Same image, worker entrypoint | Background jobs | Not started |
 | PostgreSQL | k3s | CloudNativePG operator, Postgres 17 | System of record | Not started |
 | Garage | k3s | Garage v2, S3-compatible | Originals, derivatives, backups | Not started |
 | apps/translation | k3s, GPU | Python, Whisper-class model | Nothing, push-only | README only |
 | printer daemon | k3s, venue node | Small Node or Python service with CUPS | Nothing, pulls jobs | Not started |
 | static fallback | k3s | Static HTML behind Traefik errors middleware | Nothing | Not started |
-| cloudflared | k3s | Cloudflare Tunnel connector, two replicas | Nothing | Not started |
-| Traefik | k3s, packaged | Ingress controller shipped with k3s | Nothing | Comes with k3s |
-| cert-manager | k3s | Helm chart | Certificates | Not started |
+| DDNS updater | k3s | Small updater (e.g. `ddclient`) keeping Spaceship's `A` record current (ADR-009) | Nothing | Not started |
+| Traefik | k3s, packaged | Ingress controller shipped with k3s, terminates TLS itself | Nothing | Comes with k3s |
+| cert-manager | k3s | Helm chart, HTTP-01 `ClusterIssuer` (ADR-009) | Certificates | Not started |
 | Flux | k3s | GitOps controllers | Cluster state from git | Not started |
 
 ## 2.2 Trust zones
@@ -70,9 +65,9 @@ flowchart TB
 | Zone | Contains | Reachable from | Authentication |
 | --- | --- | --- | --- |
 | Public edge | Vercel pages, docs | Internet | None for public pages; invitation cookie for guest pages |
-| Public API hostname | `api.grad26.fuisloy.dev` through the tunnel | Internet, via Cloudflare only | Invitation bearer token or cookie, admin session, service tokens |
+| Public API hostname | `api.grad26.fuisloy.dev`, forwarded directly to Traefik (ADR-009) | Internet | Invitation bearer token or cookie, admin session, service tokens |
 | Cluster network | Postgres, Garage, worker, translation ingest, printer | Pods allowed by NetworkPolicy | Database credentials, S3 keys, service tokens |
-| Ops hostname (optional) | Garage admin, metrics | Internet, via tunnel, behind Cloudflare Access | Cloudflare Access identity |
+| Ops hostname (optional) | Garage admin, metrics | Internet, same forwarded ports, its own auth (no Cloudflare Access without Cloudflare in front) | To be decided if this hostname is used |
 | Venue LAN | Traefik on the node's LAN address | Devices on the venue network | Same as public API; open item, see section 11 |
 
-The database, object storage, GPU service and printer have no Ingress resource and no Cloudflare hostname. The only way in from the internet is the tunnel, and the tunnel only reaches Traefik.
+The database, object storage, GPU service and printer have no Ingress resource and no public hostname. The only way in from the internet is the router's forwarded ports 80/443, and those only reach Traefik — nothing else is forwarded. Unlike the earlier Cloudflare Tunnel design, this means the home connection's real IP is directly visible to anyone who resolves or scans for `api.grad26.fuisloy.dev` (ADR-009); see section 9 and section 10 for the residual risk.

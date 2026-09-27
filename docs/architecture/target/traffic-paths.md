@@ -4,13 +4,12 @@ Three paths carry all traffic. Which path a feature uses is fixed by the table i
 
 ## 3.1 Path A: browser to Vercel to API
 
-Used for HTML pages and small JSON reads and writes. The browser talks only to Vercel. Next.js server components, route handlers and server actions call the API over the tunnel hostname, cache reads, and translate failures into page states.
+Used for HTML pages and small JSON reads and writes. The browser talks only to Vercel. Next.js server components, route handlers and server actions call the API at its public hostname, cache reads, and translate failures into page states.
 
 ```mermaid
 flowchart LR
   B["Browser"] -- "HTTPS" --> V["Vercel function, region sin1"]
-  V -- "HTTPS, Authorization: Bearer or cookie forwarded" --> C["Cloudflare edge"]
-  C -- "tunnel" --> T["Traefik"] --> A["apps/api"]
+  V -- "HTTPS, Authorization: Bearer or cookie forwarded" --> R["Router, port-forwarded 443 (ADR-009)"] --> T["Traefik"] --> A["apps/api"]
 ```
 
 ## 3.2 Path B: browser directly to the API
@@ -19,15 +18,14 @@ Used for photo uploads, live translation on phones, and the event display feed. 
 
 ```mermaid
 flowchart LR
-  B["Browser or kiosk"] -- "HTTPS, cookie on .grad26.fuisloy.dev" --> C["Cloudflare edge, WAF, cache"]
-  C -- "tunnel" --> T["Traefik"] --> A["apps/api"]
+  B["Browser or kiosk"] -- "HTTPS, cookie on .grad26.fuisloy.dev" --> R["Router, port-forwarded 443 (ADR-009)"] --> T["Traefik"] --> A["apps/api"]
 ```
 
-The API therefore authenticates every request itself. Vercel is a client like any other.
+The API therefore authenticates every request itself, and enforces its own rate limits and body-size caps — there is no Cloudflare WAF or proxy body limit in front of this path since ADR-009. Vercel is a client like any other.
 
 ## 3.3 Path C: inside the cluster
 
-Used by the translation service pushing segments, the worker reading and writing storage, CloudNativePG writing backups to Garage, and the printer daemon pulling jobs. Nothing on this path crosses the tunnel. Access is limited by NetworkPolicy and by per-service tokens.
+Used by the translation service pushing segments, the worker reading and writing storage, CloudNativePG writing backups to Garage, and the printer daemon pulling jobs. Nothing on this path crosses the router's forwarded ports. Access is limited by NetworkPolicy and by per-service tokens.
 
 ## 3.4 Feature to path mapping
 
@@ -40,7 +38,7 @@ Used by the translation service pushing segments, the worker reading and writing
 | Digital pass | Vercel | render QR | issue pass payload | A |
 | Guest camera upload | apps/api | not involved | store original, enqueue derivatives | B |
 | Gallery page | Vercel | cached listing | listing with derivative URLs | A |
-| Gallery images | apps/api, cached by Cloudflare | not involved | serve derivative from Garage | B |
+| Gallery images | apps/api, no edge cache (ADR-009) | not involved | serve derivative from Garage | B |
 | Wishes | Vercel | forward | persist, moderation state | A |
 | Live translation on phones | apps/api WebSocket | page shell only | broadcast segments | B |
 | Event display | apps/api WebSocket | page shell only | display feed | B |

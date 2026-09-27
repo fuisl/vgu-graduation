@@ -4,9 +4,9 @@ Open items:
 
 1. **Venue node machine.** Decided 2026-09-27: a second node runs at the venue, bootstrapped from `clusters/venue` with a rehearsed data handoff. Which machine it is remains open; it depends on hardware inventory (#81). Affects sections 4.6, 7.5, 8.7.
 2. **Translation scope.** Deferred until after M1: languages, model size and latency budget. The homelab GPU has 6 GB of VRAM, so plan for small or int8 models. Affects GPU sizing in 7.8.
-3. **Ceremony date and time.** Not yet confirmed (#83). The venue is Ceremony Hall at VGU (Google Maps link recorded in #83).
+3. **Ceremony date and time.** Not yet confirmed (#83). Working placeholder: November 2026, time to be confirmed, time zone Asia/Ho_Chi_Minh (UTC+7). Build against the placeholder and replace it in the event configuration once the official time is announced; nothing else should hard-code it. The venue is Ceremony Hall at VGU (Google Maps link recorded in #83).
 
-Decisions to be recorded as ADRs, following `adr/README.md`:
+Recorded as ADRs in `adr/README.md` (all accepted 2026-09-27):
 
 - ADR-001: Hosting split. Vercel for the edge, homelab k3s for state and venue services, joined by Cloudflare Tunnel.
 - ADR-002: The API is its own application, `apps/api`, a modular monolith that also runs the worker. Fastify for HTTP and WebSockets, Drizzle for database access with SQL migrations, Zod for the shared contract.

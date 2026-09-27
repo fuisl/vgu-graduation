@@ -17,3 +17,4 @@ flowchart LR
 Public and cacheable surfaces run at the edge on Vercel. Authoritative private data and event services run on the homelab behind a Cloudflare Tunnel; the homelab never opens an inbound port.
 Small reads and writes go through Vercel, which caches them so invitations survive an outage. Uploads and live streams go from the browser straight to the API hostname.
 Database, object storage, inference and printer services are never directly internet-facing.
+Decisions behind this design are recorded as ADRs in `adr/README.md`: hosting split, the API application, browser-direct traffic, GitOps, storage, the homelab as system of record, venue audio ingest and the infrastructure repository.

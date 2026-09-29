@@ -7,7 +7,8 @@ import {
   serializerCompiler,
   validatorCompiler,
 } from "fastify-type-provider-zod";
-import { eventRoutes } from "./modules/event/event.routes.js";
+import type { EventStore } from "./modules/event/event.repository.js";
+import { createEventRoutes } from "./modules/event/event.routes.js";
 import { graduatesRoutes } from "./modules/graduates/graduates.routes.js";
 import { invitationsRoutes } from "./modules/invitations/invitations.routes.js";
 import type { InvitationsService } from "./modules/invitations/invitations.service.js";
@@ -30,6 +31,8 @@ export interface BuildServerOptions {
   config?: Config;
   /** Override for tests; defaults to the database-backed service. */
   invitationsService?: InvitationsService;
+  /** Override for tests; defaults to the database-backed event repository. */
+  eventStore?: EventStore;
   /** Log destination; defaults to stdout. Tests pass a stream to inspect output. */
   logStream?: { write(line: string): void };
 }
@@ -76,7 +79,7 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
   // modules here once so parallel work never edits this file again.
   app.register(invitationsRoutes(options.invitationsService));
   app.register(graduatesRoutes);
-  app.register(eventRoutes);
+  app.register(createEventRoutes(options.eventStore, config));
   app.register(rsvpRoutes);
   app.register(passRoutes);
 

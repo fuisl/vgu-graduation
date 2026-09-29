@@ -62,6 +62,8 @@ RUN addgroup --system --gid 1001 grad && adduser --system --uid 1001 grad
 COPY --from=installer --chown=grad:grad /app/deploy/api/node_modules ./node_modules
 COPY --from=installer --chown=grad:grad /app/deploy/api/package.json ./package.json
 COPY --from=installer --chown=grad:grad /app/apps/api/dist ./dist
+# SQL migrations applied by `node dist/migrate.js` (the API Deployment's init container).
+COPY --from=installer --chown=grad:grad /app/apps/api/drizzle ./drizzle
 
 USER grad
 EXPOSE 4000

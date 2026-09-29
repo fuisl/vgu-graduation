@@ -70,6 +70,10 @@ Python service. It exposes one WebSocket ingest endpoint for audio, reachable on
 
 Request and response schemas shared by apps/web and apps/api, written once as runtime validators with inferred TypeScript types. A change to an endpoint fails the web app's typecheck instead of failing at the venue.
 
+Zod schemas live in `packages/contract/src`, one file per module: `invitations`, `rsvp`, `event`, `pass`, `media`, `wishes`, `live` (WebSocket messages), `translation`, `print` and `admin`, plus `common` (errors, timestamps, moderation, pagination). Conventions: JSON fields are camelCase; timestamps are ISO 8601 with offset; photos are addressed only by their random `publicId`; every listing is cursor-paginated (`pageQuerySchema`); every error is `{ error, message }`. Endpoints that don't speak JSON (`POST /media` multipart, `GET /event/calendar.ics`, the `WS /live/ingest` audio stream) are documented next to the schema of their JSON parts and have no schema of their own.
+
+Translation shapes reflect the live-translation intent (#18): speech is `en` or `vi`, captions are `de`, `en` or `vi`, and every translation carries a `draft`, `final` or `failed` status and the `provider` that produced it, so local-GPU and cloud providers stay swappable.
+
 ## 4.6 deploy/ (new): everything Flux reconciles
 
 Decided 2026-09-27: `deploy/` and the SOPS-encrypted secrets live in a separate infrastructure repository, `fuisl/vgu-graduation-deployment`, not in this repository. It is public; only SOPS/age ciphertext is committed. The layout below is the root of that repository, and the `.sops.yaml` rules file sits at its root. Flux watches the infrastructure repository, and image automation commits tag bumps there.

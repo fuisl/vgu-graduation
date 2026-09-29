@@ -30,3 +30,13 @@ export const eventSchema = z.object({
   arrivalInfo: z.string().nullable(),
 });
 export type EventConfig = z.infer<typeof eventSchema>;
+
+/**
+ * PUT /admin/event: replaces the event configuration (#33, edited from #42).
+ * Every successful write bumps the calendar feed's SEQUENCE. Response is `eventSchema`.
+ */
+export const updateEventRequestSchema = eventSchema.refine(
+  (event) => event.endsAt === null || Date.parse(event.endsAt) > Date.parse(event.startsAt),
+  { message: "endsAt must be after startsAt", path: ["endsAt"] },
+);
+export type UpdateEventRequest = z.infer<typeof updateEventRequestSchema>;

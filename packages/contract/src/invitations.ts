@@ -65,3 +65,27 @@ export const rotateInvitationResponseSchema = z.object({
   inviteUrl: z.string().url(),
 });
 export type RotateInvitationResponse = z.infer<typeof rotateInvitationResponseSchema>;
+
+/** POST /admin/invitations/{id}/revoke: 200 response. Revoking twice is a no-op that returns the same state. */
+export const revokeInvitationResponseSchema = z.object({
+  id: z.string().uuid(),
+  status: z.literal("revoked"),
+  revokedAt: z.string().datetime({ offset: true }),
+});
+export type RevokeInvitationResponse = z.infer<typeof revokeInvitationResponseSchema>;
+
+/** One row of GET /admin/invitations (admin only, contains guest PII). Never includes a token or hash. */
+export const adminInvitationRowSchema = z.object({
+  id: z.string().uuid(),
+  guest: guestSchema,
+  status: z.enum(["active", "revoked"]),
+  maxPlusOnes: z.number().int().min(0),
+  inviters: z.array(inviterSchema),
+  rsvp: rsvpSchema.nullable(),
+  createdAt: z.string().datetime({ offset: true }),
+});
+export type AdminInvitationRow = z.infer<typeof adminInvitationRowSchema>;
+
+/** GET /admin/invitations: newest first. The guest list is small, so no pagination. */
+export const adminInvitationsResponseSchema = z.object({ items: z.array(adminInvitationRowSchema) });
+export type AdminInvitationsResponse = z.infer<typeof adminInvitationsResponseSchema>;

@@ -1,0 +1,17 @@
+# Local-development Garage: one node, no replication. Mirrors the S3 surface of
+# the homelab cluster (region `garage`, path-style, port 3900) but is NOT how
+# production is configured; that lives in the infrastructure repository
+# (ADR-008). Secrets come from the environment (see docker-compose.yml), never
+# from this file.
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+db_engine = "sqlite"
+
+replication_factor = 1
+
+rpc_bind_addr = "[::]:3901"
+rpc_public_addr = "127.0.0.1:3901"
+
+[s3_api]
+s3_region = "garage"
+api_bind_addr = "[::]:3900"

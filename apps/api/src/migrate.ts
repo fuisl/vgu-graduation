@@ -20,6 +20,10 @@ export async function runMigrations(
   migrationsFolder: string = DEFAULT_MIGRATIONS_FOLDER,
 ): Promise<void> {
   const pool = new pg.Pool({ connectionString: databaseUrl, max: 2 });
+  // A connection the server drops while idle or closing (restart, DROP DATABASE ... FORCE)
+  // emits an 'error' event that would otherwise crash the process. Real migration
+  // failures still surface through the awaited queries below.
+  pool.on("error", () => {});
   // The lock lives on this dedicated connection; it is released on unlock or if the process dies.
   const lockClient = await pool.connect();
   try {

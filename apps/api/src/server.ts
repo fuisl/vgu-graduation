@@ -8,6 +8,7 @@ import {
   validatorCompiler,
 } from "fastify-type-provider-zod";
 import { eventRoutes } from "./modules/event/event.routes.js";
+import type { GraduatesService } from "./modules/graduates/graduates.service.js";
 import { graduatesRoutes } from "./modules/graduates/graduates.routes.js";
 import { invitationsRoutes } from "./modules/invitations/invitations.routes.js";
 import type { InvitationsService } from "./modules/invitations/invitations.service.js";
@@ -30,6 +31,8 @@ export interface BuildServerOptions {
   config?: Config;
   /** Override for tests; defaults to the database-backed service. */
   invitationsService?: InvitationsService;
+  /** Override for tests; defaults to the database-backed service. */
+  graduatesService?: GraduatesService;
   /** Log destination; defaults to stdout. Tests pass a stream to inspect output. */
   logStream?: { write(line: string): void };
 }
@@ -75,7 +78,7 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
   // Domain modules. Each lives in modules/<name>/ and owns its routes; add new
   // modules here once so parallel work never edits this file again.
   app.register(invitationsRoutes(options.invitationsService));
-  app.register(graduatesRoutes);
+  app.register(graduatesRoutes(options.graduatesService));
   app.register(eventRoutes);
   app.register(rsvpRoutes);
   app.register(passRoutes);

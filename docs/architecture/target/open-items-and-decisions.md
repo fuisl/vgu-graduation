@@ -24,8 +24,8 @@ Decided 2026-09-27:
 - The domain is `fuisloy.dev`, registered at Spaceship. The web app is at `grad26.fuisloy.dev`, the API at `api.grad26.fuisloy.dev`, and the invitation cookie is scoped to `.grad26.fuisloy.dev` so other subdomains never receive it. Superseded 2026-09-27 (ADR-009): the zone's nameservers stay at Spaceship; they do not move to Cloudflare. The homelab router forwards ports 80/443 directly to Traefik instead of using a Cloudflare Tunnel.
 - Venue audio is proxied through the API (ADR-007), resolving the earlier conflict between the workload catalogue and the rule that inference services are never internet-facing.
 - Infrastructure manifests and SOPS-encrypted secrets live in `fuisl/vgu-graduation-deployment` (ADR-008). The repository is public by decision; only ciphertext is committed. The age private key is held offline by nhientruong04, with an escrowed backup held by fuisl, and never appears in git or chat.
-- Derivative image URLs use a random unguessable identifier and are cached at the edge; only approved photos get URLs.
-- The door scanner and offline pass verification tool are deferred until after the invitation MVP; the pass payload is still signed.
+- Derivative image URLs use a random unguessable identifier and are cached at the edge; only visible, processed photos get URLs.
+- The door scanner and offline pass verification tool were deferred until after the invitation MVP; superseded 2026-09-29: door check-in is not planned (see below). The pass payload is still signed.
 - Only a few allowlisted admins create invitations, on behalf of graduates; graduates do not sign in.
 - The offsite backup is a disk on nhientruong04's always-on server, reached over Tailscale. The copy must have a long-term custodian beyond the event, because the archive is meant to last four years.
 - Admins sign in with GitHub and an allowlist.
@@ -36,3 +36,18 @@ Decided 2026-09-27:
 - Guest data consent, retention and takedown, decided 2026-09-27: see `docs/product/principles.md` (§8) and the runbook's takedown procedure.
 - Code review routing, decided 2026-09-27: a single top-level `.github/CODEOWNERS` entry for `fuisl` across all areas, auto-requested as a reviewer but not required by the branch protection ruleset (#86). Split by area once the team grows into their areas.
 - Admin identity provider (#41), decided 2026-09-28: GitHub OAuth, superseding the "deferred" note in §4.1 — see §8.3 for the registered app and redirect URIs. A custom, minimal OAuth exchange (not Auth.js/NextAuth), since the API independently verifies its own short-lived session token rather than trusting a third-party session format.
+
+Decided 2026-09-29:
+
+- The ceremony is a public event and door check-in is not planned (#91 closed as not planned). Invitations and the digital pass are personalized keepsakes, and RSVP still gives a headcount. The pass payload is signed with Ed25519, the private key stays on the API and a verifier needs only the public key named by `keyId` (#35). Offline verification is dropped from the pass page (#40).
+- Uploads and wishes require an invitation credential; anonymous visitors only view. Unguessable photo identifiers and public viewing links are unchanged.
+- The site UI and event information support English and Vietnamese (#9), with English as the fallback. German is a live-translation caption language only.
+- Live translation (#18, experimental): spoken languages are English and Vietnamese; captions are German, English or Vietnamese. The pipeline has one audio input and broadcasts to every viewer through the API. ASR and translation sit behind provider interfaces, so a local GPU model or a cloud service can be swapped by configuration if the GPU does not work out. Every translation is `draft`, `final` or `failed` per language, with its provider recorded.
+- RSVP is answered on our own form (attending, plus-ones, notes) and is editable until the event, with no deadline (#34). No email is sent to guests. Calendar apps can only send RSVP replies by email, so calendar RSVP buttons are out of scope.
+- Guests add the event to any calendar app (Google, Outlook, Apple) through a public subscribable feed, `GET /event/calendar.ics` as a `webcal://` link, plus "Add to Google" and "Add to Outlook" links (#33, #39). The feed carries no personal data. It keeps a stable `UID` and bumps `SEQUENCE` so subscribed calendars update when the date is confirmed. Google refreshes subscriptions slowly, up to about a day.
+- An invalid, revoked or expired invitation link shows the public event information with a notice to contact an organizer; expired keeps its own message (#32, #37).
+- Graduates, the inviters, are added by admins one at a time through the admin UI; there is no import (#32, #42).
+- Each invitation has a roll of 36 photo shots, like film (#58, #62). The API enforces the cap and the camera shows the shots left. A shot is spent once uploaded; hiding or removing a photo doesn't give it back.
+- The ceremony date and time are still unconfirmed (#83). Everything builds against the placeholder with `timeConfirmed: false` in the event configuration; nothing else may hard-code them.
+- A light theme to complement the documented dark theme is wanted later, once there is substantial web UI to test it on (#10). A more minimal landing layout (#5) is researched by fuisl and reviewed before any change.
+- CI: the API image is built and pushed only when something merges to `main`, and pull-request CI runs only the packages a change affects (#103, #104, #105). Local development uses Garage v2.4.1; the cluster pin in `kubernetes-workloads.md` §7.6 (still v2.3.0) is bumped when #49 vendors the chart.

@@ -13,6 +13,7 @@ import { invitationsRoutes } from "./modules/invitations/invitations.routes.js";
 import type { InvitationsService } from "./modules/invitations/invitations.service.js";
 import { passRoutes } from "./modules/pass/pass.routes.js";
 import { rsvpRoutes } from "./modules/rsvp/rsvp.routes.js";
+import type { RsvpService } from "./modules/rsvp/rsvp.service.js";
 import { systemRoutes } from "./modules/system/system.routes.js";
 
 /** Logger paths whose values are replaced with "[Redacted]". */
@@ -30,6 +31,8 @@ export interface BuildServerOptions {
   config?: Config;
   /** Override for tests; defaults to the database-backed service. */
   invitationsService?: InvitationsService;
+  /** Override for tests; defaults to the database-backed service. */
+  rsvpService?: Pick<RsvpService, "putByToken" | "listAll">;
   /** Log destination; defaults to stdout. Tests pass a stream to inspect output. */
   logStream?: { write(line: string): void };
 }
@@ -77,7 +80,7 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
   app.register(invitationsRoutes(options.invitationsService));
   app.register(graduatesRoutes);
   app.register(eventRoutes);
-  app.register(rsvpRoutes);
+  app.register(rsvpRoutes, { service: options.rsvpService });
   app.register(passRoutes);
 
   return app;

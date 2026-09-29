@@ -10,7 +10,7 @@
 
 To run just one app, `pnpm dev:web`, `pnpm dev:api` or `pnpm dev:docs`. Node 24 is required (see `.nvmrc` and `package.json`'s `engines` field); Node 22 is Maintenance LTS and Node 26 isn't LTS yet.
 
-`apps/api` needs Postgres: `pnpm db:up` starts it via `docker-compose.yml`, `pnpm db:down` stops it, `pnpm db:logs` tails it. Copy `.env.example` to `.env` first, then run `pnpm db:migrate` to create the schema (see below).
+`apps/api` needs Postgres and S3-compatible storage. `pnpm services:up` starts both (Postgres and Garage) and creates the buckets; `pnpm services:down` stops them and `pnpm services:reset` wipes their volumes and starts fresh. For Postgres alone: `pnpm db:up` starts it via `docker-compose.yml`, `pnpm db:down` stops it, `pnpm db:logs` tails it. Copy `.env.example` to `.env` first, then run `pnpm db:migrate` to create the schema (see below).
 
 `apps/web` calls the API through a thin BFF layer (`apps/web/lib/api`, §4.1): a `fetch` wrapper with the caching policy from that section's table, and API responses validated against `packages/contract` before use. Copy `apps/web/.env.example` to `apps/web/.env.local` (Next.js reads env files from the app directory, not the repo root) and point `API_ORIGIN` at a running `apps/api`.
 
@@ -22,6 +22,24 @@ The schema is defined in `apps/api/src/db/schema.ts` with Drizzle (ADR-002); ver
 - After changing `schema.ts`, run `pnpm db:generate --name=<what-changed>` and commit the new SQL file. Never edit a migration that has been merged; add a new one.
 - `pnpm db:reset` wipes the local database volume and starts a fresh Postgres; run `pnpm db:migrate` afterwards. Use it once if your volume predates the migrations (it was previously seeded by an init script that no longer exists).
 - Migration tests need Postgres: `pnpm db:up` first. They create and drop their own scratch databases, never touching `grad26`.
+
+## Object storage: Garage
+
+`pnpm services:up` runs Garage v2.4.1, the same object store as the homelab (ADR-005), as a single node from `docker-compose.yml` and `docker/garage/garage.toml`. `scripts/dev-garage-init.sh` then creates the three buckets (`grad-originals`, `grad-derivatives`, `grad-backups`), grants the dev key read/write on the first two, and proves it works with a signed upload, download and delete. It is idempotent, so re-running `services:up` is safe.
+
+The API reads it through the `S3_*` variables in `.env.example`: endpoint `http://localhost:3900`, region `garage`, path-style addressing. The dev credentials are throwaway constants, safe to commit only because they exist nowhere but your laptop. To poke at it: `docker compose exec garage /garage status` or `/garage bucket list`. Data lives in the `garage_meta` and `garage_data` volumes until `services:reset`.
+
+**How this relates to the deployed Garage.** The API only ever sees an S3 endpoint, a region, credentials and bucket names, all from environment variables, so the same code runs against both. What differs is who provisions it:
+
+| | Local (this repo) | Homelab (infrastructure repository, #49) |
+| --- | --- | --- |
+| Runs as | one Docker Compose container | StatefulSet from the vendored Helm chart on k3s |
+| Layout | assigned automatically (`--single-node`) | assigned once by hand during bootstrap |
+| Keys | fixed dev key from `.env` | `api-key` and `backup-key` imported from SOPS-encrypted secrets |
+| Backups | none | nightly offsite mirror (ADR-005) |
+| Exposure | `localhost:3900` | ClusterIP only, never public |
+
+Nothing here is deployed and the infrastructure repository never reads this compose file. Keep the Garage version in `docker-compose.yml` the same as the one pinned in the cluster: `kubernetes-workloads.md` §7.6 still says v2.3.0 and should be bumped to v2.4.1 when #49 vendors the chart.
 
 ## API authentication
 

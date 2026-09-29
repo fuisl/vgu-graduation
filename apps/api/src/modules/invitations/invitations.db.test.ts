@@ -7,7 +7,7 @@ import { runMigrations } from "../../migrate.js";
  * Real-Postgres check of the admin write paths, in its own scratch database
  * (never the shared grad26 data). Skips locally when Postgres is unreachable.
  */
-const baseUrl = new URL(loadConfig({}).databaseUrl);
+const baseUrl = new URL(loadConfig(process.env).databaseUrl);
 const adminUrl = new URL(baseUrl);
 adminUrl.pathname = "/postgres";
 const scratchName = `grad_invitations_test_${process.pid}`;

@@ -45,7 +45,7 @@ Nothing here is deployed and the infrastructure repository never reads this comp
 
 Three credential types, all checked by the API itself (`apps/api/src/auth/`):
 
-- **Invitation token** (guests): 128-bit random, only its SHA-256 hash is stored, compared in constant time. Sent as `Authorization: Bearer` (from Vercel) or the `inv` cookie. `GET /invitations/me` answers `404` for unknown, revoked and not-yet-valid tokens (indistinguishable on purpose), and `410 Gone` once `valid_until` has passed, so the web app can show an "expired" page instead of "not found".
+- **Invitation token** (guests): 128-bit random, only its SHA-256 hash is stored, compared in constant time. Sent as `Authorization: Bearer` (from Vercel) or the `inv` cookie. `GET /invitations/me` answers `404` for unknown, revoked and not-yet-valid tokens (indistinguishable on purpose), and `410 Gone` once `valid_until` has passed, so the web app can show an "expired" page instead of "not found". `GET /pass` takes the same credential and answers with the same status codes.
 - **Admin session** (`/admin/*`): HS256 token signed with `ADMIN_SESSION_SECRET`, minted by the web app after GitHub sign-in.
 - **Service token** (`/internal/*`): a static bearer token per service, guarded by `requireService("translation" | "printer")`. Each token only opens its own scope, and a scope with no configured token rejects everything.
 
@@ -53,7 +53,7 @@ Request and response bodies are validated with the `@grad/contract` Zod schemas,
 
 ## API configuration
 
-`apps/api` reads configuration from the environment only (`apps/api/src/config.ts`, validated with Zod; variables listed in `applications-and-repository.md` §4.3). Locally every variable has a safe default, so `.env` only needs overriding for what you change. With `NODE_ENV=production` the API refuses to start unless the S3, service-token and `ADMIN_SESSION_SECRET` variables are set, and the error names the missing variables, never their values.
+`apps/api` reads configuration from the environment only (`apps/api/src/config.ts`, validated with Zod; variables listed in `applications-and-repository.md` §4.3). Locally every variable has a safe default, so `.env` only needs overriding for what you change. With `NODE_ENV=production` the API refuses to start unless the S3, service-token, `PASS_SIGNING_KEY` and `ADMIN_SESSION_SECRET` variables are set, and the error names the missing variables, never their values. Locally, leaving `PASS_SIGNING_KEY` unset makes the API sign passes with an ephemeral key and log a warning (signature scheme: `use-cases.md` §6.1).
 
 CORS allows `PUBLIC_ORIGIN` and nothing else, so a web app on any other origin (for example a Vercel preview) must be listed there. `GET /metrics` serves Prometheus metrics; it is unauthenticated, so the Ingress must not route it publicly.
 

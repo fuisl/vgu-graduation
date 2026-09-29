@@ -12,6 +12,7 @@ import { graduatesRoutes } from "./modules/graduates/graduates.routes.js";
 import { invitationsRoutes } from "./modules/invitations/invitations.routes.js";
 import type { InvitationsService } from "./modules/invitations/invitations.service.js";
 import { passRoutes } from "./modules/pass/pass.routes.js";
+import type { PassSigner } from "./modules/pass/pass.signer.js";
 import { rsvpRoutes } from "./modules/rsvp/rsvp.routes.js";
 import { systemRoutes } from "./modules/system/system.routes.js";
 
@@ -30,6 +31,8 @@ export interface BuildServerOptions {
   config?: Config;
   /** Override for tests; defaults to the database-backed service. */
   invitationsService?: InvitationsService;
+  /** Override for tests; defaults to a signer built from `config.pass`. */
+  passSigner?: PassSigner;
   /** Log destination; defaults to stdout. Tests pass a stream to inspect output. */
   logStream?: { write(line: string): void };
 }
@@ -78,7 +81,11 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
   app.register(graduatesRoutes);
   app.register(eventRoutes);
   app.register(rsvpRoutes);
-  app.register(passRoutes);
+  app.register(passRoutes, {
+    config,
+    invitationsService: options.invitationsService,
+    signer: options.passSigner,
+  });
 
   return app;
 }

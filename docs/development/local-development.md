@@ -39,7 +39,7 @@ This is unrelated to Traefik, the actual cluster ingress (ADR-004, `docs/archite
 
 ## CI and the API image
 
-- **`.github/workflows/ci.yml`** — every PR and push to `main`: install, lint, typecheck, test, build, all via Turborepo with its own cache. `apps/web`'s `asciify` dependency is optional (`docs/development/private-dependencies.md`), so this needs no secret and is safe on PRs from forks.
+- **`.github/workflows/ci.yml`** — every PR and push to `main`: install, lint, typecheck, test, build, all via Turborepo with its own cache. To save compute it runs only what the change needs (#104): `scripts/ci-scope.sh` picks `turbo --affected` (changed packages and their dependents) or a full run when the change touches the workflow, `turbo.json`, root `package.json`, `pnpm-workspace.yaml`, `.npmrc`, `.nvmrc` or a tsconfig, or when no base commit is usable. A change under `docs/` also builds `apps/docs`, which renders those files at build time. The single `checks` job always runs and reports, so it stays the required status check. `apps/web`'s `asciify` dependency is optional (`docs/development/private-dependencies.md`), so this needs no secret and is safe on PRs from forks.
 - **`.github/workflows/docker-api.yml`** — builds `apps/api/Dockerfile` on every PR (build-only, catches a broken image early) and, on push to `main`, also pushes to Docker Hub as `fuisl/grad26-api:latest` and `fuisl/grad26-api:sha-<short>`. Only the push step (main only) uses the `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN` repo secrets, so a fork PR never sees them.
 - **The infra repo never runs this repo's CI.** Flux's image automation there (ADR-004, #47) watches `fuisl/grad26-api` on Docker Hub and bumps the deployed tag on its own; this repo's job ends at "pushed a tagged image."
 

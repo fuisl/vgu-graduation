@@ -185,7 +185,11 @@ export const wishes = pgTable(
   ],
 );
 
-/** Timestamped transcript segments from the translation service (experimental). */
+/**
+ * One finalized sentence from the translation service (experimental), in the
+ * source language, never revised once stored. `sequence` is gapless per
+ * session so clients can refetch what they missed after a disconnect.
+ */
 export const translationSegments = pgTable(
   "translation_segments",
   {
@@ -194,15 +198,42 @@ export const translationSegments = pgTable(
     sequence: integer("sequence").notNull(),
     startMs: integer("start_ms").notNull(),
     endMs: integer("end_ms").notNull(),
-    sourceLanguage: text("source_language").notNull(),
+    sourceLanguage: text("source_language", { enum: ["en", "vi"] }).notNull(),
     sourceText: text("source_text").notNull(),
-    /** Language code to translated text, e.g. {"vi": "...", "en": "..."}. */
-    translations: jsonb("translations").$type<Record<string, string>>().notNull().default({}),
     createdAt: createdAt(),
   },
   (t) => [
     unique("translation_segments_session_sequence_key").on(t.sessionId, t.sequence),
     check("translation_segments_time_check", sql`${t.endMs} >= ${t.startMs}`),
+    check("translation_segments_source_language_check", sql`${t.sourceLanguage} IN ('en', 'vi')`),
+  ],
+);
+
+/**
+ * One translation of a segment into one language. A `draft` (fast, rough) can
+ * be replaced by a `final`; `failed` renders as "translation unavailable" and
+ * never blocks other languages. `provider` records which ASR/LLM backend made
+ * it (local GPU or cloud), since providers are swappable.
+ */
+export const translationTexts = pgTable(
+  "translation_texts",
+  {
+    id: id(),
+    segmentId: uuid("segment_id")
+      .notNull()
+      .references(() => translationSegments.id, { onDelete: "cascade" }),
+    language: text("language", { enum: ["de", "en", "vi"] }).notNull(),
+    text: text("text"),
+    status: text("status", { enum: ["draft", "final", "failed"] }).notNull(),
+    provider: text("provider"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    unique("translation_texts_segment_language_key").on(t.segmentId, t.language),
+    check("translation_texts_language_check", sql`${t.language} IN ('de', 'en', 'vi')`),
+    check("translation_texts_status_check", sql`${t.status} IN ('draft', 'final', 'failed')`),
+    check("translation_texts_text_check", sql`${t.status} = 'failed' OR ${t.text} IS NOT NULL`),
   ],
 );
 

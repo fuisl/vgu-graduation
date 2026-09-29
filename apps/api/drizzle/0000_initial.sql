@@ -96,10 +96,25 @@ CREATE TABLE "translation_segments" (
 	"end_ms" integer NOT NULL,
 	"source_language" text NOT NULL,
 	"source_text" text NOT NULL,
-	"translations" jsonb DEFAULT '{}'::jsonb NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "translation_segments_session_sequence_key" UNIQUE("session_id","sequence"),
-	CONSTRAINT "translation_segments_time_check" CHECK ("translation_segments"."end_ms" >= "translation_segments"."start_ms")
+	CONSTRAINT "translation_segments_time_check" CHECK ("translation_segments"."end_ms" >= "translation_segments"."start_ms"),
+	CONSTRAINT "translation_segments_source_language_check" CHECK ("translation_segments"."source_language" IN ('en', 'vi'))
+);
+--> statement-breakpoint
+CREATE TABLE "translation_texts" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"segment_id" uuid NOT NULL,
+	"language" text NOT NULL,
+	"text" text,
+	"status" text NOT NULL,
+	"provider" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "translation_texts_segment_language_key" UNIQUE("segment_id","language"),
+	CONSTRAINT "translation_texts_language_check" CHECK ("translation_texts"."language" IN ('de', 'en', 'vi')),
+	CONSTRAINT "translation_texts_status_check" CHECK ("translation_texts"."status" IN ('draft', 'final', 'failed')),
+	CONSTRAINT "translation_texts_text_check" CHECK ("translation_texts"."status" = 'failed' OR "translation_texts"."text" IS NOT NULL)
 );
 --> statement-breakpoint
 CREATE TABLE "users" (
@@ -131,6 +146,7 @@ ALTER TABLE "invitation_inviters" ADD CONSTRAINT "invitation_inviters_user_id_us
 ALTER TABLE "invitations" ADD CONSTRAINT "invitations_guest_id_guests_id_fk" FOREIGN KEY ("guest_id") REFERENCES "public"."guests"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "photos" ADD CONSTRAINT "photos_invitation_id_invitations_id_fk" FOREIGN KEY ("invitation_id") REFERENCES "public"."invitations"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "rsvp" ADD CONSTRAINT "rsvp_invitation_id_invitations_id_fk" FOREIGN KEY ("invitation_id") REFERENCES "public"."invitations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "translation_texts" ADD CONSTRAINT "translation_texts_segment_id_translation_segments_id_fk" FOREIGN KEY ("segment_id") REFERENCES "public"."translation_segments"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "wishes" ADD CONSTRAINT "wishes_invitation_id_invitations_id_fk" FOREIGN KEY ("invitation_id") REFERENCES "public"."invitations"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "idx_audit_created_at" ON "audit" USING btree ("created_at");--> statement-breakpoint
 CREATE INDEX "idx_audit_target" ON "audit" USING btree ("target_type","target_id");--> statement-breakpoint

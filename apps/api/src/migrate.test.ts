@@ -12,6 +12,7 @@ const EXPECTED_TABLES = [
   "photos",
   "rsvp",
   "translation_segments",
+  "translation_texts",
   "users",
   "wishes",
 ];

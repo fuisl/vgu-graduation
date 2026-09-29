@@ -1,5 +1,5 @@
 {
-  "id": "bbd29f37-dabc-4ec1-89e0-2bfa81308ebd",
+  "id": "4921d8a9-6367-41b6-ad8b-34529eae561b",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -783,13 +783,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "translations": {
-          "name": "translations",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::jsonb"
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -816,6 +809,110 @@
         "translation_segments_time_check": {
           "name": "translation_segments_time_check",
           "value": "\"translation_segments\".\"end_ms\" >= \"translation_segments\".\"start_ms\""
+        },
+        "translation_segments_source_language_check": {
+          "name": "translation_segments_source_language_check",
+          "value": "\"translation_segments\".\"source_language\" IN ('en', 'vi')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.translation_texts": {
+      "name": "translation_texts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "segment_id": {
+          "name": "segment_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "language": {
+          "name": "language",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "text": {
+          "name": "text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "translation_texts_segment_id_translation_segments_id_fk": {
+          "name": "translation_texts_segment_id_translation_segments_id_fk",
+          "tableFrom": "translation_texts",
+          "tableTo": "translation_segments",
+          "columnsFrom": [
+            "segment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "translation_texts_segment_language_key": {
+          "name": "translation_texts_segment_language_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "segment_id",
+            "language"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "translation_texts_language_check": {
+          "name": "translation_texts_language_check",
+          "value": "\"translation_texts\".\"language\" IN ('de', 'en', 'vi')"
+        },
+        "translation_texts_status_check": {
+          "name": "translation_texts_status_check",
+          "value": "\"translation_texts\".\"status\" IN ('draft', 'final', 'failed')"
+        },
+        "translation_texts_text_check": {
+          "name": "translation_texts_text_check",
+          "value": "\"translation_texts\".\"status\" = 'failed' OR \"translation_texts\".\"text\" IS NOT NULL"
         }
       },
       "isRLSEnabled": false

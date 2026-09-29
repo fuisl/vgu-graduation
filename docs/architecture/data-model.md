@@ -9,7 +9,8 @@ Core concepts:
 - `RSVP`: attendance state.
 - `Photo`: original + derivatives, contributor and moderation state.
 - `Wish`: message with moderation/display state.
-- `TranslationSegment`: timestamped transcript/translation, unique per `(session_id, sequence)`; translations are a JSON map of language code to text.
+- `TranslationSegment`: one finalized source-language sentence (`en` or `vi`) from the translation service, never revised, with a gapless per-session `sequence` (unique with `session_id`) so clients refetch missed segments by sequence.
+- `TranslationText`: one translation of a segment into `de`, `en` or `vi` (unique per segment and language). `status` is `draft` (fast, replaceable), `final` or `failed` (shown as "translation unavailable"; `text` may then be null). `provider` records which backend produced it, since local-GPU and cloud providers are swappable.
 - `Job`: worker queue row (`queued` → `running` → `succeeded`/`failed`) with attempts and `run_at`, polled with `FOR UPDATE SKIP LOCKED`. Payloads hold ids only.
 - `Audit`: append-only admin/service action log (actor, action, target). No tokens or guest PII in metadata.
 

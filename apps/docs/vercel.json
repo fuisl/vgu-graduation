@@ -1,4 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "pnpm install --filter @grad/docs... --frozen-lockfile"
+  "installCommand": "pnpm install --filter @grad/docs... --frozen-lockfile",
+  "ignoreCommand": "npx turbo-ignore --fallback=HEAD^1 && git diff --quiet ${VERCEL_GIT_PREVIOUS_SHA:-HEAD^1} HEAD -- ../../docs"
 }

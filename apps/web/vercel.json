@@ -1,5 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "../../scripts/install-private-dependencies.sh",
-  "regions": ["sin1"]
+  "regions": [
+    "sin1"
+  ],
+  "ignoreCommand": "npx turbo-ignore --fallback=HEAD^1"
 }

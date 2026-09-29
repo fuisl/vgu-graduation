@@ -1,7 +1,9 @@
 import type { EventConfig, Invitation } from "@grad/contract";
 import type { ApiResult } from "../../../lib/api/result";
 import { summarizeRsvp } from "../../../lib/invite/format";
+import { Suspense } from "react";
 import { EventDetails } from "./EventDetails";
+import { PassBadge, PassBadgeSkeleton } from "./PassBadge";
 import { RsvpForm } from "./RsvpForm";
 
 /**
@@ -33,7 +35,9 @@ export function PersonalInvitation({ invitation, event }: { invitation: Invitati
       </section>
 
       <section aria-labelledby="rsvp-form-heading"><RsvpForm invitation={invitation} /></section>
-      {/* SLOT #40: pass/badge section goes here. */}
+      <Suspense fallback={<PassBadgeSkeleton />}>
+        <PassBadge guestName={invitation.guest.name} event={event} />
+      </Suspense>
     </>
   );
 }

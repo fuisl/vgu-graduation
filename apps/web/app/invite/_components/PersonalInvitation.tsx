@@ -2,6 +2,7 @@ import type { EventConfig, Invitation } from "@grad/contract";
 import type { ApiResult } from "../../../lib/api/result";
 import { summarizeRsvp } from "../../../lib/invite/format";
 import { EventDetails } from "./EventDetails";
+import { RsvpForm } from "./RsvpForm";
 
 /**
  * The personalized invitation, composed of independent sections. Each later
@@ -31,7 +32,7 @@ export function PersonalInvitation({ invitation, event }: { invitation: Invitati
         <p>{summarizeRsvp(invitation.rsvp)}</p>
       </section>
 
-      {/* SLOT #38: RSVP form section goes here. */}
+      <section aria-labelledby="rsvp-form-heading"><RsvpForm invitation={invitation} /></section>
       {/* SLOT #40: pass/badge section goes here. */}
     </>
   );

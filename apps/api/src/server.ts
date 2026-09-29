@@ -1,36 +1,49 @@
 import fastifyCookie from "@fastify/cookie";
 import fastifyCors from "@fastify/cors";
 import Fastify, { type FastifyInstance } from "fastify";
-import { config } from "./config.js";
+import { type Config, config as defaultConfig } from "./config.js";
 import { invitationsRoutes } from "./modules/invitations/invitations.routes.js";
+import { systemRoutes } from "./modules/system/system.routes.js";
 
-export function buildServer(): FastifyInstance {
+/** Logger paths whose values are replaced with "[Redacted]". */
+export const LOG_REDACT_PATHS = [
+  "req.headers.authorization",
+  "req.headers.cookie",
+  "res.headers['set-cookie']",
+  "*.token",
+  "token",
+  "*.token_hash",
+  "token_hash",
+];
+
+export interface BuildServerOptions {
+  config?: Config;
+  /** Log destination; defaults to stdout. Tests pass a stream to inspect output. */
+  logStream?: { write(line: string): void };
+}
+
+export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
+  const config = options.config ?? defaultConfig;
+
   const app = Fastify({
     logger: {
-      level: config.nodeEnv === "development" ? "info" : "warn",
-      redact: [
-        "req.headers.authorization",
-        "req.headers.cookie",
-        "*.token",
-        "token",
-        "*.token_hash",
-        "token_hash",
-      ],
+      level: config.logLevel,
+      redact: LOG_REDACT_PATHS,
+      ...(options.logStream ? { stream: options.logStream } : {}),
     },
   });
 
-  // CORS: Allow public origin with credentials
+  // CORS: the public origin with credentials, nothing else
   app.register(fastifyCors, {
-    origin: [config.publicOrigin, "http://localhost:3000", "http://127.0.0.1:3000"],
+    origin: [config.publicOrigin],
     credentials: true,
   });
 
   // Cookies
   app.register(fastifyCookie);
 
-  // Healthcheck endpoints
-  app.get("/healthz", async () => ({ status: "ok" }));
-  app.get("/readyz", async () => ({ status: "ready" }));
+  // Health and metrics
+  app.register(systemRoutes);
 
   // Register domain modules
   app.register(invitationsRoutes);

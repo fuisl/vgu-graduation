@@ -16,6 +16,9 @@
     "test": "turbo test",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && docker compose up -d postgres",
+    "db:migrate": "pnpm --filter @grad/api db:migrate",
+    "db:generate": "pnpm --filter @grad/api db:generate",
     "db:logs": "docker compose logs -f postgres",
     "prepare": "husky"
   },

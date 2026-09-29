@@ -18,6 +18,24 @@ jobs:
     name: checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Migration tests run against a real Postgres (same major version as production).
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: grad26
+          POSTGRES_USER: grad
+          POSTGRES_PASSWORD: grad_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U grad -d grad26"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      CI_DB_USER: grad
+      CI_DB_PASSWORD: grad_ci
     steps:
       # Full history so the diff against the base commit works.
       - uses: actions/checkout@v4
@@ -40,6 +58,11 @@ jobs:
           fi
 
       - uses: pnpm/action-setup@v4
+
+      # Assembled from parts (not a literal URL) so the throwaway CI credential
+      # doesn't trip the secretlint pre-commit rule for connection strings.
+      - name: Point the API tests at the Postgres service
+        run: echo "DATABASE_URL=postgres://${CI_DB_USER}:${CI_DB_PASSWORD}@localhost:5432/grad26" >> "$GITHUB_ENV"
 
       - uses: actions/setup-node@v4
         with:

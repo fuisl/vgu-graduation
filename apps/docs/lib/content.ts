@@ -1,11 +1,11 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import Markdoc from "@markdoc/markdoc";
-import { navGroups } from "./navigation";
+import { navItems } from "./navigation";
 
 const ROOT = path.resolve(process.cwd(), "../../docs");
 
-const allowedSlugs = new Set<string>(navGroups.flatMap((group) => group.items.map(([slug]) => slug)));
+const allowedSlugs = new Set<string>(navItems.map(([slug]) => slug));
 
 export async function readDoc(slug: string[]) {
   const key = slug.join("/");

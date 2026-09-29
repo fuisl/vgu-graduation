@@ -1,10 +1,10 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
+import { bearerToken } from "../../auth/credentials.js";
 import { verifyAdminSession } from "./admin-session.js";
 
 /** Fastify preHandler guarding /admin/* routes. Attaches request.adminHandle on success. */
 export async function requireAdmin(request: FastifyRequest, reply: FastifyReply) {
-  const authHeader = request.headers.authorization;
-  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : undefined;
+  const token = bearerToken(request);
 
   if (!token) {
     return reply.status(401).send({ error: "Unauthorized", message: "Missing admin session token" });
@@ -15,5 +15,5 @@ export async function requireAdmin(request: FastifyRequest, reply: FastifyReply)
     return reply.status(401).send({ error: "Unauthorized", message: "Invalid or expired admin session" });
   }
 
-  (request as FastifyRequest & { adminHandle?: string }).adminHandle = session.handle;
+  request.adminHandle = session.handle;
 }

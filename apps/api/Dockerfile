@@ -50,7 +50,8 @@ COPY --from=pruner /app/out/json/ .
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
   pnpm install --no-frozen-lockfile --ignore-scripts
 COPY --from=pruner /app/out/full/ .
-RUN pnpm --filter @grad/api build
+# `...` also builds workspace dependencies (@grad/contract compiles to dist/).
+RUN pnpm --filter @grad/api... build
 RUN pnpm --filter=@grad/api deploy --prod --legacy --ignore-scripts /app/deploy/api
 
 # 3. Minimal runtime image.

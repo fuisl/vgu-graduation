@@ -1,5 +1,5 @@
 import pg from "pg";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { loadConfig } from "../../config.js";
 import { runMigrations } from "../../migrate.js";
 
@@ -33,9 +33,17 @@ beforeAll(async () => {
   await admin.query(`CREATE DATABASE ${scratchName}`);
   await runMigrations(scratchUrl.toString());
 
-  // The db module reads DATABASE_URL at import time, so point it at the scratch database first.
+  // config.ts and the db module read DATABASE_URL at import time, and this file already
+  // imported config above. Point the environment at the scratch database, then reset the
+  // module cache so config, the pool and the services are re-created against it. Without
+  // the reset they would silently use the shared grad26 database.
   process.env.DATABASE_URL = scratchUrl.toString();
+  vi.resetModules();
   const dbModule = await import("../../db/index.js");
+  const { config: scratchConfig } = await import("../../config.js");
+  if (scratchConfig.databaseUrl !== scratchUrl.toString()) {
+    throw new Error("refusing to run: the db module is not pointed at the scratch database");
+  }
   pool = dbModule.pool;
   ({ InvitationsService: Inv } = await import("./invitations.service.js"));
   ({ GraduatesService: Grad } = await import("../graduates/graduates.service.js"));

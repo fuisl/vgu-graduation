@@ -178,3 +178,46 @@ describe("admin overview", () => {
     expect(adminOverviewSchema.safeParse({ ...overview, jobs: { queued: -1, failed: 0 } }).success).toBe(false);
   });
 });
+
+describe("wave 0 admin schemas", () => {
+  it("normalizes graduate emails and rejects blanks", async () => {
+    const { createGraduateRequestSchema } = await import("./index.js");
+    expect(createGraduateRequestSchema.parse({ name: " Lan ", email: " Lan@Example.com " })).toEqual({
+      name: "Lan",
+      email: "lan@example.com",
+    });
+    expect(createGraduateRequestSchema.safeParse({ name: "", email: "x@example.com" }).success).toBe(false);
+  });
+
+  it("rejects an event that ends before it starts", async () => {
+    const { updateEventRequestSchema } = await import("./index.js");
+    const event = {
+      name: "GRAD '26",
+      startsAt: "2026-11-14T09:00:00+07:00",
+      endsAt: "2026-11-14T08:00:00+07:00",
+      timeZone: "Asia/Ho_Chi_Minh",
+      timeConfirmed: false,
+      venue: { name: "Ceremony Hall", address: "VGU", mapUrl: "https://maps.app.goo.gl/meCAgQyakBbWh8LDA" },
+      contact: null,
+      arrivalInfo: null,
+    };
+    expect(updateEventRequestSchema.safeParse(event).success).toBe(false);
+    expect(updateEventRequestSchema.safeParse({ ...event, endsAt: null }).success).toBe(true);
+  });
+
+  it("admin invitation rows never carry a token", async () => {
+    const { adminInvitationRowSchema } = await import("./index.js");
+    const row = adminInvitationRowSchema.parse({
+      id: "3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e6f",
+      guest: { id: "3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e70", name: "Jane", email: null, phone: null },
+      status: "active",
+      maxPlusOnes: 0,
+      inviters: [],
+      rsvp: null,
+      createdAt: "2026-10-01T00:00:00.000Z",
+      token: "leak",
+      tokenHash: "leak",
+    });
+    expect(JSON.stringify(row)).not.toContain("leak");
+  });
+});

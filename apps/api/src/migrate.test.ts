@@ -5,6 +5,7 @@ import { runMigrations } from "./migrate.js";
 
 const EXPECTED_TABLES = [
   "audit",
+  "event_config",
   "guests",
   "invitation_inviters",
   "invitations",
@@ -71,7 +72,7 @@ describe("runMigrations", () => {
     const applied = await query<{ count: string }>(
       "SELECT count(*) FROM drizzle.__drizzle_migrations",
     );
-    expect(Number(applied[0].count)).toBe(1);
+    expect(Number(applied[0].count)).toBe(2);
   });
 
   it("serializes concurrent runs", async (ctx) => {
@@ -86,6 +87,12 @@ describe("runMigrations", () => {
     } finally {
       await admin.query(`DROP DATABASE IF EXISTS ${concurrentName} WITH (FORCE)`);
     }
+  });
+
+  it("seeds exactly one placeholder event with an unconfirmed time", async (ctx) => {
+    if (!admin) return ctx.skip();
+    const rows = await query<{ id: number; time_confirmed: boolean }>("SELECT id, time_confirmed FROM event_config");
+    expect(rows).toEqual([{ id: 1, time_confirmed: false }]);
   });
 
   it("stores only a token hash on invitations", async (ctx) => {

@@ -7,8 +7,12 @@ import {
   serializerCompiler,
   validatorCompiler,
 } from "fastify-type-provider-zod";
+import { eventRoutes } from "./modules/event/event.routes.js";
+import { graduatesRoutes } from "./modules/graduates/graduates.routes.js";
 import { invitationsRoutes } from "./modules/invitations/invitations.routes.js";
 import type { InvitationsService } from "./modules/invitations/invitations.service.js";
+import { passRoutes } from "./modules/pass/pass.routes.js";
+import { rsvpRoutes } from "./modules/rsvp/rsvp.routes.js";
 import { systemRoutes } from "./modules/system/system.routes.js";
 
 /** Logger paths whose values are replaced with "[Redacted]". */
@@ -68,8 +72,13 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
   // Health and metrics
   app.register(systemRoutes);
 
-  // Register domain modules
+  // Domain modules. Each lives in modules/<name>/ and owns its routes; add new
+  // modules here once so parallel work never edits this file again.
   app.register(invitationsRoutes(options.invitationsService));
+  app.register(graduatesRoutes);
+  app.register(eventRoutes);
+  app.register(rsvpRoutes);
+  app.register(passRoutes);
 
   return app;
 }

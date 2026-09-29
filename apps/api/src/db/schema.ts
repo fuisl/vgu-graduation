@@ -68,6 +68,7 @@ export const invitations = pgTable(
       .default("active"),
     validFrom: timestamp("valid_from", { withTimezone: true }),
     validUntil: timestamp("valid_until", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -234,6 +235,37 @@ export const translationTexts = pgTable(
     check("translation_texts_language_check", sql`${t.language} IN ('de', 'en', 'vi')`),
     check("translation_texts_status_check", sql`${t.status} IN ('draft', 'final', 'failed')`),
     check("translation_texts_text_check", sql`${t.status} = 'failed' OR ${t.text} IS NOT NULL`),
+  ],
+);
+
+/**
+ * The single public event configuration (#33), one row with `id = 1`. Admins
+ * edit it (#42), so confirming the date (#83) needs no deploy. `sequence`
+ * increases on every edit so subscribed calendar feeds (`GET /event/calendar.ics`)
+ * pick up changes. Nothing else may hard-code the date or venue.
+ */
+export const eventConfig = pgTable(
+  "event_config",
+  {
+    id: integer("id").primaryKey().default(1),
+    name: text("name").notNull(),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    endsAt: timestamp("ends_at", { withTimezone: true }),
+    timeZone: text("time_zone").notNull(),
+    timeConfirmed: boolean("time_confirmed").notNull().default(false),
+    venueName: text("venue_name").notNull(),
+    venueAddress: text("venue_address").notNull(),
+    venueMapUrl: text("venue_map_url").notNull(),
+    contactName: text("contact_name"),
+    contactEmail: text("contact_email"),
+    contactPhone: text("contact_phone"),
+    arrivalInfo: text("arrival_info"),
+    sequence: integer("sequence").notNull().default(0),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    check("event_config_single_row_check", sql`${t.id} = 1`),
+    check("event_config_time_check", sql`${t.endsAt} IS NULL OR ${t.endsAt} > ${t.startsAt}`),
   ],
 );
 

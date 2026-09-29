@@ -12,6 +12,7 @@ const productionEnv = {
   S3_BUCKET_DERIVATIVES: "grad-derivatives",
   SERVICE_TOKEN_TRANSLATION: "t1",
   SERVICE_TOKEN_PRINTER: "t2",
+  PASS_SIGNING_KEY: "test-key",
 };
 
 describe("loadConfig", () => {

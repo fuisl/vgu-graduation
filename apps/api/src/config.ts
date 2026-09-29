@@ -28,6 +28,10 @@ const envSchema = z.object({
   S3_BUCKET_DERIVATIVES: z.string().optional(),
   SERVICE_TOKEN_TRANSLATION: z.string().optional(),
   SERVICE_TOKEN_PRINTER: z.string().optional(),
+  /** Ed25519 private key for signing pass payloads (#35), PKCS#8 PEM or its base64. */
+  PASS_SIGNING_KEY: z.string().optional(),
+  /** Identifies the public key verifiers use; bump it when rotating PASS_SIGNING_KEY. */
+  PASS_KEY_ID: z.string().default("pass-1"),
 });
 
 /** Variables with no safe default: a deployed API must not boot without them. */
@@ -40,6 +44,7 @@ const REQUIRED_IN_PRODUCTION = [
   "S3_BUCKET_DERIVATIVES",
   "SERVICE_TOKEN_TRANSLATION",
   "SERVICE_TOKEN_PRINTER",
+  "PASS_SIGNING_KEY",
 ] as const;
 
 /**
@@ -78,6 +83,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
       secretAccessKey: parsed.S3_SECRET_ACCESS_KEY,
       bucketOriginals: parsed.S3_BUCKET_ORIGINALS,
       bucketDerivatives: parsed.S3_BUCKET_DERIVATIVES,
+    },
+    pass: {
+      signingKey: parsed.PASS_SIGNING_KEY,
+      keyId: parsed.PASS_KEY_ID,
     },
     serviceTokens: {
       translation: parsed.SERVICE_TOKEN_TRANSLATION,

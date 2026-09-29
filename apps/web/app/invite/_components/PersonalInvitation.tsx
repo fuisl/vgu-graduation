@@ -1,7 +1,9 @@
 import type { EventConfig, Invitation } from "@grad/contract";
 import type { ApiResult } from "../../../lib/api/result";
 import { summarizeRsvp } from "../../../lib/invite/format";
+import { Suspense } from "react";
 import { EventDetails } from "./EventDetails";
+import { PassBadge, PassBadgeSkeleton } from "./PassBadge";
 
 /**
  * The personalized invitation, composed of independent sections. Each later
@@ -32,7 +34,9 @@ export function PersonalInvitation({ invitation, event }: { invitation: Invitati
       </section>
 
       {/* SLOT #38: RSVP form section goes here. */}
-      {/* SLOT #40: pass/badge section goes here. */}
+      <Suspense fallback={<PassBadgeSkeleton />}>
+        <PassBadge guestName={invitation.guest.name} event={event} />
+      </Suspense>
     </>
   );
 }

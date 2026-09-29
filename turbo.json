@@ -49,6 +49,16 @@
         "^typecheck"
       ]
     },
+    "@grad/api#test": {
+      "dependsOn": [
+        "^build",
+        "^test"
+      ],
+      "env": [
+        "DATABASE_URL"
+      ],
+      "outputs": []
+    },
     "test": {
       "dependsOn": [
         "^build",

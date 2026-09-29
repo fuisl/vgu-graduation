@@ -2,7 +2,13 @@ import fastifyCookie from "@fastify/cookie";
 import fastifyCors from "@fastify/cors";
 import Fastify, { type FastifyInstance } from "fastify";
 import { type Config, config as defaultConfig } from "./config.js";
+import {
+  hasZodFastifySchemaValidationErrors,
+  serializerCompiler,
+  validatorCompiler,
+} from "fastify-type-provider-zod";
 import { invitationsRoutes } from "./modules/invitations/invitations.routes.js";
+import type { InvitationsService } from "./modules/invitations/invitations.service.js";
 import { systemRoutes } from "./modules/system/system.routes.js";
 
 /** Logger paths whose values are replaced with "[Redacted]". */
@@ -18,6 +24,8 @@ export const LOG_REDACT_PATHS = [
 
 export interface BuildServerOptions {
   config?: Config;
+  /** Override for tests; defaults to the database-backed service. */
+  invitationsService?: InvitationsService;
   /** Log destination; defaults to stdout. Tests pass a stream to inspect output. */
   logStream?: { write(line: string): void };
 }
@@ -33,6 +41,21 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
     },
   });
 
+  // Validate requests and serialize responses with the shared @grad/contract schemas
+  app.setValidatorCompiler(validatorCompiler);
+  app.setSerializerCompiler(serializerCompiler);
+
+  // Every error leaves as the contract's { error, message }; internals are never echoed.
+  app.setErrorHandler((error, request, reply) => {
+    if (hasZodFastifySchemaValidationErrors(error)) {
+      return reply.status(400).send({ error: "Bad Request", message: "Request validation failed" });
+    }
+    request.log.error(error);
+    return reply
+      .status(500)
+      .send({ error: "Internal Server Error", message: "Something went wrong" });
+  });
+
   // CORS: the public origin with credentials, nothing else
   app.register(fastifyCors, {
     origin: [config.publicOrigin],
@@ -46,7 +69,7 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
   app.register(systemRoutes);
 
   // Register domain modules
-  app.register(invitationsRoutes);
+  app.register(invitationsRoutes(options.invitationsService));
 
   return app;
 }

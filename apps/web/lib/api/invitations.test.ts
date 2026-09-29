@@ -45,7 +45,15 @@ describe("getInvitation", () => {
     }
   });
 
-  it("returns empty on 404 (invalid/expired/revoked invitation)", async () => {
+  it("surfaces 410 (expired invitation) as an http error carrying the status, so pages can say it expired", async () => {
+    mockFetch({ ok: false, status: 410 });
+
+    const result = await getInvitation("expired-token");
+
+    expect(result).toMatchObject({ status: "error", kind: "http", httpStatus: 410 });
+  });
+
+  it("returns empty on 404 (invalid/revoked invitation)", async () => {
     mockFetch({ ok: false, status: 404 });
 
     const result = await getInvitation("bad-token");

@@ -1,113 +1,79 @@
-import crypto from "node:crypto";
-import { config } from "../../config.js";
-import { InvitationsRepository } from "./invitations.repository.js";
 import type {
-  CreateInvitationDTO,
-  InvitationWithDetails,
-} from "./invitations.types.js";
+  CreateInvitationRequest,
+  CreateInvitationResponse,
+  Invitation,
+  RotateInvitationResponse,
+} from "@grad/contract";
+import { generateToken, hashToken, safeEqual } from "../../auth/tokens.js";
+import { config } from "../../config.js";
+import { InvitationsRepository, type StoredInvitation } from "./invitations.repository.js";
+
+/**
+ * `invalid` covers unknown, revoked and not-yet-valid credentials alike, so a
+ * caller can't probe which tokens exist. Only `expired` is distinguishable
+ * (410) so the web app can tell a guest their invitation has run out.
+ */
+export type ResolveResult =
+  | { status: "ok"; invitation: Invitation }
+  | { status: "invalid" }
+  | { status: "expired" };
+
+function toContract(stored: StoredInvitation): Invitation {
+  return {
+    id: stored.id,
+    guest: stored.guest,
+    maxPlusOnes: stored.maxPlusOnes,
+    status: stored.status,
+    validFrom: stored.validFrom?.toISOString() ?? null,
+    validUntil: stored.validUntil?.toISOString() ?? null,
+    inviters: stored.inviters,
+    rsvp: stored.rsvp && { ...stored.rsvp, updatedAt: stored.rsvp.updatedAt.toISOString() },
+  };
+}
 
 export class InvitationsService {
   constructor(
-    private readonly repository: InvitationsRepository = new InvitationsRepository()
+    private readonly repository: InvitationsRepository = new InvitationsRepository(),
+    private readonly now: () => Date = () => new Date(),
   ) {}
 
-  /**
-   * Generates a cryptographically secure 128-bit (16-byte) token encoded in base64url.
-   */
-  generateToken(): string {
-    return crypto.randomBytes(16).toString("base64url");
-  }
-
-  /**
-   * Hashes a raw token with SHA-256 for secure database storage.
-   */
-  hashToken(token: string): string {
-    return crypto.createHash("sha256").update(token).digest("hex");
-  }
-
-  /**
-   * Creates an invitation with a fresh 128-bit bearer token and returns the raw link once.
-   */
-  async issueInvitation(dto: CreateInvitationDTO): Promise<{
-    invitationId: string;
-    token: string;
-    inviteUrl: string;
-    guest: {
-      id: string;
-      name: string;
-      email: string | null;
-      phone: string | null;
-    };
-    maxPlusOnes: number;
-    inviterUserIds: string[];
-  }> {
-    const rawToken = this.generateToken();
-    const tokenHash = this.hashToken(rawToken);
-
-    const created = await this.repository.createInvitation(dto, tokenHash);
+  /** Creates an invitation with a fresh 128-bit bearer token and returns the raw link once. */
+  async issueInvitation(dto: CreateInvitationRequest): Promise<CreateInvitationResponse> {
+    const token = generateToken();
+    const created = await this.repository.createInvitation(dto, hashToken(token));
 
     return {
       invitationId: created.invitationId,
-      token: rawToken,
-      inviteUrl: `${config.publicOrigin}/invite/${rawToken}`,
+      token,
+      inviteUrl: `${config.publicOrigin}/invite/${token}`,
       guest: created.guest,
       maxPlusOnes: created.maxPlusOnes,
       inviterUserIds: created.inviterUserIds,
     };
   }
 
-  /**
-   * Resolves an invitation by bearer token with constant-time verification.
-   */
-  async resolveByToken(token: string): Promise<InvitationWithDetails | null> {
-    if (!token || typeof token !== "string") {
-      return null;
-    }
+  /** Resolves an invitation by bearer token, rejecting wrong, revoked and not-yet-valid ones and flagging expired ones. */
+  async resolveByToken(token: string): Promise<ResolveResult> {
+    if (!token) return { status: "invalid" };
 
-    const candidateHash = this.hashToken(token);
-    const invitation = await this.repository.findByTokenHash(candidateHash);
+    const candidateHash = hashToken(token);
+    const stored = await this.repository.findByTokenHash(candidateHash);
+    if (!stored || !safeEqual(candidateHash, stored.tokenHash)) return { status: "invalid" };
+    if (stored.status !== "active") return { status: "invalid" };
 
-    if (!invitation) {
-      return null;
-    }
+    const now = this.now();
+    if (stored.validFrom && stored.validFrom > now) return { status: "invalid" };
+    if (stored.validUntil && stored.validUntil <= now) return { status: "expired" };
 
-    // Constant-time comparison to prevent side-channel timing attacks
-    const candidateBuf = Buffer.from(candidateHash, "hex");
-    const storedBuf = Buffer.from(invitation.token_hash, "hex");
-
-    if (
-      candidateBuf.length !== storedBuf.length ||
-      !crypto.timingSafeEqual(candidateBuf, storedBuf)
-    ) {
-      return null;
-    }
-
-    if (invitation.status !== "active") {
-      return null;
-    }
-
-    const { token_hash: _, ...safeInvitation } = invitation;
-    return safeInvitation;
+    return { status: "ok", invitation: toContract(stored) };
   }
 
-  /**
-   * Rotates the bearer token of an existing invitation.
-   */
-  async rotateInvitationToken(invitationId: string): Promise<{
-    token: string;
-    inviteUrl: string;
-  } | null> {
-    const rawToken = this.generateToken();
-    const tokenHash = this.hashToken(rawToken);
+  /** Rotates the bearer token of an existing invitation. */
+  async rotateInvitationToken(invitationId: string): Promise<RotateInvitationResponse | null> {
+    const token = generateToken();
+    const updated = await this.repository.rotateTokenHash(invitationId, hashToken(token));
+    if (!updated) return null;
 
-    const updated = await this.repository.rotateTokenHash(invitationId, tokenHash);
-    if (!updated) {
-      return null;
-    }
-
-    return {
-      token: rawToken,
-      inviteUrl: `${config.publicOrigin}/invite/${rawToken}`,
-    };
+    return { token, inviteUrl: `${config.publicOrigin}/invite/${token}` };
   }
 }

@@ -1,7 +1,9 @@
 import type {
+  AdminInvitationsResponse,
   CreateInvitationRequest,
   CreateInvitationResponse,
   Invitation,
+  RevokeInvitationResponse,
   RotateInvitationResponse,
 } from "@grad/contract";
 import { generateToken, hashToken, safeEqual } from "../../auth/tokens.js";
@@ -38,9 +40,12 @@ export class InvitationsService {
   ) {}
 
   /** Creates an invitation with a fresh 128-bit bearer token and returns the raw link once. */
-  async issueInvitation(dto: CreateInvitationRequest): Promise<CreateInvitationResponse> {
+  async issueInvitation(
+    dto: CreateInvitationRequest,
+    actor: string,
+  ): Promise<CreateInvitationResponse> {
     const token = generateToken();
-    const created = await this.repository.createInvitation(dto, hashToken(token));
+    const created = await this.repository.createInvitation(dto, hashToken(token), actor);
 
     return {
       invitationId: created.invitationId,
@@ -69,11 +74,25 @@ export class InvitationsService {
   }
 
   /** Rotates the bearer token of an existing invitation. */
-  async rotateInvitationToken(invitationId: string): Promise<RotateInvitationResponse | null> {
+  async rotateInvitationToken(
+    invitationId: string,
+    actor: string,
+  ): Promise<RotateInvitationResponse | null> {
     const token = generateToken();
-    const updated = await this.repository.rotateTokenHash(invitationId, hashToken(token));
+    const updated = await this.repository.rotateTokenHash(invitationId, hashToken(token), actor);
     if (!updated) return null;
 
     return { token, inviteUrl: `${config.publicOrigin}/invite/${token}` };
+  }
+
+  /** Revokes an invitation (idempotent); null when the id is unknown. */
+  async revokeInvitation(invitationId: string, actor: string): Promise<RevokeInvitationResponse | null> {
+    const revoked = await this.repository.revoke(invitationId, actor);
+    if (!revoked) return null;
+    return { id: revoked.id, status: "revoked", revokedAt: revoked.revokedAt.toISOString() };
+  }
+
+  async listInvitations(): Promise<AdminInvitationsResponse> {
+    return { items: await this.repository.listForAdmin() };
   }
 }

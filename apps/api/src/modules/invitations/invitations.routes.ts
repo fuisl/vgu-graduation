@@ -1,8 +1,10 @@
 import {
   createInvitationRequestSchema,
   createInvitationResponseSchema,
+  adminInvitationsResponseSchema,
   errorResponseSchema,
   invitationSchema,
+  revokeInvitationResponseSchema,
   rotateInvitationResponseSchema,
 } from "@grad/contract";
 import type { FastifyPluginAsync } from "fastify";
@@ -10,6 +12,7 @@ import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { invitationToken } from "../../auth/credentials.js";
 import { requireAdmin } from "../admin/admin-auth.js";
+import { UnknownInviterError } from "./invitations.repository.js";
 import { InvitationsService } from "./invitations.service.js";
 
 export function invitationsRoutes(
@@ -66,12 +69,25 @@ export function invitationsRoutes(
         preHandler: requireAdmin,
         schema: {
           body: createInvitationRequestSchema,
-          response: { 201: createInvitationResponseSchema, 401: errorResponseSchema },
+          response: {
+            201: createInvitationResponseSchema,
+            400: errorResponseSchema,
+            401: errorResponseSchema,
+          },
         },
       },
       async (request, reply) => {
-        const result = await service.issueInvitation(request.body);
-        return reply.status(201).send(result);
+        try {
+          const result = await service.issueInvitation(request.body, request.adminHandle ?? "unknown");
+          return reply.status(201).send(result);
+        } catch (error) {
+          if (error instanceof UnknownInviterError) {
+            return reply
+              .status(400)
+              .send({ error: "Bad Request", message: "One or more inviters do not exist" });
+          }
+          throw error;
+        }
       },
     );
 
@@ -90,11 +106,48 @@ export function invitationsRoutes(
         },
       },
       async (request, reply) => {
-        const result = await service.rotateInvitationToken(request.params.id);
+        const result = await service.rotateInvitationToken(request.params.id, request.adminHandle ?? "unknown");
         if (!result) {
           return reply
             .status(404)
             .send({ error: "Not Found", message: "Invitation not found or inactive" });
+        }
+        return reply.status(200).send(result);
+      },
+    );
+
+    /** GET /admin/invitations: every invitation, newest first. Admin only; contains guest PII. */
+    app.get(
+      "/admin/invitations",
+      {
+        preHandler: requireAdmin,
+        schema: { response: { 200: adminInvitationsResponseSchema, 401: errorResponseSchema } },
+      },
+      async (_request, reply) => {
+        const result = await service.listInvitations();
+        reply.header("Cache-Control", "no-store");
+        return reply.status(200).send(result);
+      },
+    );
+
+    /** POST /admin/invitations/:id/revoke: idempotent; the token stops resolving immediately. */
+    app.post(
+      "/admin/invitations/:id/revoke",
+      {
+        preHandler: requireAdmin,
+        schema: {
+          params: z.object({ id: z.string().uuid() }),
+          response: {
+            200: revokeInvitationResponseSchema,
+            401: errorResponseSchema,
+            404: errorResponseSchema,
+          },
+        },
+      },
+      async (request, reply) => {
+        const result = await service.revokeInvitation(request.params.id, request.adminHandle ?? "unknown");
+        if (!result) {
+          return reply.status(404).send({ error: "Not Found", message: "Invitation not found" });
         }
         return reply.status(200).send(result);
       },

@@ -4,7 +4,8 @@ import { Shell } from "../components/shell";
 const sections = [
   { href: "/product/vision", title: "Product", description: "Vision, experience and principles" },
   { href: "/design/philosophy", title: "Design", description: "Visual language and UI foundations" },
-  { href: "/architecture/overview", title: "Architecture", description: "System shape and data model" },
+  { href: "/architecture/overview", title: "Architecture", description: "System shape, data and platform" },
+  { href: "/architecture/target/open-items-and-decisions", title: "Decisions", description: "Open items and decision records" },
   { href: "/development/workflow", title: "Development", description: "Workflow and agent context" },
   { href: "/operations/event-runbook", title: "Operations", description: "Ceremony-day readiness" },
 ];

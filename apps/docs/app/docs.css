@@ -13,6 +13,8 @@ a { color: inherit; text-decoration: none; }
 .docs-nav-group summary::-webkit-details-marker { display: none; }
 .docs-nav-group summary span { color: var(--color-subtle); font-weight: 400; }
 .docs-nav-group summary:hover { color: var(--muted); }
+.docs-nav-section + .docs-nav-section { margin-top: .35rem; }
+.docs-nav-section-title { padding: .35rem 0 .3rem; color: var(--color-subtle); font: 10px var(--font-mono); letter-spacing: .09em; text-transform: uppercase; }
 .docs-nav-links { display: grid; gap: 2px; padding: 0 0 .8rem; }
 .docs-nav-links a { display: block; margin-left: -1px; padding: .45rem .75rem; border-left: 1px solid transparent; color: var(--muted); font-size: 13px; line-height: 1.35; }
 .docs-nav-links a:hover { color: var(--fg); background: var(--surface); }

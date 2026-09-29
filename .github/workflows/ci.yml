@@ -10,9 +10,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # One job named `checks`, the required status check (docs/development/workflow.md).
+  # It always runs and reports, but does only the work the change needs:
+  # scripts/ci-scope.sh picks `turbo --affected` (changed packages and their
+  # dependents) or a full run when config that turbo can't attribute changed.
   checks:
     name: checks
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     # Migration tests run against a real Postgres (same major version as production).
     services:
       postgres:
@@ -32,7 +37,25 @@ jobs:
       CI_DB_USER: grad
       CI_DB_PASSWORD: grad_ci
     steps:
+      # Full history so the diff against the base commit works.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Decide scope
+        id: scope
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          out="$(scripts/ci-scope.sh "$BASE_SHA")"
+          echo "$out" | tee -a "$GITHUB_OUTPUT"
+          if echo "$out" | grep -qx 'mode=affected'; then
+            echo "turbo_flags=--affected" >> "$GITHUB_OUTPUT"
+            echo "TURBO_SCM_BASE=$BASE_SHA" >> "$GITHUB_ENV"
+            echo "TURBO_SCM_HEAD=HEAD" >> "$GITHUB_ENV"
+          else
+            echo "turbo_flags=" >> "$GITHUB_OUTPUT"
+          fi
 
       - uses: pnpm/action-setup@v4
 
@@ -51,7 +74,7 @@ jobs:
       # access to semicolons-dev/asciify and needs none. pnpm skips it and
       # the build falls back to apps/web/vendor/asciify-stub.
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --prefer-offline
 
       - name: Cache turbo
         uses: actions/cache@v4
@@ -61,14 +84,31 @@ jobs:
           restore-keys: |
             turbo-${{ github.job }}-
 
+      # Next.js's own compiler cache; the biggest saver for web/docs builds.
+      - name: Cache Next.js
+        uses: actions/cache@v4
+        with:
+          path: |
+            apps/web/.next/cache
+            apps/docs/.next/cache
+          key: next-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          restore-keys: |
+            next-${{ hashFiles('pnpm-lock.yaml') }}-
+
       - name: Lint
-        run: pnpm turbo lint --cache-dir=.turbo
+        run: pnpm turbo lint ${{ steps.scope.outputs.turbo_flags }} --cache-dir=.turbo
 
       - name: Typecheck
-        run: pnpm turbo typecheck --cache-dir=.turbo
+        run: pnpm turbo typecheck ${{ steps.scope.outputs.turbo_flags }} --cache-dir=.turbo
 
       - name: Test
-        run: pnpm turbo test --cache-dir=.turbo
+        run: pnpm turbo test ${{ steps.scope.outputs.turbo_flags }} --cache-dir=.turbo
 
       - name: Build
-        run: pnpm turbo build --cache-dir=.turbo
+        run: pnpm turbo build ${{ steps.scope.outputs.turbo_flags }} --cache-dir=.turbo
+
+      # apps/docs renders the repo's docs/ markdown at build time, so a docs-only
+      # change (which turbo sees as no package change) still has to build it.
+      - name: Build docs site
+        if: steps.scope.outputs.mode == 'affected' && steps.scope.outputs.docs == 'true'
+        run: pnpm turbo build --filter=@grad/docs --cache-dir=.turbo

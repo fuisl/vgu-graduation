@@ -10,9 +10,18 @@
 
 To run just one app, `pnpm dev:web`, `pnpm dev:api` or `pnpm dev:docs`. Node 24 is required (see `.nvmrc` and `package.json`'s `engines` field); Node 22 is Maintenance LTS and Node 26 isn't LTS yet.
 
-`apps/api` needs Postgres: `pnpm db:up` starts it via `docker-compose.yml` (seeded from `docker/postgres/init/`), `pnpm db:down` stops it, `pnpm db:logs` tails it. Copy `.env.example` to `.env` first.
+`apps/api` needs Postgres: `pnpm db:up` starts it via `docker-compose.yml`, `pnpm db:down` stops it, `pnpm db:logs` tails it. Copy `.env.example` to `.env` first, then run `pnpm db:migrate` to create the schema (see below).
 
 `apps/web` calls the API through a thin BFF layer (`apps/web/lib/api`, §4.1): a `fetch` wrapper with the caching policy from that section's table, and API responses validated against `packages/contract` before use. Copy `apps/web/.env.example` to `apps/web/.env.local` (Next.js reads env files from the app directory, not the repo root) and point `API_ORIGIN` at a running `apps/api`.
+
+## Database schema and migrations
+
+The schema is defined in `apps/api/src/db/schema.ts` with Drizzle (ADR-002); versioned SQL migrations live in `apps/api/drizzle/` and are committed.
+
+- `pnpm db:migrate` applies pending migrations to `DATABASE_URL`. It is idempotent, and a Postgres advisory lock serializes concurrent runs, so it is safe as the API Deployment's init container (`node dist/migrate.js`, which the image ships with the `drizzle/` folder).
+- After changing `schema.ts`, run `pnpm db:generate --name=<what-changed>` and commit the new SQL file. Never edit a migration that has been merged; add a new one.
+- `pnpm db:reset` wipes the local database volume and starts a fresh Postgres; run `pnpm db:migrate` afterwards. Use it once if your volume predates the migrations (it was previously seeded by an init script that no longer exists).
+- Migration tests need Postgres: `pnpm db:up` first. They create and drop their own scratch databases, never touching `grad26`.
 
 ## API configuration
 

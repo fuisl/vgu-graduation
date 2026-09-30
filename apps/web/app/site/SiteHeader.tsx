@@ -5,6 +5,8 @@ import {BrandLogo} from "../logo/BrandLogo";
 import {MobileMenu} from "./MobileMenu";
 import {GuestChip} from "./GuestChip";
 import {SITE_NAV, type SiteNavKey} from "./nav";
+import {ThemeColorSync} from "./ThemeColorSync";
+import {BRAND_THEME_COLOR} from "./theme-color";
 
 type Props = {
   /** Marks the active page (aria-current, white pill). */
@@ -22,6 +24,9 @@ export function SiteHeader({current, action}: Props) {
   const slot = action ?? <GuestChip />;
   return (
     <header className="brand-header">
+      {/* React hoists this into <head>; ThemeColorSync then follows the section under the top edge. */}
+      <meta name="theme-color" content={BRAND_THEME_COLOR} />
+      <ThemeColorSync />
       <div className="brand-header__inner">
         <Link className="brand-wordmark" href="/"><BrandLogo variant="compact" tone="on-blue" /></Link>
         <div className="brand-header__nav">

@@ -60,3 +60,7 @@ Kept for admin and non-brand pages; not for brand pages.
 
 ## Rules
 Prefer composition over card proliferation. Components expose semantic variants, not arbitrary styling knobs. Product-specific behaviour stays outside primitives. Every interactive primitive must remain keyboard-accessible and respect reduced motion. A new primitive needs design review (`docs/design/llm-reference.md`).
+
+### Browser UI colour (`ThemeColorSync`)
+
+`SiteHeader` renders `<meta name="theme-color" content="#1F4BB0">` (React hoists it into `<head>`) and `ThemeColorSync`, which keeps the browser's toolbar tinted like the section under the top edge while scrolling. It reads the background of the first opaque element at the viewport's top edge, at most once per frame and only when it changes, and writes it to the meta tag (Chrome on Android, Safari 15–18) and to `body.style.backgroundColor` inline (Safari 26 ignores `theme-color` and tints from the page, re-reading only inline body styles). Both are reset when a brand page unmounts, so admin and docs keep their own colours. Nothing to do per page: any page with `SiteHeader` gets it.

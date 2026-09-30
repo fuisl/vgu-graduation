@@ -102,7 +102,7 @@ Epic **#142**. Sub-issues, in dependency order (GitHub records the "blocked by" 
 | #152 | `/guest/prototype` badge | #145, #143 |
 | #153 | `/design-system` showcase (owner sign-off gate) | #144 |
 | #154 | Rewrite the design docs | #143, #144 |
-| #155 | Integration branch `redesign/blue-white`, QA and single release | all of the above |
+| #155 | Integration branch `refactor/blue-white-redesign`, QA and single release | all of the above |
 
 Parallel tracks once #143 and #144 land: the header and chip; the sculpture and landing; the memories and guest pages; the experimental pages; the docs.
 

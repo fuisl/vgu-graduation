@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { Rule } from "@grad/ui";
-import { listGraduates, listInvitations } from "../../../lib/api/admin";
-import { DEFAULT_EVENT_TIME_ZONE, formatAdminDateTime } from "../../../lib/admin/datetime";
-import { describeRsvp } from "../../../lib/admin/overview";
-import { redirectIfUnauthorized, requireAdminSession } from "../../../lib/admin/session";
-import { InvitationActions } from "../_components/InvitationActions";
-import { InvitationForm } from "../_components/InvitationForm";
-import { LoadError } from "../_components/LoadError";
+import { listGraduates, listInvitations } from "../../../../lib/api/admin";
+import { DEFAULT_EVENT_TIME_ZONE, formatAdminDateTime } from "../../../../lib/admin/datetime";
+import { describeRsvp } from "../../../../lib/admin/overview";
+import { redirectIfUnauthorized, requireAdminSession } from "../../../../lib/admin/session";
+import { InvitationActions } from "../../_components/InvitationActions";
+import { InvitationForm } from "../../_components/InvitationForm";
+import { LoadError } from "../../_components/LoadError";
 
 export default async function InvitationsPage() {
   const { token } = await requireAdminSession();

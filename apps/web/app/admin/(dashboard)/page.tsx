@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { listInvitations } from "../../lib/api/admin";
-import { computeAdminCounts } from "../../lib/admin/overview";
-import { redirectIfUnauthorized, requireAdminSession } from "../../lib/admin/session";
-import { LoadError } from "./_components/LoadError";
+import { listInvitations } from "../../../lib/api/admin";
+import { computeAdminCounts } from "../../../lib/admin/overview";
+import { redirectIfUnauthorized, requireAdminSession } from "../../../lib/admin/session";
+import { LoadError } from "../_components/LoadError";
 
 export default async function AdminOverviewPage() {
   const { token } = await requireAdminSession();

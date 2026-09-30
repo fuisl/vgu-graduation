@@ -1,4 +1,7 @@
 import {
+  adminAccessSchema,
+  adminAccountSchema,
+  adminAccountsResponseSchema,
   adminInvitationsResponseSchema,
   adminRsvpListResponseSchema,
   createInvitationResponseSchema,
@@ -8,6 +11,10 @@ import {
   graduatesResponseSchema,
   revokeInvitationResponseSchema,
   rotateInvitationResponseSchema,
+  type AdminAccess,
+  type AdminAccount,
+  type AdminAccountDecision,
+  type AdminAccountsResponse,
   type AdminInvitationsResponse,
   type AdminRsvpListResponse,
   type CreateGraduateRequest,
@@ -145,4 +152,34 @@ export function getEventUncached(): Promise<ApiResult<EventConfig>> {
 /** PUT /admin/event: replaces the event configuration; responds with the saved document. */
 export function updateEvent(token: string, input: UpdateEventRequest): Promise<ApiResult<EventConfig>> {
   return adminRequest(token, "/admin/event", { method: "PUT", body: input, schema: eventSchema });
+}
+
+/**
+ * POST /admin/access: at sign-in, with a freshly minted session. Files a pending
+ * request for a first-time handle; the answer says whether to let them in (#119).
+ */
+export function requestAdminAccess(token: string): Promise<ApiResult<AdminAccess>> {
+  return adminRequest(token, "/admin/access", { method: "POST", schema: adminAccessSchema });
+}
+
+/** GET /admin/me: 403 once the account is no longer approved. */
+export function getAdminMe(token: string): Promise<ApiResult<AdminAccess>> {
+  return adminRequest(token, "/admin/me", { schema: adminAccessSchema });
+}
+
+/** GET /admin/accounts (owners only): every admin account and pending request. */
+export function listAdminAccounts(token: string): Promise<ApiResult<AdminAccountsResponse>> {
+  return adminRequest(token, "/admin/accounts", { schema: adminAccountsResponseSchema });
+}
+
+/** POST /admin/accounts/:handle/:decision (owners only): 409 when the decision doesn't apply. */
+export function decideAdminAccount(
+  token: string,
+  handle: string,
+  decision: AdminAccountDecision
+): Promise<ApiResult<AdminAccount>> {
+  return adminRequest(token, `/admin/accounts/${encodeURIComponent(handle)}/${decision}`, {
+    method: "POST",
+    schema: adminAccountSchema,
+  });
 }

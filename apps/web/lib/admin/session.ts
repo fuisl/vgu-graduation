@@ -28,3 +28,12 @@ export async function requireAdminSession(): Promise<AdminSession> {
 export function redirectIfUnauthorized(result: ApiResult<unknown>): void {
   if (result.status === "error" && result.httpStatus === 401) redirect(LOGIN_PATH);
 }
+
+/**
+ * For GET /admin/me: also leaves on 403, which means the account was revoked
+ * (or never approved) since the session was issued (#119).
+ */
+export function redirectIfNotAdmin(result: ApiResult<unknown>): void {
+  redirectIfUnauthorized(result);
+  if (result.status === "error" && result.httpStatus === 403) redirect(`${LOGIN_PATH}?status=denied`);
+}

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { buildAuthorizeUrl } from "../../../lib/auth/github";
+import { buildAuthorizeUrl } from "../../../../lib/auth/github";
 
 const STATE_COOKIE = "admin_oauth_state";
 

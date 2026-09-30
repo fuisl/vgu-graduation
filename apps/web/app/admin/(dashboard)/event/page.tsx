@@ -1,7 +1,7 @@
-import { getEventUncached } from "../../../lib/api/admin";
-import { requireAdminSession } from "../../../lib/admin/session";
-import { EventForm } from "../_components/EventForm";
-import { LoadError } from "../_components/LoadError";
+import { getEventUncached } from "../../../../lib/api/admin";
+import { requireAdminSession } from "../../../../lib/admin/session";
+import { EventForm } from "../../_components/EventForm";
+import { LoadError } from "../../_components/LoadError";
 
 export default async function EventPage() {
   await requireAdminSession();

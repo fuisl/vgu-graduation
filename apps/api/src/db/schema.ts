@@ -27,7 +27,7 @@ const id = () => uuid("id").primaryKey().defaultRandom();
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 const updatedAt = () => timestamp("updated_at", { withTimezone: true }).notNull().defaultNow();
 
-/** Graduates and admins (internal). Graduates do not sign in; admins are allowlisted by GitHub handle. */
+/** Graduates and admins (internal). Graduates do not sign in; admin sign-in access lives in `admin_accounts`. */
 export const users = pgTable(
   "users",
   {
@@ -41,6 +41,30 @@ export const users = pgTable(
     updatedAt: updatedAt(),
   },
   (t) => [check("users_role_check", sql`${t.role} IN ('graduate', 'admin')`)],
+);
+
+/**
+ * Admin access by GitHub handle (#119). A first sign-in files a `pending` row;
+ * an owner (modules/admin/owners.ts) approves, rejects or later revokes it.
+ * Checked on every /admin request, so a revoke applies immediately.
+ */
+export const adminAccounts = pgTable(
+  "admin_accounts",
+  {
+    /** Lowercased: GitHub logins are case-insensitive. */
+    githubHandle: text("github_handle").primaryKey(),
+    status: text("status", { enum: ["pending", "approved", "rejected", "revoked"] })
+      .notNull()
+      .default("pending"),
+    requestedAt: timestamp("requested_at", { withTimezone: true }).notNull().defaultNow(),
+    decidedBy: text("decided_by"),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    check("admin_accounts_status_check", sql`${t.status} IN ('pending', 'approved', 'rejected', 'revoked')`),
+    check("admin_accounts_handle_lower_check", sql`${t.githubHandle} = lower(${t.githubHandle})`),
+  ],
 );
 
 /** External invited people. Contains PII: never log rows from this table. */

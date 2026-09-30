@@ -3,6 +3,7 @@ import { SignJWT } from "jose";
 import { describe, expect, it } from "vitest";
 import { loadConfig } from "../../config.js";
 import { buildServer } from "../../server.js";
+import { approvedTester } from "../admin/admin-accounts.fake.js";
 import { DuplicateGraduateError } from "./graduates.repository.js";
 import type { GraduatesService } from "./graduates.service.js";
 
@@ -33,7 +34,7 @@ function build(overrides: Partial<Record<keyof GraduatesService, unknown>> = {})
     },
     ...overrides,
   } as unknown as GraduatesService;
-  return { app: buildServer({ config, graduatesService: service }), created };
+  return { app: buildServer({ adminAccounts: approvedTester(), config, graduatesService: service }), created };
 }
 
 describe("GET /admin/graduates", () => {

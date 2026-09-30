@@ -7,6 +7,8 @@ import {
   serializerCompiler,
   validatorCompiler,
 } from "fastify-type-provider-zod";
+import { AdminAccountsRepository, type AdminAccountStore } from "./modules/admin/admin-accounts.repository.js";
+import { adminAccountsRoutes } from "./modules/admin/admin-accounts.routes.js";
 import type { EventStore } from "./modules/event/event.repository.js";
 import { createEventRoutes } from "./modules/event/event.routes.js";
 import type { GraduatesService } from "./modules/graduates/graduates.service.js";
@@ -32,6 +34,8 @@ export const LOG_REDACT_PATHS = [
 
 export interface BuildServerOptions {
   config?: Config;
+  /** Override for tests; defaults to the database-backed store. Every /admin guard reads it. */
+  adminAccounts?: AdminAccountStore;
   /** Override for tests; defaults to the database-backed service. */
   invitationsService?: InvitationsService;
   /** Override for tests; defaults to the database-backed service. */
@@ -81,11 +85,15 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
   // Cookies
   app.register(fastifyCookie);
 
+  // Admin approval, read by requireAdmin on every /admin request (#119)
+  app.decorate("adminAccounts", options.adminAccounts ?? new AdminAccountsRepository());
+
   // Health and metrics
   app.register(systemRoutes);
 
   // Domain modules. Each lives in modules/<name>/ and owns its routes; add new
   // modules here once so parallel work never edits this file again.
+  app.register(adminAccountsRoutes);
   app.register(invitationsRoutes(options.invitationsService));
   app.register(graduatesRoutes(options.graduatesService));
   app.register(createEventRoutes(options.eventStore, config));

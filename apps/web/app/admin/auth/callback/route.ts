@@ -1,14 +1,14 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import { isAllowedAdmin } from "../../../../lib/auth/allowlist";
+import { requestAdminAccess } from "../../../../lib/api/admin";
 import { resolveGithubHandle } from "../../../../lib/auth/github";
 import { mintAdminSession } from "../../../../lib/auth/session";
 
 const STATE_COOKIE = "admin_oauth_state";
 const SESSION_COOKIE = "admin_session";
 
-function redirectToLogin(request: NextRequest, error: string) {
-  return NextResponse.redirect(new URL(`/admin/login?error=${error}`, request.url));
+function redirectToLogin(request: NextRequest, query: string) {
+  return NextResponse.redirect(new URL(`/admin/login?${query}`, request.url));
 }
 
 export async function GET(request: NextRequest) {
@@ -20,19 +20,28 @@ export async function GET(request: NextRequest) {
   cookieStore.delete(STATE_COOKIE);
 
   if (!code || !state || !expectedState || state !== expectedState) {
-    return redirectToLogin(request, "state");
+    return redirectToLogin(request, "error=state");
   }
 
   const handle = await resolveGithubHandle(code);
   if (!handle) {
-    return redirectToLogin(request, "oauth");
+    return redirectToLogin(request, "error=oauth");
   }
 
-  if (!isAllowedAdmin(handle)) {
-    return redirectToLogin(request, "not_allowed");
-  }
-
+  // Any GitHub account may ask; the API files a pending request for a first-time
+  // handle and only an owner-approved account gets the session cookie (#119).
   const token = await mintAdminSession(handle);
+  const access = await requestAdminAccess(token);
+  if (access.status !== "ok") {
+    return redirectToLogin(request, "error=unavailable");
+  }
+  if (access.data.status === "pending") {
+    return redirectToLogin(request, "status=pending");
+  }
+  if (access.data.status !== "approved") {
+    return redirectToLogin(request, "status=denied");
+  }
+
   const response = NextResponse.redirect(new URL("/admin", request.url));
   response.cookies.set(SESSION_COOKIE, token, {
     httpOnly: true,

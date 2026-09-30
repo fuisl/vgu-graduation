@@ -3,6 +3,7 @@ import { SignJWT } from "jose";
 import { describe, expect, it } from "vitest";
 import { loadConfig } from "../../config.js";
 import { buildServer } from "../../server.js";
+import { approvedTester } from "../admin/admin-accounts.fake.js";
 import { UnknownInviterError } from "./invitations.repository.js";
 import type { InvitationsService } from "./invitations.service.js";
 
@@ -43,7 +44,7 @@ function build(overrides: Partial<Record<keyof InvitationsService, unknown>> = {
     listInvitations: async () => ({ items: [row] }),
     ...overrides,
   } as unknown as InvitationsService;
-  return { app: buildServer({ config, invitationsService: service }), calls };
+  return { app: buildServer({ adminAccounts: approvedTester(), config, invitationsService: service }), calls };
 }
 
 describe("POST /admin/invitations/:id/revoke", () => {

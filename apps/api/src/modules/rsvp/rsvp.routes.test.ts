@@ -3,6 +3,7 @@ import { SignJWT } from "jose";
 import { describe, expect, it } from "vitest";
 import { loadConfig } from "../../config.js";
 import { buildServer } from "../../server.js";
+import { approvedTester } from "../admin/admin-accounts.fake.js";
 import type { ResolveResult } from "../invitations/invitations.service.js";
 import type { StoredRsvp, StoredRsvpRow } from "./rsvp.repository.js";
 import { RsvpService } from "./rsvp.service.js";
@@ -59,42 +60,42 @@ async function adminToken() {
 
 describe("PUT /rsvp", () => {
   it("returns 401 with no credential", async () => {
-    const app = buildServer({ config, rsvpService: setup().service });
+    const app = buildServer({ adminAccounts: approvedTester(), config, rsvpService: setup().service });
     const res = await app.inject({ method: "PUT", url: "/rsvp", payload: body });
     expect(res.statusCode).toBe(401);
     expect(res.json()).toMatchObject({ error: "Unauthorized" });
   });
 
   it("returns 404 for an invalid or revoked token", async () => {
-    const app = buildServer({ config, rsvpService: setup().service });
+    const app = buildServer({ adminAccounts: approvedTester(), config, rsvpService: setup().service });
     const res = await app.inject({ method: "PUT", url: "/rsvp", headers: { authorization: "Bearer wrong" }, payload: body });
     expect(res.statusCode).toBe(404);
     expect(res.json()).toEqual({ error: "Not Found", message: "Invalid or revoked invitation" });
   });
 
   it("returns 410 for an expired invitation", async () => {
-    const app = buildServer({ config, rsvpService: setup(() => ({ status: "expired" })).service });
+    const app = buildServer({ adminAccounts: approvedTester(), config, rsvpService: setup(() => ({ status: "expired" })).service });
     const res = await app.inject({ method: "PUT", url: "/rsvp", headers: auth, payload: body });
     expect(res.statusCode).toBe(410);
     expect(res.json()).toEqual({ error: "Gone", message: "This invitation has expired" });
   });
 
   it("returns 400 above maxPlusOnes", async () => {
-    const app = buildServer({ config, rsvpService: setup().service });
+    const app = buildServer({ adminAccounts: approvedTester(), config, rsvpService: setup().service });
     const res = await app.inject({ method: "PUT", url: "/rsvp", headers: auth, payload: { attending: true, plusOnesCount: 2 } });
     expect(res.statusCode).toBe(400);
     expect(res.json()).toMatchObject({ error: "Bad Request" });
   });
 
   it("returns 400 for a body that fails the contract", async () => {
-    const app = buildServer({ config, rsvpService: setup().service });
+    const app = buildServer({ adminAccounts: approvedTester(), config, rsvpService: setup().service });
     const res = await app.inject({ method: "PUT", url: "/rsvp", headers: auth, payload: { plusOnesCount: 0 } });
     expect(res.statusCode).toBe(400);
     expect(res.json()).toEqual({ error: "Bad Request", message: "Request validation failed" });
   });
 
   it("creates then updates, with no-store and the contract shape", async () => {
-    const app = buildServer({ config, rsvpService: setup().service });
+    const app = buildServer({ adminAccounts: approvedTester(), config, rsvpService: setup().service });
     const created = await app.inject({ method: "PUT", url: "/rsvp", headers: auth, payload: body });
     expect(created.statusCode).toBe(200);
     expect(putRsvpResponseSchema.safeParse(created.json()).success).toBe(true);
@@ -107,7 +108,7 @@ describe("PUT /rsvp", () => {
   });
 
   it("accepts the inv cookie", async () => {
-    const app = buildServer({ config, rsvpService: setup().service });
+    const app = buildServer({ adminAccounts: approvedTester(), config, rsvpService: setup().service });
     const res = await app.inject({ method: "PUT", url: "/rsvp", headers: { cookie: `inv=${TOKEN}` }, payload: body });
     expect(res.statusCode).toBe(200);
   });
@@ -115,7 +116,7 @@ describe("PUT /rsvp", () => {
 
 describe("GET /admin/rsvp", () => {
   it("returns 401 without an admin session", async () => {
-    const app = buildServer({ config, rsvpService: setup().service });
+    const app = buildServer({ adminAccounts: approvedTester(), config, rsvpService: setup().service });
     expect((await app.inject({ method: "GET", url: "/admin/rsvp" })).statusCode).toBe(401);
     const res = await app.inject({ method: "GET", url: "/admin/rsvp", headers: auth });
     expect(res.statusCode).toBe(401);
@@ -132,7 +133,7 @@ describe("GET /admin/rsvp", () => {
       },
       { invitationId: "3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e72", guestName: "Bob", maxPlusOnes: 0, rsvp: null },
     );
-    const app = buildServer({ config, rsvpService: service });
+    const app = buildServer({ adminAccounts: approvedTester(), config, rsvpService: service });
     const res = await app.inject({ method: "GET", url: "/admin/rsvp", headers: { authorization: `Bearer ${await adminToken()}` } });
     expect(res.statusCode).toBe(200);
     expect(res.headers["cache-control"]).toBe("no-store");
@@ -146,7 +147,7 @@ describe("GET /admin/rsvp", () => {
 describe("token hygiene in logs", () => {
   it("never writes the bearer token or cookie to the log", async () => {
     const lines: string[] = [];
-    const app = buildServer({
+    const app = buildServer({ adminAccounts: approvedTester(),
       config: { ...config, logLevel: "trace" },
       logStream: { write: (line) => void lines.push(line) },
       rsvpService: setup().service,

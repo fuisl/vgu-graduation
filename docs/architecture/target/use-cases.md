@@ -4,7 +4,7 @@ The experience arc from `product/vision.md` is Before, During, After. Each use c
 
 ## 6.1 Before the ceremony
 
-**Personalized invitation.** An admin creates an invitation in the admin UI on behalf of the graduate or graduates (only a few allowlisted admins can; graduates do not sign in); the API generates a token, stores its hash, and links one or more inviters. The guest receives a link carrying the token.
+**Personalized invitation.** An admin creates an invitation in the admin UI on behalf of the graduate or graduates (only a few approved admins can; graduates do not sign in); the API generates a token, stores its hash, and links one or more inviters. The guest receives a link carrying the token.
 
 ```mermaid
 sequenceDiagram

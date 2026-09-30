@@ -26,9 +26,9 @@ Decided 2026-09-27:
 - Infrastructure manifests and SOPS-encrypted secrets live in `fuisl/vgu-graduation-deployment` (ADR-008). The repository is public by decision; only ciphertext is committed. The age private key is held offline by nhientruong04, with an escrowed backup held by fuisl, and never appears in git or chat.
 - Derivative image URLs use a random unguessable identifier and are cached at the edge; only visible, processed photos get URLs.
 - The door scanner and offline pass verification tool were deferred until after the invitation MVP; superseded 2026-09-29: door check-in is not planned (see below). The pass payload is still signed.
-- Only a few allowlisted admins create invitations, on behalf of graduates; graduates do not sign in.
+- Only a few approved admins create invitations, on behalf of graduates; graduates do not sign in.
 - The offsite backup is a disk on nhientruong04's always-on server, reached over Tailscale. The copy must have a long-term custodian beyond the event, because the archive is meant to last four years.
-- Admins sign in with GitHub and an allowlist.
+- Admins sign in with GitHub. Decided 2026-09-30 (#119): access is requested by signing in and approved by an owner (initially `fuisl`); only owners approve, reject or revoke admins.
 - There is no staging namespace. Vercel previews use a dev API and never touch production data.
 - Guest photos are covered by a visible notice, not per-guest opt-in. Photos are not reviewed before display; admins can hide a photo quickly and remove one on request. The gallery and wishes are reachable by public link, using unguessable photo identifiers.
 - The homelab node is a laptop with an RTX 3060 Mobile (6 GB VRAM), see section 7.8.

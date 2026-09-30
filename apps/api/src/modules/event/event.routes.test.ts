@@ -3,6 +3,7 @@ import { SignJWT } from "jose";
 import { describe, expect, it } from "vitest";
 import { loadConfig } from "../../config.js";
 import { buildServer } from "../../server.js";
+import { approvedTester } from "../admin/admin-accounts.fake.js";
 import { buildIcs, escapeText, foldLine } from "./event.ics.js";
 import type { EventStore, StoredEvent } from "./event.repository.js";
 
@@ -79,7 +80,7 @@ const validBody = {
 
 describe("GET /event", () => {
   it("maps the row to the public contract and is CDN-cacheable", async () => {
-    const app = buildServer({ config, eventStore: fakeStore().store });
+    const app = buildServer({ adminAccounts: approvedTester(), config, eventStore: fakeStore().store });
     const res = await app.inject({ method: "GET", url: "/event" });
     expect(res.statusCode).toBe(200);
     expect(res.headers["cache-control"]).toBe("public, s-maxage=300, stale-while-revalidate=60");
@@ -98,19 +99,19 @@ describe("GET /event", () => {
 
   it("maps contact details when present", async () => {
     const { store } = fakeStore({ ...base, contactName: "Office", contactEmail: "o@example.com", contactPhone: null });
-    const res = await buildServer({ config, eventStore: store }).inject({ method: "GET", url: "/event" });
+    const res = await buildServer({ adminAccounts: approvedTester(), config, eventStore: store }).inject({ method: "GET", url: "/event" });
     expect(res.json().contact).toEqual({ name: "Office", email: "o@example.com", phone: null });
   });
 
   it("returns 404 when the event row is missing", async () => {
-    const res = await buildServer({ config, eventStore: fakeStore(null).store }).inject({ method: "GET", url: "/event" });
+    const res = await buildServer({ adminAccounts: approvedTester(), config, eventStore: fakeStore(null).store }).inject({ method: "GET", url: "/event" });
     expect(res.statusCode).toBe(404);
   });
 });
 
 describe("GET /event/calendar.ics", () => {
   it("serves a public, cacheable text/calendar feed with CRLF endings", async () => {
-    const res = await buildServer({ config, eventStore: fakeStore().store }).inject({
+    const res = await buildServer({ adminAccounts: approvedTester(), config, eventStore: fakeStore().store }).inject({
       method: "GET",
       url: "/event/calendar.ics",
     });
@@ -124,7 +125,7 @@ describe("GET /event/calendar.ics", () => {
 
   it("keeps the UID stable and bumps SEQUENCE across admin edits", async () => {
     const { store } = fakeStore();
-    const app = buildServer({ config, eventStore: store });
+    const app = buildServer({ adminAccounts: approvedTester(), config, eventStore: store });
     const feed = async () => (await app.inject({ method: "GET", url: "/event/calendar.ics" })).body;
 
     const before = await feed();
@@ -189,7 +190,7 @@ describe("buildIcs", () => {
 describe("PUT /admin/event", () => {
   it("requires an admin session", async () => {
     const { store, updates } = fakeStore();
-    const app = buildServer({ config, eventStore: store });
+    const app = buildServer({ adminAccounts: approvedTester(), config, eventStore: store });
     const res = await app.inject({ method: "PUT", url: "/admin/event", payload: validBody });
     expect(res.statusCode).toBe(401);
     expect(updates).toHaveLength(0);
@@ -197,7 +198,7 @@ describe("PUT /admin/event", () => {
 
   it("replaces the event, attributes it to the admin and is not cacheable", async () => {
     const { store, updates } = fakeStore();
-    const res = await buildServer({ config, eventStore: store }).inject({
+    const res = await buildServer({ adminAccounts: approvedTester(), config, eventStore: store }).inject({
       method: "PUT",
       url: "/admin/event",
       headers: { authorization: `Bearer ${await adminToken()}` },
@@ -211,7 +212,7 @@ describe("PUT /admin/event", () => {
 
   it("rejects endsAt not after startsAt", async () => {
     const { store, updates } = fakeStore();
-    const res = await buildServer({ config, eventStore: store }).inject({
+    const res = await buildServer({ adminAccounts: approvedTester(), config, eventStore: store }).inject({
       method: "PUT",
       url: "/admin/event",
       headers: { authorization: `Bearer ${await adminToken()}` },

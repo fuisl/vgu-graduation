@@ -1,0 +1,16 @@
+meta {
+  name: List Wishes
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{apiOrigin}}/wishes?limit=20
+  body: none
+  auth: none
+}
+
+docs {
+  Public: visible wishes, newest first. Pass `cursor` from `nextCursor`
+  for the next page.
+}

@@ -61,7 +61,7 @@ sequenceDiagram
   W->>P: UPDATE photo(ready, visible)
 ```
 
-Degradation: if Garage is down, uploads fail with a clear message and the guest is asked to retry later; the invitation and everything else keep working. If the home connection is down and the venue LAN overlay exists, uploads succeed over the LAN; otherwise they wait.
+Degradation: if Garage is down, uploads fail with a clear message (`503` with `Retry-After`) and the guest is asked to retry later; the invitation and everything else keep working. If the home connection is down and the venue LAN overlay exists, uploads succeed over the LAN; otherwise they wait.
 
 **Gallery.** Vercel renders the listing from a cached API call. Image URLs point at the API's derivative endpoint. Names still carry a random unguessable identifier so they're safe to share, but there is no edge cache in front of them (ADR-009): every view fetches the derivative from the home connection directly, which is slower for guests than the original Cloudflare-cache design and adds load there on the day. Only visible, processed photos get derivative URLs, and those URLs are shown only to invited guests until a photo is flagged public. A moderator hiding or removing a photo revalidates the listing tag.
 

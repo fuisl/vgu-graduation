@@ -13,6 +13,8 @@ import type { EventStore } from "./modules/event/event.repository.js";
 import { createEventRoutes } from "./modules/event/event.routes.js";
 import type { GraduatesService } from "./modules/graduates/graduates.service.js";
 import { graduatesRoutes } from "./modules/graduates/graduates.routes.js";
+import { mediaRoutes } from "./modules/media/media.routes.js";
+import type { MediaService } from "./modules/media/media.service.js";
 import { invitationsRoutes } from "./modules/invitations/invitations.routes.js";
 import type { InvitationsService } from "./modules/invitations/invitations.service.js";
 import { passRoutes } from "./modules/pass/pass.routes.js";
@@ -50,6 +52,8 @@ export interface BuildServerOptions {
   rsvpService?: Pick<RsvpService, "putByToken" | "listAll">;
   /** Override for tests; defaults to the database-backed service. */
   wishesService?: Pick<WishesService, "createByToken" | "listVisible" | "listAll" | "moderate">;
+  /** Override for tests; defaults to the database- and Garage-backed service. */
+  mediaService?: Pick<MediaService, "authorizeUpload" | "upload">;
   /** Log destination; defaults to stdout. Tests pass a stream to inspect output. */
   logStream?: { write(line: string): void };
 }
@@ -108,6 +112,7 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
     signer: options.passSigner,
   });
   app.register(wishesRoutes, { service: options.wishesService });
+  app.register(mediaRoutes, { service: options.mediaService });
 
   return app;
 }

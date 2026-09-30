@@ -61,6 +61,16 @@ Three credential types, all checked by the API itself (`apps/api/src/auth/`):
 
 Request and response bodies are validated with the `@grad/contract` Zod schemas, and every error leaves as `{ error, message }`.
 
+## Photo uploads (media module)
+
+`POST /media` (guest credential, `multipart/form-data` with one file part) streams the file straight into `grad-originals` through `apps/api/src/storage/object-store.ts`, the one S3 client the modules share. Nothing buffers the whole file: parts of 5 MB go up one at a time.
+
+- **Format** is sniffed from the first bytes (JPEG, PNG or WebP); the declared content type and file name are ignored and never logged. Anything else is `415`.
+- **Size** is capped at 25 MB by the API while streaming (`413`), not by Traefik.
+- **Roll of 36**: each invitation can upload 36 photos in total (decided 2026-09-29, #58). The count includes hidden and removed photos, is checked before any bytes are read and again, under a row lock on the invitation, when the photo is recorded. A finished roll is `409`. The `201` body carries `shotsRemaining` for the camera UI.
+- **Garage down** (or `S3_*` unset locally) is `503` with `Retry-After: 30` and the contract's `{ error, message }`; nothing else in the API is affected.
+- The original's key is the photo's row id, never its public id, and the photo row plus its `media.derive` job (payload `{ photoId }`) are inserted in one transaction.
+
 ## API configuration
 
 `apps/api` reads configuration from the environment only (`apps/api/src/config.ts`, validated with Zod; variables listed in `applications-and-repository.md` §4.3). Locally every variable has a safe default, so `.env` only needs overriding for what you change. With `NODE_ENV=production` the API refuses to start unless the S3, service-token, `PASS_SIGNING_KEY` and `ADMIN_SESSION_SECRET` variables are set, and the error names the missing variables, never their values. Locally, leaving `PASS_SIGNING_KEY` unset makes the API sign passes with an ephemeral key and log a warning (signature scheme: `use-cases.md` §6.1).
@@ -71,7 +81,7 @@ CORS allows `PUBLIC_ORIGIN` and nothing else, so a web app on any other origin (
 
 [Bruno](https://www.usebruno.com) is a git-native API client — requests are plain-text `.bru` files, no cloud account. The collection lives in `dev/bruno/` (never runs in production, same spirit as `dev/Caddyfile`): open that folder in the Bruno app and select the "Local" environment.
 
-It currently covers the three implemented invitations endpoints plus creating and listing wishes. Set the `invitationToken` variable (a Bruno *secret* var, never committed) after running "Create Invitation" — never paste a real token into a request body or a non-secret var, since invitation tokens are bearer credentials (AGENTS.md). As more `apps/api` modules land, extend this collection to match; once routes are wired through `@grad/contract` with OpenAPI generation, prefer importing that spec over hand-writing requests, so the collection can't drift from the contract.
+It currently covers the three implemented invitations endpoints plus creating and listing wishes, and the photo upload. Set the `invitationToken` variable (a Bruno *secret* var, never committed) after running "Create Invitation" — never paste a real token into a request body or a non-secret var, since invitation tokens are bearer credentials (AGENTS.md). As more `apps/api` modules land, extend this collection to match; once routes are wired through `@grad/contract` with OpenAPI generation, prefer importing that spec over hand-writing requests, so the collection can't drift from the contract.
 
 ## Testing cookie scoping locally (optional)
 

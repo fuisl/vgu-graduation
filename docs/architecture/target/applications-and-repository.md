@@ -48,7 +48,7 @@ Runtime behavior:
 - Authentication: invitation tokens arrive as `Authorization: Bearer` from Vercel or as an `HttpOnly` cookie scoped to `.grad26.fuisloy.dev` from browsers on path B. Tokens are 128-bit random values; only a SHA-256 hash is stored; comparison is constant-time. Service calls on path C use static bearer tokens from Secrets. Admin calls carry a session token signed by the web app.
 - Logging: structured JSON; `Authorization`, `Cookie` and any field named `token` are redacted at the logger. Request paths never contain tokens.
 - CORS: allows `https://grad26.fuisloy.dev` with credentials, nothing else.
-- Uploads: multipart streaming straight to Garage, size-capped at 25 MB per file, content-type sniffed, EXIF stripped by the worker when generating derivatives.
+- Uploads: multipart streaming straight to Garage, size-capped at 25 MB per file, content-type sniffed (JPEG, PNG or WebP), at most 36 per invitation (a roll of film, decided 2026-09-29), EXIF stripped by the worker when generating derivatives.
 
 Configuration is environment-only:
 

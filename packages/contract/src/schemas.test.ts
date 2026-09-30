@@ -18,6 +18,7 @@ import {
   putRsvpRequestSchema,
   translationBacklogQuerySchema,
   translationTextSchema,
+  uploadMediaResponseSchema,
 } from "./index.js";
 
 const uuid = "3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e6f";
@@ -81,6 +82,13 @@ describe("media, wishes and moderation", () => {
   it("only knows the thumb and display variants", () => {
     expect(mediaVariantParamsSchema.safeParse({ id: "abc", variant: "display" }).success).toBe(true);
     expect(mediaVariantParamsSchema.safeParse({ id: "abc", variant: "original" }).success).toBe(false);
+  });
+
+  it("upload response carries the shots left on the roll", () => {
+    const ok = { publicId: "EMV5xWTOra4aOngA9GnNdQ", processingStatus: "pending", shotsRemaining: 0 };
+    expect(uploadMediaResponseSchema.safeParse(ok).success).toBe(true);
+    expect(uploadMediaResponseSchema.safeParse({ ...ok, shotsRemaining: -1 }).success).toBe(false);
+    expect(uploadMediaResponseSchema.safeParse({ publicId: ok.publicId, processingStatus: "pending" }).success).toBe(false);
   });
 
   it("moderation accepts only visible, hidden and removed", () => {

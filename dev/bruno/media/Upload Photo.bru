@@ -1,0 +1,26 @@
+meta {
+  name: Upload Photo
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{apiOrigin}}/media
+  body: multipartForm
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{invitationToken}}
+}
+
+body:multipart-form {
+  file: @file()
+}
+
+docs {
+  Uploads one photo (JPEG, PNG or WebP, up to 25 MB) as the guest behind
+  `invitationToken`. Pick a file for the `file` field before sending. Needs
+  `pnpm services:up` (Garage). Answers 201 with the photo's `publicId` and the
+  shots left on the invitation's roll of 36.
+}

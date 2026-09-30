@@ -447,11 +447,11 @@ Ingress and Traefik middlewares. The errors middleware returns the static fallba
 ```yaml
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
-metadata: { name: api-fallback, namespace: grad }
+metadata: { name: fallback, namespace: edge }   # beside its Service: Traefik's allowCrossNamespace is off
 spec:
   errors:
     status: ["502-504"]
-    service: { name: fallback, namespace: edge, port: 80 }
+    service: { name: fallback, port: 80 }
     query: "/index.html"
 ---
 apiVersion: traefik.io/v1alpha1
@@ -479,7 +479,7 @@ metadata:
   name: api
   namespace: grad
   annotations:
-    traefik.ingress.kubernetes.io/router.middlewares: grad-api-headers@kubernetescrd,grad-api-ratelimit@kubernetescrd,grad-api-fallback@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: grad-api-headers@kubernetescrd,grad-api-ratelimit@kubernetescrd,edge-fallback@kubernetescrd
     cert-manager.io/cluster-issuer: letsencrypt-http01
 spec:
   ingressClassName: traefik
@@ -531,7 +531,7 @@ spec:
     commit:
       author: { name: fluxcdbot, email: fluxcdbot@users.noreply.github.com }
       messageTemplate: "chore(deploy): bump images"
-    push: { branch: flux-image-updates }
+    push: { branch: flux/image-updates }
   update: { path: ./deploy/apps, strategy: Setters }
 ```
 

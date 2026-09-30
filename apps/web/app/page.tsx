@@ -43,12 +43,6 @@ export default async function Home() {
             <div className="home-visual">
               <Sculpture />
             </div>
-            <div className="home-labels" aria-hidden="true">
-              <span className="home-label home-label--tl"><BrandEyebrow>Vietnamese-German University</BrandEyebrow></span>
-              <span className="home-label home-label--tr"><BrandEyebrow>Class of 2026</BrandEyebrow></span>
-              <span className="home-label home-label--bl"><BrandEyebrow>Ceremony and memories</BrandEyebrow></span>
-              <span className="home-label home-label--br"><BrandEyebrow>Six shapes, one class</BrandEyebrow></span>
-            </div>
           </div>
           <div className="home-hero-foot">
             <h1 id="home-title" className="home-title" aria-label="Graduation ’26">
@@ -84,11 +78,9 @@ export default async function Home() {
                 <BrandEyebrow>Where</BrandEyebrow>
                 <p className="home-fact__main">{event.venue.name}</p>
                 <p className="home-fact__sub">{event.venue.address}</p>
-                <p>
-                  <a className="home-link" href={event.venue.mapUrl} target="_blank" rel="noopener noreferrer">
-                    Directions<span className="sr-only"> (opens map in a new tab)</span>
-                  </a>
-                </p>
+                <div className="home-fact__action">
+                  <Cta tone="on-white" variant="secondary" href={event.venue.mapUrl} external>Directions</Cta>
+                </div>
               </div>
               <div className="home-actions">
                 <Cta tone="on-white" href={links.webcal}>Add to calendar</Cta>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import "./decode-text.css";
 
 type NoiseFamily = "ascii" | "block" | "braille";
 type NoiseGlyph = { character: string; family: NoiseFamily };

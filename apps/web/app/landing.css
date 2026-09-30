@@ -1,4 +1,4 @@
-/* Landing (#148). Route-local, brand tokens only. Sculpture and decode internals live in globals.css. */
+/* Landing (#148). Route-local, brand tokens only. Sculpture and decode internals live beside their components. */
 [data-theme="brand"] .home-stage {
   position: relative;
 }
@@ -12,18 +12,6 @@
   height: 100%;
   max-height: none;
 }
-[data-theme="brand"] .home-labels {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-[data-theme="brand"] .home-label {
-  position: absolute;
-}
-[data-theme="brand"] .home-label--tl { top: 0; left: 0; }
-[data-theme="brand"] .home-label--tr { top: 0; right: 0; }
-[data-theme="brand"] .home-label--bl { bottom: 0; left: 0; }
-[data-theme="brand"] .home-label--br { bottom: 0; right: 0; }
 [data-theme="brand"] .home-hero-foot {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -33,17 +21,11 @@
 }
 [data-theme="brand"] .home-title {
   margin: 0;
-  font-family: var(--font-inter-tight), sans-serif;
+  font-family: var(--font-sans);
   font-size: var(--brand-text-display);
   font-weight: 500;
   line-height: var(--brand-leading-display);
   letter-spacing: var(--brand-tracking-display);
-}
-[data-theme="brand"] .home-title .landing-decode-char > span.is-noise,
-[data-theme="brand"] .home-title .landing-decode-char > span.is-block,
-[data-theme="brand"] .home-title .landing-decode-char > span.is-braille {
-  color: var(--brand-muted-on-blue);
-  text-shadow: none;
 }
 [data-theme="brand"] .home-hero-side {
   display: grid;
@@ -52,7 +34,7 @@
 }
 [data-theme="brand"] .home-event-line {
   margin: 0;
-  font-family: var(--font-geist-mono), monospace;
+  font-family: var(--font-mono);
   font-size: var(--text-sm, 0.875rem);
   letter-spacing: var(--brand-tracking-label);
   text-transform: uppercase;
@@ -60,7 +42,7 @@
 }
 [data-theme="brand"] .home-h2 {
   margin: var(--space-3) 0 var(--space-6);
-  font-family: var(--font-inter-tight), sans-serif;
+  font-family: var(--font-sans);
   font-size: var(--brand-text-h2);
   font-weight: 500;
   line-height: 1.1;
@@ -73,6 +55,7 @@
   align-items: start;
 }
 [data-theme="brand"] .home-fact p { margin: 0; }
+[data-theme="brand"] .home-fact__action { margin-top: var(--space-3); }
 [data-theme="brand"] .home-fact .brand-eyebrow { margin-bottom: var(--space-2); }
 [data-theme="brand"] .home-fact__main { font-size: var(--brand-text-h3); font-weight: 500; line-height: 1.2; }
 [data-theme="brand"] .home-fact__sub { margin-top: var(--space-2); color: var(--brand-muted); }
@@ -150,7 +133,7 @@
 }
 [data-theme="brand"] .home-wish__author {
   margin: var(--space-4) 0 0;
-  font-family: var(--font-geist-mono), monospace;
+  font-family: var(--font-mono);
   font-size: var(--text-sm, 0.875rem);
   letter-spacing: var(--brand-tracking-label);
   text-transform: uppercase;
@@ -158,7 +141,6 @@
   overflow-wrap: anywhere;
 }
 @media (max-width: 960px) {
-  [data-theme="brand"] .home-label { display: none; }
   [data-theme="brand"] .home-when,
   [data-theme="brand"] .home-wishes { grid-template-columns: 1fr; }
   [data-theme="brand"] .home-photos { grid-template-columns: repeat(2, minmax(0, 1fr)); }

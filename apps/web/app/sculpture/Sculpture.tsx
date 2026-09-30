@@ -1,5 +1,6 @@
 "use client";
 
+import "./sculpture.css";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Component, useEffect, useMemo, useRef, useState } from "react";
 import type { ErrorInfo, ReactNode } from "react";

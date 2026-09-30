@@ -11,12 +11,14 @@ const LINKS = [
   { href: "/admin/event", label: "Event" },
 ] as const;
 
-export function AdminNav() {
+/** `owner` adds the Admins page, where owners approve access requests (#119). */
+export function AdminNav({ owner }: { owner: boolean }) {
   const pathname = usePathname();
+  const links = owner ? [...LINKS, { href: "/admin/admins", label: "Admins" }] : LINKS;
   return (
     <nav className="admin-nav" aria-label="Admin">
       <ul>
-        {LINKS.map((link) => (
+        {links.map((link) => (
           <li key={link.href}>
             <Link href={link.href} prefetch={false} aria-current={pathname === link.href ? "page" : undefined}>
               {link.label}

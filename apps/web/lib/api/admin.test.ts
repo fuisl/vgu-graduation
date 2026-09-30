@@ -2,10 +2,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createGraduate,
   createInvitation,
+  decideAdminAccount,
+  getAdminMe,
   getEventUncached,
   listGraduates,
   listInvitations,
+  listAdminAccounts,
   listRsvps,
+  requestAdminAccess,
   revokeInvitation,
   rotateInvitation,
   updateEvent,
@@ -175,5 +179,40 @@ describe("getEventUncached", () => {
     mockFetch({ ok: false, status: 404 });
 
     expect(await getEventUncached()).toEqual({ status: "empty" });
+  });
+});
+
+describe("admin BFF: admin access (#119)", () => {
+  const account = {
+    handle: "newgrad",
+    status: "pending",
+    owner: false,
+    requestedAt: "2026-09-30T08:00:00.000Z",
+    decidedBy: null,
+    decidedAt: null,
+  };
+
+  it("POSTs /admin/access with the fresh session and parses the standing", async () => {
+    const spy = mockFetch({ json: async () => ({ handle: "newgrad", status: "pending", owner: false }) });
+    const result = await requestAdminAccess(ADMIN_TOKEN);
+    expect(spy.mock.calls[0][0]).toMatch(/\/admin\/access$/);
+    expect(lastInit(spy).method).toBe("POST");
+    expect(result).toEqual({ status: "ok", data: { handle: "newgrad", status: "pending", owner: false } });
+  });
+
+  it("surfaces a 403 from /admin/me for an account that is no longer approved", async () => {
+    mockFetch({ ok: false, status: 403, json: async () => ({ error: "Forbidden", message: "This GitHub account is not an approved admin" }) });
+    const result = await getAdminMe(ADMIN_TOKEN);
+    expect(result).toMatchObject({ status: "error", kind: "http", httpStatus: 403 });
+  });
+
+  it("lists accounts and posts a decision to the handle's path", async () => {
+    const spy = mockFetch({ json: async () => ({ items: [account] }) });
+    expect(await listAdminAccounts(ADMIN_TOKEN)).toEqual({ status: "ok", data: { items: [account] } });
+
+    spy.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ ...account, status: "approved" }) });
+    await decideAdminAccount(ADMIN_TOKEN, "newgrad", "approve");
+    expect(spy.mock.calls[1][0]).toMatch(/\/admin\/accounts\/newgrad\/approve$/);
+    expect(spy.mock.calls[1][1].method).toBe("POST");
   });
 });

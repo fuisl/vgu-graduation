@@ -29,6 +29,9 @@ export type InvitationActionState =
   | { status: "rotated"; inviteUrl: string }
   | { status: "revoked" };
 
+/** Approve, reject or revoke one admin account (#119). */
+export type AdminAccountActionState = Idle | { status: "error"; message: string } | { status: "done"; message: string };
+
 export type EventFormState = Idle | FormError | { status: "saved"; event: EventConfig };
 
 export const IDLE: Idle = { status: "idle" };

@@ -1,8 +1,8 @@
-import { listRsvps } from "../../../lib/api/admin";
-import { DEFAULT_EVENT_TIME_ZONE, formatAdminDateTime } from "../../../lib/admin/datetime";
-import { describeRsvp } from "../../../lib/admin/overview";
-import { redirectIfUnauthorized, requireAdminSession } from "../../../lib/admin/session";
-import { LoadError } from "../_components/LoadError";
+import { listRsvps } from "../../../../lib/api/admin";
+import { DEFAULT_EVENT_TIME_ZONE, formatAdminDateTime } from "../../../../lib/admin/datetime";
+import { describeRsvp } from "../../../../lib/admin/overview";
+import { redirectIfUnauthorized, requireAdminSession } from "../../../../lib/admin/session";
+import { LoadError } from "../../_components/LoadError";
 
 export default async function RsvpsPage() {
   const { token } = await requireAdminSession();

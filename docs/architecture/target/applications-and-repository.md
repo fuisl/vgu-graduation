@@ -5,7 +5,7 @@
 Unchanged in role. It gains:
 
 - Guest routes: `/invite/[token]` performs the cookie exchange and redirects to `/invite`; `/invite`, `/rsvp`, `/pass`, `/gallery`, `/wishes`, `/live`, `/display` render from API data.
-- Admin routes under `/admin`, protected by an application session. The exact identity provider is deferred; the default is a GitHub sign-in with an allowlist of handles.
+- Admin routes under `/admin`, protected by an application session. Admins sign in with GitHub; a first sign-in files a pending request that an owner approves on `/admin/admins` (#119). The API checks approval in `admin_accounts` on every `/admin` request, so a revoke applies immediately. Owners are fixed in `apps/api/src/modules/admin/owners.ts`.
 - A thin BFF layer: route handlers and server actions that call the API with the forwarded invitation credential, use `fetch` caching with revalidation on reads, and map API failures to explicit page states. No domain logic lives here.
 - Function region pinned to Singapore (`sin1`) so the hop to a homelab in Ho Chi Minh City stays short.
 

@@ -1,9 +1,11 @@
 "use server";
 
+import { adminAccountDecisionSchema, githubHandleSchema } from "@grad/contract";
 import { revalidatePath, revalidateTag } from "next/cache";
 import {
   createGraduate,
   createInvitation,
+  decideAdminAccount,
   revokeInvitation,
   rotateInvitation,
   updateEvent,
@@ -11,6 +13,7 @@ import {
 import type { ApiResult } from "../../lib/api/result";
 import {
   formValues,
+  type AdminAccountActionState,
   type EventFormState,
   type GraduateFormState,
   type InvitationActionState,
@@ -126,4 +129,24 @@ export async function updateEventAction(_previous: EventFormState, form: FormDat
   // Guest pages cache GET /event under this tag (lib/api/event.ts).
   revalidateTag("event");
   return { status: "saved", event: result.data };
+}
+
+const DECISION_DONE = { approve: "approved", reject: "rejected", revoke: "revoked" } as const;
+
+/** Owners only: the API answers 403 for anyone else, shown as the failure message. */
+export async function decideAdminAccountAction(
+  _previous: AdminAccountActionState,
+  form: FormData
+): Promise<AdminAccountActionState> {
+  const { token } = await requireAdminSession();
+  const handle = githubHandleSchema.safeParse(form.get("handle"));
+  const decision = adminAccountDecisionSchema.safeParse(form.get("decision"));
+  if (!handle.success || !decision.success) return { status: "error", message: "Unknown account or action." };
+
+  const result = await decideAdminAccount(token, handle.data, decision.data);
+  redirectIfUnauthorized(result);
+  if (result.status !== "ok") return { status: "error", message: failureMessage(result) };
+
+  revalidateAdmin();
+  return { status: "done", message: `${handle.data} ${DECISION_DONE[decision.data]}.` };
 }

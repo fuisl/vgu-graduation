@@ -3,6 +3,7 @@ The schema lives in `apps/api/src/db/schema.ts` (Drizzle); migrations in `apps/a
 
 Core concepts:
 - `User`: internal graduate/admin.
+- `AdminAccount`: admin access by lowercased GitHub handle (#119). `status` is `pending` (filed by a first sign-in), `approved`, `rejected` or `revoked`, with `decided_by`/`decided_at` for the owner's last decision. Checked on every `/admin` request. Owners (`apps/api/src/modules/admin/owners.ts`) are always admins and can't be changed from the dashboard.
 - `Guest`: external invited person.
 - `Invitation`: personalized pass with high-entropy bearer token; store a hash where practical.
 - `InvitationInviter`: many-to-many relation for joint invitations.

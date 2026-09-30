@@ -15,6 +15,13 @@
       "when": 1790697828562,
       "tag": "0001_event_config",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790755416253,
+      "tag": "0002_admin_accounts",
+      "breakpoints": true
     }
   ]
 }

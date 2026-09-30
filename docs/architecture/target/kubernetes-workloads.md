@@ -383,13 +383,13 @@ spec:
       securityContext: { runAsNonRoot: true, runAsUser: 1000, fsGroup: 1000 }
       initContainers:
         - name: migrate
-          image: docker.io/fuisl/grad26-api:sha-0000000 # {"$imagepolicy": "flux-system:grad26-api"}
+          image: docker.io/fuisl/grad26-api:main-20260101000000-0000000 # {"$imagepolicy": "flux-system:grad26-api"}
           args: ["node", "dist/migrate.js"]
           envFrom:
             - secretRef: { name: grad-db-app }
       containers:
         - name: api
-          image: docker.io/fuisl/grad26-api:sha-0000000 # {"$imagepolicy": "flux-system:grad26-api"}
+          image: docker.io/fuisl/grad26-api:main-20260101000000-0000000 # {"$imagepolicy": "flux-system:grad26-api"}
           ports: [{ name: http, containerPort: 4000 }]
           envFrom:
             - configMapRef: { name: api-config }
@@ -429,7 +429,7 @@ spec:
     spec:
       containers:
         - name: worker
-          image: docker.io/fuisl/grad26-api:sha-0000000 # {"$imagepolicy": "flux-system:grad26-api"}
+          image: docker.io/fuisl/grad26-api:main-20260101000000-0000000 # {"$imagepolicy": "flux-system:grad26-api"}
           args: ["node", "dist/worker.js"]
           envFrom:
             - configMapRef: { name: api-config }
@@ -510,15 +510,15 @@ kind: ImagePolicy
 metadata: { name: grad26-api, namespace: flux-system }
 spec:
   imageRepositoryRef: { name: grad26-api }
-  # docker-api.yml (this repo's CI) currently pushes `latest` and `sha-<short-sha>`
-  # per push to main. A short git SHA has no ordering Flux can sort on, so this
-  # filter/policy is a placeholder, not yet correct — needs either a sortable tag
-  # added to CI (e.g. a timestamp or build number) or a digest-pinned policy
-  # instead of tag-based. Follow-up, not resolved by ADR-009.
+  # docker-api.yml (this repo's CI) pushes `latest`, `sha-<short-sha>` and
+  # `main-<YYYYMMDDHHmmss UTC>-<7-char sha>` per push to main (#52). Only the
+  # main-* tag is sortable: the UTC build timestamp is extracted and compared
+  # numerically, so the newest build wins regardless of the sha.
   filterTags:
-    pattern: '^sha-[a-fA-F0-9]+$'
+    pattern: '^main-(?P<ts>[0-9]{14})-[a-f0-9]{7}$'
+    extract: '$ts'
   policy:
-    alphabetical: { order: asc }
+    numerical: { order: asc }
 ---
 apiVersion: image.toolkit.fluxcd.io/v1
 kind: ImageUpdateAutomation

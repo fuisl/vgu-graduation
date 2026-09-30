@@ -12,6 +12,17 @@ name: API image
 # automation (ADR-004) in the separate fuisl/vgu-graduation-deployment
 # repository watches fuisl/grad26-api on Docker Hub and bumps the deployed
 # tag there — this repository never holds cluster credentials.
+#
+# Tags pushed per build:
+#   latest                               convenience only; never deployed
+#   sha-<7-char sha>                     find the image for a commit
+#   main-<YYYYMMDDHHmmss UTC>-<7-char sha>  the tag Flux follows (#52)
+# The main-* tag is what the Flux ImagePolicy sorts on: it filters
+# ^main-(?P<ts>[0-9]{14})-[a-f0-9]{7}$, extracts $ts and picks the highest
+# number. Do not change its format without updating that policy in
+# fuisl/vgu-graduation-deployment. {{date}} is the workflow run time and
+# {{sha}} is metadata-action's short sha (7 chars by default,
+# DOCKER_METADATA_SHORT_SHA_LENGTH must stay unset).
 on:
   push:
     branches: [main]
@@ -52,6 +63,7 @@ jobs:
           tags: |
             type=raw,value=latest
             type=sha,format=short
+            type=raw,value=main-{{date 'YYYYMMDDHHmmss' tz='UTC'}}-{{sha}}
 
       - name: Build and push
         uses: docker/build-push-action@v6

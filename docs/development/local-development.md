@@ -64,7 +64,7 @@ Request and response bodies are validated with the `@grad/contract` Zod schemas,
 
 ## Photo uploads (media module)
 
-`POST /media` (guest credential, `multipart/form-data` with one file part) streams the file straight into `grad-originals` through `apps/api/src/storage/object-store.ts`, the one S3 client the modules share. Nothing buffers the whole file: parts of 5 MB go up one at a time.
+`POST /media` (guest credential, `multipart/form-data` with one file part) streams the file straight from the browser into `grad-originals` through `apps/api/src/storage/object-store.ts`, the one S3 client the modules share. The browser uses `PUBLIC_API_ORIGIN` with `credentials: include`; `apps/web/next.config.mjs` exposes that public origin to the camera bundle. Nothing buffers the whole file: parts of 5 MB go up one at a time.
 
 - **Format** is sniffed from the first bytes (JPEG, PNG or WebP); the declared content type and file name are ignored and never logged. Anything else is `415`.
 - **Size** is capped at 25 MB by the API while streaming (`413`), not by Traefik.
@@ -76,7 +76,7 @@ Request and response bodies are validated with the `@grad/contract` Zod schemas,
 
 **Gallery, serving and moderation** (#60):
 
-- `GET /gallery` needs a guest credential (401/404/410 like `/invitations/me`) and lists only `visible` + `ready` photos, newest first, cursor-paginated (`nextCursor` is the last item's `publicId`). `Cache-Control: private, max-age=60`, matching the Vercel layer's one-minute window.
+- `GET /gallery` is public and lists only `visible` + `ready` photos, newest first, cursor-paginated (`nextCursor` is the last item's `publicId`). `Cache-Control: public, s-maxage=60`, matching the Vercel layer's one-minute window.
 - `GET /media/{publicId}/{thumb|display}` needs no credential (the random id is the capability, so the display and printer can load it too) and streams the derivative from Garage with `Cache-Control: public, max-age=31536000, immutable`. Anything not `visible` + `ready`, an unknown variant, or a row id instead of a public id is `404` with `no-store`; there is no route to an original. Garage down is `503` with `Retry-After`.
 - `POST /admin/media/{publicId}/moderate` (`requireAdmin`, body `{ status: "visible" | "hidden" | "removed" }`) changes what is listed and served on the next request and writes a `photo.moderate` audit row (`{ from, to }`). It does not delete objects: takedown deletion of the original and derivatives stays a manual admin action (principles §8).
 - A browser that already loaded a derivative keeps it in its own cache after the photo is hidden; the immutable header can't recall it. Hiding stops every new load.

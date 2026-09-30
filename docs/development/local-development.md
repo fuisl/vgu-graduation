@@ -71,7 +71,7 @@ CORS allows `PUBLIC_ORIGIN` and nothing else, so a web app on any other origin (
 
 [Bruno](https://www.usebruno.com) is a git-native API client — requests are plain-text `.bru` files, no cloud account. The collection lives in `dev/bruno/` (never runs in production, same spirit as `dev/Caddyfile`): open that folder in the Bruno app and select the "Local" environment.
 
-It currently covers the three implemented invitations endpoints. Set the `invitationToken` variable (a Bruno *secret* var, never committed) after running "Create Invitation" — never paste a real token into a request body or a non-secret var, since invitation tokens are bearer credentials (AGENTS.md). As more `apps/api` modules land, extend this collection to match; once routes are wired through `@grad/contract` with OpenAPI generation, prefer importing that spec over hand-writing requests, so the collection can't drift from the contract.
+It currently covers the three implemented invitations endpoints plus creating and listing wishes. Set the `invitationToken` variable (a Bruno *secret* var, never committed) after running "Create Invitation" — never paste a real token into a request body or a non-secret var, since invitation tokens are bearer credentials (AGENTS.md). As more `apps/api` modules land, extend this collection to match; once routes are wired through `@grad/contract` with OpenAPI generation, prefer importing that spec over hand-writing requests, so the collection can't drift from the contract.
 
 ## Testing cookie scoping locally (optional)
 

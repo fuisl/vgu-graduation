@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   adminOverviewSchema,
+  adminWishSchema,
   completePrintJobRequestSchema,
   createPrintJobRequestSchema,
   createWishRequestSchema,
@@ -91,6 +92,12 @@ describe("media, wishes and moderation", () => {
     expect(createWishRequestSchema.parse({ body: "  Congrats!  " }).body).toBe("Congrats!");
     expect(createWishRequestSchema.safeParse({ body: "   " }).success).toBe(false);
     expect(createWishRequestSchema.safeParse({ body: "x".repeat(1001) }).success).toBe(false);
+  });
+
+  it("admin wishes carry their moderation state", () => {
+    const wish = { id: uuid, authorName: "Jane", body: "Congrats!", createdAt: now };
+    expect(adminWishSchema.safeParse({ ...wish, status: "hidden" }).success).toBe(true);
+    expect(adminWishSchema.safeParse(wish).success).toBe(false);
   });
 
   it("coerces and bounds pagination from query strings", () => {

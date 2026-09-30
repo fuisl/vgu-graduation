@@ -1,0 +1,28 @@
+meta {
+  name: Create Wish
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{apiOrigin}}/wishes
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{invitationToken}}
+}
+
+body:json {
+  {
+    "body": "Congratulations!"
+  }
+}
+
+docs {
+  Guest wish, authenticated by the invitation token (`invitationToken`
+  secret var). Visible at once; `authorName` defaults to the guest's name.
+  Five wishes per invitation per 10 minutes, then 429 with Retry-After.
+}

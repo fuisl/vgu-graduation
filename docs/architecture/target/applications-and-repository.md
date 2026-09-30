@@ -34,7 +34,7 @@ One Node 22 process built with a small HTTP framework that supports WebSockets n
 | event | Public event configuration, venue, calendar payload | `GET /event`, `GET /event/calendar.ics` |
 | pass | Signed pass payload for QR | `GET /pass` |
 | media | Upload originals, list gallery, serve derivatives, moderation | `POST /media`, `GET /gallery`, `GET /media/{id}/{variant}`, `POST /admin/media/{id}/moderate` |
-| wishes | Submit and list wishes with moderation | `POST /wishes`, `GET /wishes`, `POST /admin/wishes/{id}/moderate` |
+| wishes | Submit and list wishes with moderation | `POST /wishes`, `GET /wishes`, `GET /admin/wishes`, `POST /admin/wishes/{id}/moderate` |
 | live | WebSocket fan-out for translation and display | `WS /live/translation`, `WS /live/display` |
 | translation | Ingest segments from the GPU service; authenticate venue audio and proxy it to the GPU service | `POST /internal/translation/segments`, `WS /live/ingest` |
 | print | Print job queue | `POST /print/jobs`, `GET /internal/print/jobs/next`, `POST /internal/print/jobs/{id}/done` |

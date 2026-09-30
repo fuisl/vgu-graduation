@@ -33,3 +33,11 @@ export const moderateWishResponseSchema = z.object({
   status: moderationStatusSchema,
 });
 export type ModerateWishResponse = z.infer<typeof moderateWishResponseSchema>;
+
+/** One wish as admins see it: any moderation state. */
+export const adminWishSchema = wishSchema.extend({ status: moderationStatusSchema });
+export type AdminWish = z.infer<typeof adminWishSchema>;
+
+/** GET /admin/wishes: every wish in any state, newest first, so hidden ones can be restored. Query is `pageQuerySchema`. */
+export const adminWishesResponseSchema = pageSchema(adminWishSchema);
+export type AdminWishesResponse = z.infer<typeof adminWishesResponseSchema>;

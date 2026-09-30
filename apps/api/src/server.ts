@@ -20,6 +20,8 @@ import type { PassSigner } from "./modules/pass/pass.signer.js";
 import { rsvpRoutes } from "./modules/rsvp/rsvp.routes.js";
 import type { RsvpService } from "./modules/rsvp/rsvp.service.js";
 import { systemRoutes } from "./modules/system/system.routes.js";
+import { wishesRoutes } from "./modules/wishes/wishes.routes.js";
+import type { WishesService } from "./modules/wishes/wishes.service.js";
 
 /** Logger paths whose values are replaced with "[Redacted]". */
 export const LOG_REDACT_PATHS = [
@@ -46,6 +48,8 @@ export interface BuildServerOptions {
   eventStore?: EventStore;
   /** Override for tests; defaults to the database-backed service. */
   rsvpService?: Pick<RsvpService, "putByToken" | "listAll">;
+  /** Override for tests; defaults to the database-backed service. */
+  wishesService?: Pick<WishesService, "createByToken" | "listVisible" | "listAll" | "moderate">;
   /** Log destination; defaults to stdout. Tests pass a stream to inspect output. */
   logStream?: { write(line: string): void };
 }
@@ -103,6 +107,7 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
     invitationsService: options.invitationsService,
     signer: options.passSigner,
   });
+  app.register(wishesRoutes, { service: options.wishesService });
 
   return app;
 }

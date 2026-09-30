@@ -18,6 +18,13 @@ const asciifyStubDir = path.join(rootDir, "vendor/asciify-stub");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // PUBLIC_API_ORIGIN is intentionally public. Expose the same configured host
+  // to browser code for direct photo uploads and derivative image requests.
+  env: {
+    NEXT_PUBLIC_API_ORIGIN:
+      process.env.PUBLIC_API_ORIGIN ||
+      (process.env.NODE_ENV === "development" ? "http://localhost:4000" : "https://api.grad26.fuisloy.dev"),
+  },
   // ASCIIGen ships TypeScript rather than a compiled browser bundle.
   transpilePackages: asciifyInstalled ? ["asciify"] : [],
   webpack(config) {

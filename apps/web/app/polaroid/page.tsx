@@ -8,30 +8,46 @@ import { GridCells } from "../background/GridCells";
 import { BrandName } from "../logo/BrandName";
 import { DecodeText } from "../landing-title/DecodeText";
 import { ArrowUpRight } from "../icons/ArrowUpRight";
-import { saveGalleryItem } from "../../data/mockGallery"; // Added logic to save to Gallery
+import { browserApiOrigin } from "../../lib/api/browser-origin";
 
-const GROUP_MEMBERS = [
-  { id: "member_1", name: "Duong", initial: "D" },
-  { id: "member_2", name: "Nhien", initial: "N" },
-  { id: "member_3", name: "Xuan", initial: "X" },
-  { id: "member_4", name: "An", initial: "A" },
-  { id: "member_5", name: "Tai", initial: "T" },
-];
+function jpegBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob);
+      else reject(new Error("The captured photo could not be encoded"));
+    }, "image/jpeg", 0.85);
+  });
+}
+
+type UploadMediaResponse = {
+  publicId: string;
+  processingStatus: "pending" | "ready" | "failed";
+  shotsRemaining: number;
+};
+
+function isUploadMediaResponse(value: unknown): value is UploadMediaResponse {
+  if (!value || typeof value !== "object") return false;
+  const response = value as Record<string, unknown>;
+  return typeof response.publicId === "string"
+    && (response.processingStatus === "pending" || response.processingStatus === "ready" || response.processingStatus === "failed")
+    && typeof response.shotsRemaining === "number"
+    && Number.isInteger(response.shotsRemaining)
+    && response.shotsRemaining >= 0;
+}
 
 export default function PolaroidPage() {
-  const sessionUser = { id: "usr_123", name: "Jane Doe" };
-
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const [selectedReceivers, setSelectedReceivers] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cameraError, setCameraError] = useState("");
+  const [uploadError, setUploadError] = useState("");
+  const [uploadSuccess, setUploadSuccess] = useState("");
 
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
 
   // Counter States
-  const [photosRemaining, setPhotosRemaining] = useState(36);
+  const [photosRemaining, setPhotosRemaining] = useState<number | null>(null);
   const [isRolling, setIsRolling] = useState(false);
 
   // Keep camera running as long as there is film
@@ -60,8 +76,8 @@ export default function PolaroidPage() {
       }
     };
 
-    if (photosRemaining > 0) {
-      startCamera();
+    if (photosRemaining !== 0) {
+      void startCamera();
     }
 
     return () => {
@@ -71,36 +87,33 @@ export default function PolaroidPage() {
     };
   }, [photosRemaining, facingMode]);
 
-  const toggleReceiver = (id: string) => {
-    setSelectedReceivers((prev) =>
-      prev.includes(id) ? prev.filter((r) => r !== id) : [...prev, id]
-    );
-  };
-
-  const handleSelectAll = () => {
-    if (selectedReceivers.length === GROUP_MEMBERS.length) {
-      setSelectedReceivers([]);
-    } else {
-      setSelectedReceivers(GROUP_MEMBERS.map((m) => m.id));
-    }
-  };
-
   const handleCaptureAndSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (photosRemaining <= 0 || !videoRef.current || !canvasRef.current || cameraError) return;
+    if (photosRemaining === 0 || !videoRef.current || !canvasRef.current || cameraError) return;
 
     setIsSubmitting(true);
+    setUploadError("");
+    setUploadSuccess("");
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
 
     // Maintain aspect ratio while standardizing size
     const size = Math.min(video.videoWidth, video.videoHeight);
+    if (size <= 0) {
+      setUploadError("The camera is still starting. Please wait a moment and try again.");
+      setIsSubmitting(false);
+      return;
+    }
     canvas.width = size;
     canvas.height = size;
 
     const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    if (!ctx) {
+      setUploadError("This browser could not capture the photo.");
+      setIsSubmitting(false);
+      return;
+    }
 
     // Crop center for a square polaroid look
     const startX = (video.videoWidth - size) / 2;
@@ -112,34 +125,40 @@ export default function PolaroidPage() {
     }
 
     ctx.drawImage(video, startX, startY, size, size, 0, 0, size, size);
-    const imageDataUrl = canvas.toDataURL("image/jpeg", 0.85);
 
     try {
-      // 1. Convert selected IDs to Names for the Gallery
-      const receiverNames = selectedReceivers.map(
-        id => GROUP_MEMBERS.find(m => m.id === id)?.name || "Unknown"
-      );
+      const file = await jpegBlob(canvas);
+      const form = new FormData();
+      form.append("file", file, "graduation-photo.jpg");
 
-      // 2. Save directly to our Mock Gallery localStorage!
-      saveGalleryItem({
-        type: "POLAROID",
-        sender: sessionUser.name,
-        receivers: receiverNames.length > 0 ? receiverNames : ["Everyone"],
-        content: imageDataUrl,
+      const response = await fetch(`${browserApiOrigin()}/media`, {
+        method: "POST",
+        credentials: "include",
+        body: form,
       });
 
-      // 3. Trigger the seamless scroll transition
-      setIsRolling(true);
+      const body: unknown = await response.json().catch(() => null);
+      if (!response.ok) {
+        const detail = body && typeof body === "object" && "message" in body && typeof body.message === "string"
+          ? body.message
+          : "The photo could not be uploaded. Please try again.";
+        throw new Error(detail);
+      }
 
-      // Wait exactly 400ms for the slide to finish, then instantly swap the DOM
+      if (!isUploadMediaResponse(body)) throw new Error("The upload response was invalid. Please try again.");
+
+      setIsRolling(true);
       setTimeout(() => {
         setIsRolling(false);
-        setPhotosRemaining((prev) => prev - 1);
-        setSelectedReceivers([]); // Reset selection
+        setPhotosRemaining(body.shotsRemaining);
       }, 400);
-
+      setUploadSuccess(
+        body.processingStatus === "ready"
+          ? "Photo added to the gallery."
+          : "Photo received. It will appear after processing.",
+      );
     } catch (error) {
-      console.error("Submission failed:", error);
+      setUploadError(error instanceof Error ? error.message : "The photo could not be uploaded. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -242,28 +261,7 @@ export default function PolaroidPage() {
             <form onSubmit={handleCaptureAndSubmit} className="w-form">
 
               <div className="w-field">
-                <div className="w-assign-header">
-                  <label className="w-label" style={{margin: 0}}><DecodeText text="01 // TAG IN PHOTO (OPTIONAL)" delay={300} /></label>
-                  <button type="button" onClick={handleSelectAll} className="w-btn-link">
-                    {selectedReceivers.length === GROUP_MEMBERS.length ? "Deselect All" : "Select All"}
-                  </button>
-                </div>
-
-                <div className="w-assign-grid">
-                  {GROUP_MEMBERS.map((member) => {
-                    const isSelected = selectedReceivers.includes(member.id);
-                    return (
-                      <button key={member.id} type="button" onClick={() => toggleReceiver(member.id)} className={`w-assign-card ${isSelected ? 'selected' : ''}`}>
-                        <div className="w-avatar">{member.initial}</div>
-                        <span className="w-name">{member.name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="w-field">
-                <label className="w-label"><DecodeText text="02 // VIEWFINDER" delay={400} /></label>
+                <label className="w-label"><DecodeText text="01 // VIEWFINDER" delay={300} /></label>
                 <div className="w-viewfinder-container">
                   {cameraError ? (
                     <div className="w-camera-error">{cameraError}</div>
@@ -286,8 +284,8 @@ export default function PolaroidPage() {
                         transition: isRolling ? 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)' : 'none'
                       }}
                     >
-                      <div className="counter-num">{photosRemaining}</div>
-                      <div className="counter-num">{photosRemaining - 1 >= 0 ? photosRemaining - 1 : 0}</div>
+                      <div className="counter-num">{photosRemaining ?? "--"}</div>
+                      <div className="counter-num">{photosRemaining === null ? "--" : Math.max(photosRemaining - 1, 0)}</div>
                     </div>
                   </div>
 
@@ -302,7 +300,7 @@ export default function PolaroidPage() {
                   <div className="w-shutter-container">
                     <button
                       type="submit"
-                      disabled={isSubmitting || !!cameraError || photosRemaining <= 0}
+                      disabled={isSubmitting || !!cameraError || photosRemaining === 0}
                       className="w-shutter-btn"
                       title="Snap photo"
                     >
@@ -310,7 +308,7 @@ export default function PolaroidPage() {
                     </button>
                   </div>
 
-                  {photosRemaining <= 0 && (
+                  {photosRemaining === 0 && (
                     <div className="w-empty-film">
                       <span className="w-label" style={{ color: '#f87171' }}>Film Roll Empty (0/36)</span>
                       <p className="w-name" style={{ color: '#ECF0F9', fontSize: '14px', margin: 0 }}>You have used all exposures.</p>
@@ -319,6 +317,11 @@ export default function PolaroidPage() {
 
                 </div>
                 <canvas ref={canvasRef} style={{ display: "none" }} />
+                <p className="w-name" style={{ lineHeight: 1.6 }}>
+                  By uploading, your photo may be shown on the event display and gallery, and kept in the four-year graduation archive. Contact an organizer to have something removed.
+                </p>
+                {uploadError ? <p role="alert" className="w-name" style={{ color: "#f0a3a3" }}>{uploadError}</p> : null}
+                {uploadSuccess ? <p role="status" className="w-name" style={{ color: "#9fc8a6" }}>{uploadSuccess}</p> : null}
               </div>
 
             </form>

@@ -9,50 +9,25 @@ import { BrandName } from "../logo/BrandName";
 import { DecodeText } from "../landing-title/DecodeText";
 import { ArrowUpRight } from "../icons/ArrowUpRight";
 
-const GROUP_MEMBERS = [
-  { id: "member_1", name: "Duong", initial: "D" },
-  { id: "member_2", name: "Nhien", initial: "N" },
-  { id: "member_3", name: "Xuan", initial: "X" },
-  { id: "member_4", name: "An", initial: "A" },
-  { id: "member_5", name: "Tai", initial: "T" },
-];
-
 export default function WishesPage() {
-  const sessionUser = { id: "usr_123", name: "Jane Doe" };
-
   const [alias, setAlias] = useState("");
   const [message, setMessage] = useState("");
-  const [selectedReceivers, setSelectedReceivers] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
-
-  const toggleReceiver = (id: string) => {
-    setSelectedReceivers((prev) =>
-      prev.includes(id) ? prev.filter((r) => r !== id) : [...prev, id]
-    );
-  };
-
-  const handleSelectAll = () => {
-    if (selectedReceivers.length === GROUP_MEMBERS.length) {
-      setSelectedReceivers([]);
-    } else {
-      setSelectedReceivers(GROUP_MEMBERS.map((m) => m.id));
-    }
-  };
+  const [submitError, setSubmitError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setSubmitError("");
 
     try {
       const response = await fetch("/api/wishes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: sessionUser.id,
-          guestAlias: alias.trim() !== "" ? alias.trim() : sessionUser.name,
-          receivers: selectedReceivers,
-          message: message.trim(),
+          body: message.trim(),
+          ...(alias.trim() ? { authorName: alias.trim() } : {}),
         }),
       });
 
@@ -60,10 +35,15 @@ export default function WishesPage() {
         setSuccess(true);
         setAlias("");
         setMessage("");
-        setSelectedReceivers([]);
+      } else {
+        const body: unknown = await response.json().catch(() => null);
+        const detail = body && typeof body === "object" && "message" in body && typeof body.message === "string"
+          ? body.message
+          : "Your wish could not be saved. Please try again.";
+        setSubmitError(detail);
       }
-    } catch (error) {
-      console.error("Submission failed:", error);
+    } catch {
+      setSubmitError("The wish service is unreachable. Check your connection and try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -324,49 +304,20 @@ export default function WishesPage() {
                   </label>
                   <input
                     type="text"
-                    placeholder={sessionUser.name}
+                    placeholder="Your invitation name"
                     value={alias}
                     onChange={(e) => setAlias(e.target.value)}
                     className="w-input"
                   />
                   <p className="w-help-text">
-                    Leave blank to use your registered name, or override with an alias.
+                    Leave blank to use the guest name from your invitation, or enter an alias.
                   </p>
                 </div>
 
-                {/* 02: RECIPIENTS (GitHub Assignment Style) */}
-                <div className="w-field">
-                  <div className="w-assign-header">
-                    <label className="w-label" style={{margin: 0}}>
-                      <DecodeText text="02 / TO WHOM?" delay={500} />
-                    </label>
-                    <button type="button" onClick={handleSelectAll} className="w-btn-link">
-                      {selectedReceivers.length === GROUP_MEMBERS.length ? "Deselect All" : "Select All"}
-                    </button>
-                  </div>
-
-                  <div className="w-assign-grid">
-                    {GROUP_MEMBERS.map((member) => {
-                      const isSelected = selectedReceivers.includes(member.id);
-                      return (
-                        <button
-                          key={member.id}
-                          type="button"
-                          onClick={() => toggleReceiver(member.id)}
-                          className={`w-assign-card ${isSelected ? 'selected' : ''}`}
-                        >
-                          <div className="w-avatar">{member.initial}</div>
-                          <span className="w-name">{member.name}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* 03: PAYLOAD */}
+                {/* 02: PAYLOAD */}
                 <div className="w-field">
                   <label className="w-label">
-                    <DecodeText text="03 / THE MESSAGE" delay={600} />
+                    <DecodeText text="02 / THE MESSAGE" delay={500} />
                   </label>
                   <textarea
                     required
@@ -376,11 +327,16 @@ export default function WishesPage() {
                     placeholder="Write your graduation wish..."
                     className="w-textarea"
                   />
+                  <p className="w-help-text">
+                    By submitting, your message may be shown on the event display and gallery, and kept in the four-year graduation archive. Contact an organizer to have something removed.
+                  </p>
                 </div>
+
+                {submitError ? <p role="alert" style={{ color: "#f0a3a3", margin: 0 }}>{submitError}</p> : null}
 
                 <button
                   type="submit"
-                  disabled={isSubmitting || selectedReceivers.length === 0 || !message.trim()}
+                  disabled={isSubmitting || !message.trim()}
                   className="w-submit-btn"
                 >
                   {isSubmitting ? "SEALING..." : "SEAL WISH"}

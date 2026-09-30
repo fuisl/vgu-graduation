@@ -1,5 +1,8 @@
 "use client";
 
+/* Gallery derivatives are already resized, immutable JPEGs from the media API; a Next image proxy would add an unnecessary hop. */
+/* eslint-disable @next/next/no-img-element */
+
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { BackgroundMotion } from "../background/BackgroundMotion";
@@ -7,7 +10,7 @@ import { TwinkleField } from "../background/TwinkleField";
 import { GridCells } from "../background/GridCells";
 import { BrandName } from "../logo/BrandName";
 import { DecodeText } from "../landing-title/DecodeText";
-import { getGalleryItems, GalleryItem } from "../../data/mockGallery";
+import type { GalleryItem } from "../../data/gallery";
 
 export default function GalleryPage() {
   const [isMounted, setIsMounted] = useState(false);
@@ -17,6 +20,9 @@ export default function GalleryPage() {
   const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
 
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [isPartial, setIsPartial] = useState(false);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const isAutoPlayingRef = useRef(isAutoPlaying);
@@ -30,7 +36,27 @@ export default function GalleryPage() {
 
   useEffect(() => {
     setIsMounted(true);
-    setGalleryItems(getGalleryItems());
+    const controller = new AbortController();
+
+    async function loadGallery() {
+      try {
+        const response = await fetch("/api/gallery", { signal: controller.signal });
+        const body: unknown = await response.json();
+        if (!response.ok || !body || typeof body !== "object" || !("items" in body) || !Array.isArray(body.items)) {
+          throw new Error("Invalid gallery response");
+        }
+        setGalleryItems(body.items as GalleryItem[]);
+        setIsPartial("partial" in body && body.partial === true);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setLoadError("The gallery is temporarily unavailable. Please try again in a moment.");
+      } finally {
+        if (!controller.signal.aborted) setIsLoading(false);
+      }
+    }
+
+    void loadGallery();
+    return () => controller.abort();
   }, []);
 
   const filteredItems = galleryItems.filter((item) => {
@@ -327,7 +353,21 @@ export default function GalleryPage() {
               </div>
             </div>
 
-            {filteredItems.length === 0 ? (
+            {isPartial ? (
+              <p role="status" style={{ textAlign: "center", color: "#d4b36b", fontFamily: "monospace" }}>
+                Some memories could not be loaded. Showing the entries that are available.
+              </p>
+            ) : null}
+
+            {isLoading ? (
+              <p role="status" style={{ textAlign: "center", color: "#8790A7", fontFamily: "monospace" }}>
+                Loading memories…
+              </p>
+            ) : loadError ? (
+              <p role="alert" style={{ textAlign: "center", color: "#f0a3a3", fontFamily: "monospace" }}>
+                {loadError}
+              </p>
+            ) : filteredItems.length === 0 ? (
               <p style={{ textAlign: "center", color: "#8790A7", fontFamily: "monospace" }}>No entries found.</p>
             ) : viewMode === "GRID" ? (
 

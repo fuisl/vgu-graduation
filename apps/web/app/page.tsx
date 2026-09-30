@@ -1,61 +1,159 @@
-import Link from "next/link";
-import { BackgroundMotion } from "./background/BackgroundMotion";
-import { TwinkleField } from "./background/TwinkleField";
-import { GridCells } from "./background/GridCells";
-import { ArrowUpRight } from "./icons/ArrowUpRight";
-import { BrandName } from "./logo/BrandName";
-import { Sculpture } from "./sculpture/Sculpture";
+/* Gallery thumbnails are immutable, pre-sized derivatives from the media API; a Next image proxy would add a hop. */
+/* eslint-disable @next/next/no-img-element */
+
+import type { Metadata } from "next";
+import { BrandEyebrow, BrandTheme, Cta, Section } from "@grad/ui";
+import { getEvent } from "../lib/api/event";
+import { getGallery } from "../lib/api/gallery";
+import { mediaDerivativeUrl } from "../lib/api/browser-origin";
+import { getWishes } from "../lib/api/wishes";
+import { buildCalendarLinks } from "../lib/calendar/links";
+import { formatEventWhen } from "../lib/invite/format";
 import { DecodeText } from "./landing-title/DecodeText";
-import { WaveTitle } from "./landing-title/WaveTitle";
-import { AsciiGraduationBackdrop } from "./ascii-graduation/AsciiGraduationBackdrop";
+import { Sculpture } from "./sculpture/Sculpture";
+import { SiteFooter } from "./site/SiteFooter";
+import { SiteHeader } from "./site/SiteHeader";
+import "./landing.css";
 
-export default function Home() {
-  return <main className="landing-page">
-    <section className="landing" aria-label="GRAD '26 introduction">
-    <BackgroundMotion />
-    <div className="landing-aurora" aria-hidden="true">
-      <span className="landing-aurora-blob" />
-      <span className="landing-aurora-blob" />
-      <span className="landing-aurora-blob" />
-    </div>
-    <div className="landing-field" aria-hidden="true">
-      <GridCells />
-    </div>
-    <TwinkleField />
-    <header className="landing-header">
-      <a className="landing-brand" href="https://vgu.edu.vn/vi/home" target="_blank" rel="noopener noreferrer" aria-label="VGU home">
-        <BrandName />
-      </a>
-      <nav className="landing-nav" aria-label="Main navigation">
-        <a href="#gallery">Gallery</a>
-        <Link href="/ascii-live">ASCII live</Link>
-        <Link className="landing-signin" href="/guest/prototype">Guest preview <ArrowUpRight /></Link>
-      </nav>
-    </header>
+export const metadata: Metadata = {
+  title: "GRAD '26 · VGU graduation",
+  description: "The digital companion for the VGU graduation ceremony: invitation, venue, gallery and wishes.",
+};
 
-    <section className="landing-hero" aria-labelledby="landing-title">
-      <h1 id="landing-title" aria-label="GRADUATION ’26">
-        <DecodeText text="GRADUATION" delay={80} duration={880} ariaHidden />
-        <span className="landing-year"><DecodeText text="’26" delay={360} duration={680} ariaHidden /></span>
-      </h1>
+// API origins are read at request time; every helper below caches its own call.
+export const dynamic = "force-dynamic";
 
-      <div className="landing-centerpiece" id="gallery">
-        <div className="landing-event-meta mono">
-          <p><DecodeText text="November 2026 / VGU Campus, HCMC" delay={520} /></p>
-          <span className="landing-event-signal" aria-hidden="true" />
-        </div>
-        <div className="landing-visual">
-          <Sculpture />
-        </div>
-        <div className="landing-message">
-          <WaveTitle />
-          <p><DecodeText text="The next chapter begins together." delay={940} /></p>
-        </div>
-      </div>
-    </section>
+const TEASER_PHOTOS = 6;
+const TEASER_WISHES = 3;
 
-      <p className="landing-credit"><DecodeText text="Duong" delay={1080} /> <DecodeText className="landing-credit-alias" text="(aka. James)" delay={1150} /></p>
-    </section>
-    <AsciiGraduationBackdrop />
-  </main>;
+export default async function Home() {
+  const [eventResult, galleryResult, wishesResult] = await Promise.all([getEvent(), getGallery(), getWishes()]);
+  const event = eventResult.status === "ok" ? eventResult.data : null;
+  const when = event ? formatEventWhen(event) : null;
+  const links = event ? buildCalendarLinks(event) : null;
+  const photos = galleryResult.status === "ok" ? galleryResult.data.items.slice(0, TEASER_PHOTOS) : null;
+  const wishes = wishesResult.status === "ok" ? wishesResult.data.items.slice(0, TEASER_WISHES) : null;
+
+  return (
+    <BrandTheme>
+      <SiteHeader current="home" />
+      <main className="home">
+        <Section tone="blue" aria-labelledby="home-title">
+          <div className="home-stage">
+            <div className="home-visual">
+              <Sculpture />
+            </div>
+            <div className="home-labels" aria-hidden="true">
+              <span className="home-label home-label--tl"><BrandEyebrow>Vietnamese-German University</BrandEyebrow></span>
+              <span className="home-label home-label--tr"><BrandEyebrow>Class of 2026</BrandEyebrow></span>
+              <span className="home-label home-label--bl"><BrandEyebrow>Ceremony and memories</BrandEyebrow></span>
+              <span className="home-label home-label--br"><BrandEyebrow>Six shapes, one class</BrandEyebrow></span>
+            </div>
+          </div>
+          <div className="home-hero-foot">
+            <h1 id="home-title" className="home-title" aria-label="Graduation ’26">
+              <DecodeText text="Graduation ’26" delay={80} duration={900} ariaHidden />
+            </h1>
+            <div className="home-hero-side">
+              {event && when ? (
+                <p className="home-event-line">
+                  <time dateTime={event.startsAt}>{when.date}</time>
+                  <br />
+                  {event.venue.name}
+                </p>
+              ) : null}
+              <Cta tone="on-blue" href="/invite">Your invitation</Cta>
+            </div>
+          </div>
+        </Section>
+
+        <Section tone="white" aria-labelledby="home-when-title">
+          <BrandEyebrow>When and where</BrandEyebrow>
+          <h2 id="home-when-title" className="home-h2">Join us on the day</h2>
+          {event && when && links ? (
+            <div className="home-when">
+              <div className="home-fact">
+                <BrandEyebrow>When</BrandEyebrow>
+                <p className="home-fact__main"><time dateTime={event.startsAt}>{when.date}</time></p>
+                <p className="home-fact__sub">{when.time}</p>
+                {event.timeConfirmed ? null : (
+                  <p className="home-note">The date and time may still change. Add the calendar feed to get updates automatically.</p>
+                )}
+              </div>
+              <div className="home-fact">
+                <BrandEyebrow>Where</BrandEyebrow>
+                <p className="home-fact__main">{event.venue.name}</p>
+                <p className="home-fact__sub">{event.venue.address}</p>
+                <p>
+                  <a className="home-link" href={event.venue.mapUrl} target="_blank" rel="noopener noreferrer">
+                    Directions<span className="sr-only"> (opens map in a new tab)</span>
+                  </a>
+                </p>
+              </div>
+              <div className="home-actions">
+                <Cta tone="on-white" href={links.webcal}>Add to calendar</Cta>
+                <a className="home-link" href="/venue">All calendar options and arrival details</a>
+              </div>
+            </div>
+          ) : (
+            <p className="home-state" role="status">
+              Event details are temporarily unavailable. <a className="home-link" href="/venue">Open the venue page</a> to try again.
+            </p>
+          )}
+        </Section>
+
+        <Section tone="blue" aria-labelledby="home-gallery-title">
+          <BrandEyebrow>Gallery</BrandEyebrow>
+          <h2 id="home-gallery-title" className="home-h2">Latest photos</h2>
+          {photos && photos.length > 0 ? (
+            <ul className="home-photos">
+              {photos.map((photo) => (
+                <li key={photo.publicId}>
+                  <img
+                    src={mediaDerivativeUrl(photo.publicId, "thumb")}
+                    alt="Guest photo"
+                    width={400}
+                    height={400}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="home-state" role={photos ? undefined : "status"}>
+              {photos ? "First photos appear on ceremony day." : "Photos are temporarily unavailable."}
+            </p>
+          )}
+          <div className="home-actions">
+            <Cta tone="on-blue" href="/gallery">Open gallery</Cta>
+          </div>
+        </Section>
+
+        <Section tone="white" aria-labelledby="home-wishes-title">
+          <BrandEyebrow>Wishes</BrandEyebrow>
+          <h2 id="home-wishes-title" className="home-h2">Words for the class of 2026</h2>
+          {wishes && wishes.length > 0 ? (
+            <ul className="home-wishes">
+              {wishes.map((wish) => (
+                <li key={wish.id} className="home-wish">
+                  <blockquote className="home-wish__body">{wish.body}</blockquote>
+                  <p className="home-wish__author">{wish.authorName}</p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="home-state" role={wishes ? undefined : "status"}>
+              {wishes ? "Be the first to leave a wish." : "Wishes are temporarily unavailable."}
+            </p>
+          )}
+          <div className="home-actions">
+            <Cta tone="on-white" href="/wishes">Leave a wish</Cta>
+            <a className="home-link" href="/wishes">Read all wishes</a>
+          </div>
+        </Section>
+      </main>
+      <SiteFooter />
+    </BrandTheme>
+  );
 }

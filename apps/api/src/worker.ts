@@ -1,6 +1,8 @@
 import os from "node:os";
 import { config } from "./config.js";
 import { pool } from "./db/index.js";
+import { deriveHandler } from "./modules/media/derivatives.js";
+import { DERIVE_JOB } from "./modules/media/media.repository.js";
 import { JobQueue } from "./worker/queue.js";
 import { runWorker, type JobHandlers, type WorkerLogger } from "./worker/worker.js";
 
@@ -12,8 +14,10 @@ import { runWorker, type JobHandlers, type WorkerLogger } from "./worker/worker.
 /** Longest we wait for the job in progress before exiting anyway (k8s sends SIGKILL after 30s). */
 const SHUTDOWN_TIMEOUT_MS = 25_000;
 
-/** Registered as modules add job types (#59 derivatives, #72 print dispatch). */
-const handlers: JobHandlers = {};
+/** Registered as modules add job types (#72 print dispatch next). */
+const handlers: JobHandlers = {
+  [DERIVE_JOB]: deriveHandler(),
+};
 
 const LEVELS = ["trace", "debug", "info", "warn", "error", "fatal"] as const;
 

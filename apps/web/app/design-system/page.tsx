@@ -3,6 +3,8 @@ import type {ReactNode} from "react";
 import {ArrowUpRightPixel, BrandEyebrow, BrandTheme, Cta, PillGroup, PillItem, Section} from "@grad/ui";
 import {BrandLogo} from "../logo/BrandLogo";
 import {SiteFooter} from "../site/SiteFooter";
+import {SignedInChip} from "../site/GuestChip";
+import {SignedOutChip} from "../site/SiteAction";
 import {SiteHeader} from "../site/SiteHeader";
 
 export const metadata: Metadata = {title: "Design system · GRAD '26"};
@@ -249,13 +251,20 @@ export default function DesignSystem() {
         </Section>
         <SiteFooter />
 
-        <Section tone="blue" aria-labelledby="ds-placeholders">
-          <BrandEyebrow ellipsis>Placeholders</BrandEyebrow>
-          <h2 id="ds-placeholders" className="brand-ds-h2">Coming soon</h2>
-          <ul className="brand-ds-placeholders">
-            <li className="brand-ds-placeholder">Guest chip, signed out (Your invitation): coming in #146.</li>
-            <li className="brand-ds-placeholder">Guest chip, signed in (blobatar and first name): coming in #146.</li>
-          </ul>
+        <Section tone="blue" aria-labelledby="ds-chip">
+          <BrandEyebrow ellipsis>Guest chip</BrandEyebrow>
+          <h2 id="ds-chip" className="brand-ds-h2">Two states</h2>
+          <p className="brand-ds-note">
+            The header&apos;s right-hand action. Signed in, it shows the guest&apos;s animated blobatar (seeded by guest id, eyes follow the cursor, still under reduced motion) and first name. <code>GuestAvatar</code> is reusable for the profile (#139).
+          </p>
+          <div className="brand-ds-row">
+            <p className="brand-ds-row__label">Signed out</p>
+            <div className="brand-ds-row__items"><SignedOutChip /></div>
+          </div>
+          <div className="brand-ds-row">
+            <p className="brand-ds-row__label">Signed in</p>
+            <div className="brand-ds-row__items"><SignedInChip firstName="Linh" avatarSeed="3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e70" /></div>
+          </div>
         </Section>
 
         <Section tone="white" aria-labelledby="ds-dodont">

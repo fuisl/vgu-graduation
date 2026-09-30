@@ -35,6 +35,12 @@ describe("SiteHeader", () => {
     expect(out).toContain("Your invitation");
   });
 
+  it("server-renders the guest chip signed out until /api/me answers", () => {
+    const out = html(<SiteHeader />);
+    expect(out).not.toContain("brand-guest-chip");
+    expect(out.match(/Your invitation/g)).toHaveLength(2);
+  });
+
   it("renders a custom action instead of the default", () => {
     const out = html(<SiteHeader action={<span>Linh</span>} />);
     expect(out).toContain("<span>Linh</span>");

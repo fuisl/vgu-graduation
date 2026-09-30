@@ -29,6 +29,7 @@ export const navGroups: readonly NavGroup[] = [
       {
         title: "Foundations",
         items: [
+          ["design/redesign-2026-10", "Redesign brief (Oct 2026)"],
           ["design/philosophy", "Visual philosophy"],
           ["design/moodboard", "Moodboard"],
           ["design/tokens", "Tokens"],

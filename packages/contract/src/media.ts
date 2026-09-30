@@ -8,7 +8,11 @@ import { moderationStatusSchema, pageSchema, timestampSchema } from "./common.js
 export const mediaVariantSchema = z.enum(["thumb", "display"]);
 export type MediaVariant = z.infer<typeof mediaVariantSchema>;
 
-/** Path params of GET /media/{id}/{variant}. Only visible, processed photos are served. */
+/**
+ * Path params of GET /media/{id}/{variant}; `id` is the `publicId`. No credential.
+ * Only visible, processed photos are served, as `image/jpeg` with an immutable
+ * one-year Cache-Control; anything else is 404. Originals are never served.
+ */
 export const mediaVariantParamsSchema = z.object({
   id: z.string().min(1),
   variant: mediaVariantSchema,
@@ -51,7 +55,11 @@ export const galleryItemSchema = z.object({
 });
 export type GalleryItem = z.infer<typeof galleryItemSchema>;
 
-/** GET /gallery: visible, ready photos, newest first. Query is `pageQuerySchema`. */
+/**
+ * GET /gallery: visible, ready photos, newest first, for invited guests only
+ * (invitation credential; 401/404/410 like GET /invitations/me). Query is
+ * `pageQuerySchema`; `nextCursor` is opaque.
+ */
 export const galleryResponseSchema = pageSchema(galleryItemSchema);
 export type GalleryResponse = z.infer<typeof galleryResponseSchema>;
 

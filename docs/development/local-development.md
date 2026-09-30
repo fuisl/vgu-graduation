@@ -73,6 +73,13 @@ Request and response bodies are validated with the `@grad/contract` Zod schemas,
 
 **Derivatives** (`apps/api/src/modules/media/derivatives.ts`, run by the worker): the `media.derive` job reads the original, applies its EXIF orientation, and writes two sRGB JPEGs to `grad-derivatives` as `{publicId}-{variant}.jpg`: `thumb` (fits 640 px) and `display` (fits 2048 px), never upscaled, transparency flattened onto white. All metadata (EXIF including GPS, XMP, IPTC, ICC) is dropped. The photo then becomes `ready` and stays `visible` (no pre-review). If every attempt fails (a corrupt file that only looked like an image), the photo is marked `failed` and never listed; the original is kept. Locally, run `pnpm --filter @grad/api worker` next to the API to process uploads.
 
+**Gallery, serving and moderation** (#60):
+
+- `GET /gallery` needs a guest credential (401/404/410 like `/invitations/me`) and lists only `visible` + `ready` photos, newest first, cursor-paginated (`nextCursor` is the last item's `publicId`). `Cache-Control: private, max-age=60`, matching the Vercel layer's one-minute window.
+- `GET /media/{publicId}/{thumb|display}` needs no credential (the random id is the capability, so the display and printer can load it too) and streams the derivative from Garage with `Cache-Control: public, max-age=31536000, immutable`. Anything not `visible` + `ready`, an unknown variant, or a row id instead of a public id is `404` with `no-store`; there is no route to an original. Garage down is `503` with `Retry-After`.
+- `POST /admin/media/{publicId}/moderate` (`requireAdmin`, body `{ status: "visible" | "hidden" | "removed" }`) changes what is listed and served on the next request and writes a `photo.moderate` audit row (`{ from, to }`). It does not delete objects: takedown deletion of the original and derivatives stays a manual admin action (principles §8).
+- A browser that already loaded a derivative keeps it in its own cache after the photo is hidden; the immutable header can't recall it. Hiding stops every new load.
+
 Images are processed with [sharp](https://sharp.pixelplumbing.com) (libvips). It ships prebuilt binaries for macOS and for Linux musl (`node:24-alpine`, x64 and arm64) as optional dependencies, so it needs no build step: `pnpm` reporting "Ignored build scripts: sharp" is expected, and the Dockerfile's `--ignore-scripts` install works unchanged.
 
 ## API configuration
@@ -85,7 +92,7 @@ CORS allows `PUBLIC_ORIGIN` and nothing else, so a web app on any other origin (
 
 [Bruno](https://www.usebruno.com) is a git-native API client — requests are plain-text `.bru` files, no cloud account. The collection lives in `dev/bruno/` (never runs in production, same spirit as `dev/Caddyfile`): open that folder in the Bruno app and select the "Local" environment.
 
-It currently covers the three implemented invitations endpoints plus creating and listing wishes, and the photo upload. Set the `invitationToken` variable (a Bruno *secret* var, never committed) after running "Create Invitation" — never paste a real token into a request body or a non-secret var, since invitation tokens are bearer credentials (AGENTS.md). As more `apps/api` modules land, extend this collection to match; once routes are wired through `@grad/contract` with OpenAPI generation, prefer importing that spec over hand-writing requests, so the collection can't drift from the contract.
+It currently covers the three implemented invitations endpoints plus creating and listing wishes, the photo upload and the gallery listing. Set the `invitationToken` variable (a Bruno *secret* var, never committed) after running "Create Invitation" — never paste a real token into a request body or a non-secret var, since invitation tokens are bearer credentials (AGENTS.md). As more `apps/api` modules land, extend this collection to match; once routes are wired through `@grad/contract` with OpenAPI generation, prefer importing that spec over hand-writing requests, so the collection can't drift from the contract.
 
 ## Testing cookie scoping locally (optional)
 

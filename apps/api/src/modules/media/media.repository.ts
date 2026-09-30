@@ -1,4 +1,6 @@
-import { count, eq } from "drizzle-orm";
+import type { ModerationStatus } from "@grad/contract";
+import { and, count, desc, eq, sql } from "drizzle-orm";
+import { recordAudit } from "../../audit/audit.js";
 import { db } from "../../db/index.js";
 import { invitations, jobs, photos } from "../../db/schema.js";
 
@@ -20,6 +22,13 @@ export interface PhotoForDerivation {
   originalKey: string;
   processingStatus: "pending" | "ready" | "failed";
   moderationStatus: "visible" | "hidden" | "removed";
+}
+
+export interface StoredGalleryItem {
+  publicId: string;
+  width: number | null;
+  height: number | null;
+  createdAt: Date;
 }
 
 export type CreatePhotoResult =
@@ -89,5 +98,67 @@ export class MediaRepository {
       .update(photos)
       .set({ processingStatus: "failed", updatedAt: new Date() })
       .where(eq(photos.id, photoId));
+  }
+
+  /**
+   * Visible, ready photos, newest first. Keyset pagination after the photo
+   * whose publicId is `cursor` (compared in SQL, so no timestamp precision is
+   * lost in the cursor). Reads one extra row to know whether there is a next page.
+   */
+  async listGallery(limit: number, cursor?: string): Promise<StoredGalleryItem[]> {
+    const listable = and(eq(photos.moderationStatus, "visible"), eq(photos.processingStatus, "ready"));
+    const after = cursor
+      ? sql`(${photos.createdAt}, ${photos.publicId}) < (SELECT p.created_at, p.public_id FROM photos p WHERE p.public_id = ${cursor})`
+      : undefined;
+    return db
+      .select({
+        publicId: photos.publicId,
+        width: photos.width,
+        height: photos.height,
+        createdAt: photos.createdAt,
+      })
+      .from(photos)
+      .where(after ? and(listable, after) : listable)
+      .orderBy(desc(photos.createdAt), desc(photos.publicId))
+      .limit(limit + 1);
+  }
+
+  /** Whether the derivatives of `publicId` may be served: visible and ready, nothing else. */
+  async isServable(publicId: string): Promise<boolean> {
+    const [row] = await db
+      .select({ id: photos.id })
+      .from(photos)
+      .where(
+        and(
+          eq(photos.publicId, publicId),
+          eq(photos.moderationStatus, "visible"),
+          eq(photos.processingStatus, "ready"),
+        ),
+      );
+    return Boolean(row);
+  }
+
+  /** Sets the moderation state and audits it in the same transaction; null when the photo is unknown. */
+  async moderate(publicId: string, status: ModerationStatus, actor: string): Promise<ModerationStatus | null> {
+    return db.transaction(async (tx) => {
+      const [before] = await tx
+        .select({ id: photos.id, status: photos.moderationStatus })
+        .from(photos)
+        .where(eq(photos.publicId, publicId))
+        .for("update");
+      if (!before) return null;
+      await tx
+        .update(photos)
+        .set({ moderationStatus: status, updatedAt: new Date() })
+        .where(eq(photos.id, before.id));
+      await recordAudit(tx, {
+        actor,
+        action: "photo.moderate",
+        targetType: "photo",
+        targetId: before.id,
+        metadata: { from: before.status, to: status },
+      });
+      return status;
+    });
   }
 }

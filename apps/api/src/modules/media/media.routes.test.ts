@@ -64,6 +64,9 @@ function setup({
         jobs.push(photo.id);
         return { status: "ok", publicId: photo.publicId, shotsUsed: used };
       },
+      listGallery: async () => [],
+      isServable: async () => false,
+      moderate: async () => null,
     },
     storage.store,
     config,

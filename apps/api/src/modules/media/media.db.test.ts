@@ -64,7 +64,7 @@ afterAll(async () => {
 
 beforeEach(async (ctx) => {
   if (!admin) return ctx.skip();
-  await pool!.query("TRUNCATE photos, jobs, invitations, guests CASCADE");
+  await pool!.query("TRUNCATE photos, jobs, audit, invitations, guests CASCADE");
   const { rows: [guest] } = await pool!.query("INSERT INTO guests (name) VALUES ('Test Guest') RETURNING id");
   const { rows: [inv] } = await pool!.query(
     "INSERT INTO invitations (guest_id, token_hash) VALUES ($1, $2) RETURNING id",
@@ -144,5 +144,56 @@ describe("MediaRepository (real Postgres)", () => {
     await repo.markFailed(photo.id);
     expect(await repo.findForDerivation(photo.id)).toMatchObject({ processingStatus: "failed", moderationStatus: "visible" });
     expect(await repo.findForDerivation(crypto.randomUUID())).toBeNull();
+  });
+
+  it("pages the gallery by keyset without losing or repeating rows, even with equal timestamps", async () => {
+    const created: string[] = [];
+    for (let i = 0; i < 7; i++) {
+      const photo = newPhoto();
+      await repo.createWithJob(photo, 36);
+      created.push(photo.publicId);
+    }
+    await pool!.query("UPDATE photos SET processing_status = 'ready'");
+    // Three rows share one microsecond-precision timestamp; JS Dates would round it.
+    await pool!.query(
+      "UPDATE photos SET created_at = '2026-11-15 10:00:00.123456+07' WHERE public_id = ANY($1)",
+      [created.slice(0, 3)],
+    );
+    // Not listable: hidden, removed, still pending.
+    await pool!.query("UPDATE photos SET moderation_status = 'hidden' WHERE public_id = $1", [created[3]]);
+    await pool!.query("UPDATE photos SET moderation_status = 'removed' WHERE public_id = $1", [created[4]]);
+    await pool!.query("UPDATE photos SET processing_status = 'pending' WHERE public_id = $1", [created[5]]);
+
+    const seen: string[] = [];
+    let cursor: string | undefined;
+    for (let page = 0; page < 10; page++) {
+      const rows = await repo.listGallery(2, cursor);
+      seen.push(...rows.slice(0, 2).map((r) => r.publicId));
+      if (rows.length <= 2) break;
+      cursor = rows[1]!.publicId;
+    }
+    expect(seen.sort()).toEqual([created[0], created[1], created[2], created[6]].sort());
+    expect(new Set(seen).size).toBe(seen.length);
+    expect(await repo.isServable(created[6]!)).toBe(true);
+    expect(await repo.isServable(created[3]!)).toBe(false);
+    expect(await repo.isServable(created[5]!)).toBe(false);
+  });
+
+  it("moderates and audits in one step, without PII", async () => {
+    const photo = newPhoto();
+    await repo.createWithJob(photo, 36);
+    expect(await repo.moderate(photo.publicId, "hidden", "tester")).toBe("hidden");
+    expect(await repo.moderate("missing", "hidden", "tester")).toBeNull();
+    const { rows } = await pool!.query("SELECT actor, action, target_type, target_id, metadata FROM audit");
+    expect(rows).toEqual([
+      {
+        actor: "tester",
+        action: "photo.moderate",
+        target_type: "photo",
+        target_id: photo.id,
+        metadata: { from: "visible", to: "hidden" },
+      },
+    ]);
+    expect(await repo.findForDerivation(photo.id)).toMatchObject({ moderationStatus: "hidden" });
   });
 });

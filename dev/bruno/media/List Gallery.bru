@@ -1,0 +1,23 @@
+meta {
+  name: List Gallery
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{apiOrigin}}/gallery?limit=20
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{invitationToken}}
+}
+
+docs {
+  Visible, processed photos, newest first, for invited guests only. Pass
+  `nextCursor` from the response as `cursor` for the next page. Images are at
+  `{{apiOrigin}}/media/{publicId}/thumb` and `/display` (no credential needed).
+  Photos appear once the worker (`pnpm --filter @grad/api worker`) has made
+  their derivatives.
+}

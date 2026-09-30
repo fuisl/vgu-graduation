@@ -1,14 +1,26 @@
 import {
+  type GalleryResponse,
   MEDIA_MAX_UPLOAD_BYTES,
   MEDIA_SHOTS_PER_INVITATION,
+  type MediaVariant,
+  type ModerateMediaResponse,
+  type ModerationStatus,
+  type PageQuery,
   type UploadMediaResponse,
 } from "@grad/contract";
 import crypto from "node:crypto";
 import type { Readable } from "node:stream";
 import { type Config, config as defaultConfig } from "../../config.js";
-import { buckets, type ObjectStore, S3ObjectStore } from "../../storage/object-store.js";
+import {
+  buckets,
+  ObjectNotFoundError,
+  type ObjectStore,
+  S3ObjectStore,
+  type StoredObject,
+} from "../../storage/object-store.js";
 import { InvitationsService } from "../invitations/invitations.service.js";
 import { MediaRepository } from "./media.repository.js";
+import { derivativeKey } from "./media.variants.js";
 import {
   ByteLimit,
   EmptyUploadError,
@@ -39,10 +51,18 @@ export type UploadResult =
   | { status: "unsupported" }
   | { status: "empty" };
 
+export type GalleryResult =
+  | { status: "ok"; page: GalleryResponse }
+  | { status: "invalid" }
+  | { status: "expired" };
+
 export class MediaService {
   constructor(
     private readonly invitations: Pick<InvitationsService, "resolveByToken"> = new InvitationsService(),
-    private readonly repository: Pick<MediaRepository, "countShots" | "createWithJob"> = new MediaRepository(),
+    private readonly repository: Pick<
+      MediaRepository,
+      "countShots" | "createWithJob" | "listGallery" | "isServable" | "moderate"
+    > = new MediaRepository(),
     private readonly store: ObjectStore = new S3ObjectStore(defaultConfig),
     private readonly config: Config = defaultConfig,
   ) {}
@@ -121,5 +141,42 @@ export class MediaService {
         shotsRemaining: MEDIA_SHOTS_PER_INVITATION - created.shotsUsed,
       },
     };
+  }
+
+  /** GET /gallery for an invited guest: visible, processed photos only, newest first. */
+  async listGallery(token: string, query: PageQuery): Promise<GalleryResult> {
+    const resolved = await this.invitations.resolveByToken(token);
+    if (resolved.status !== "ok") return { status: resolved.status };
+
+    const rows = await this.repository.listGallery(query.limit, query.cursor);
+    const items = rows.slice(0, query.limit).map((r) => ({
+      publicId: r.publicId,
+      width: r.width,
+      height: r.height,
+      createdAt: r.createdAt.toISOString(),
+    }));
+    const nextCursor = rows.length > query.limit ? items[items.length - 1]!.publicId : null;
+    return { status: "ok", page: { items, nextCursor } };
+  }
+
+  /**
+   * Opens one derivative for streaming, or null when the photo is unknown, not
+   * yet processed, hidden or removed. Originals are never reachable from here.
+   * Throws StorageUnavailableError when Garage is down.
+   */
+  async openDerivative(publicId: string, variant: MediaVariant): Promise<StoredObject | null> {
+    if (!(await this.repository.isServable(publicId))) return null;
+    try {
+      return await this.store.get(buckets(this.config).derivatives, derivativeKey(publicId, variant));
+    } catch (err) {
+      if (err instanceof ObjectNotFoundError) return null;
+      throw err;
+    }
+  }
+
+  /** POST /admin/media/{id}/moderate; null when no photo has that publicId. */
+  async moderate(publicId: string, status: ModerationStatus, actor: string): Promise<ModerateMediaResponse | null> {
+    const updated = await this.repository.moderate(publicId, status, actor);
+    return updated ? { publicId, status: updated } : null;
   }
 }

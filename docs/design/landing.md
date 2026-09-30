@@ -79,6 +79,8 @@ The scene renders normally, then passes through a two-stage GPU character render
 
 `/ascii-live` uses the pinned private `asciify` dependency rather than a copied renderer. Camera access is explicit and user-initiated; frames remain in the browser and are passed directly from a hidden video element to ASCIIGen's two-pass WebGL2 renderer. Leaving the route or pressing Stop releases every media track. Users can change the character matcher, cell-grid density, dark-background cutoff, mirror state, and source-color mode without restarting capture. The route reports permission, device, playback, and WebGL failures in place and does not depend on the event backend.
 
+The route sits on the blue-and-white brand theme (`BrandTheme`, `SiteHeader`, `SiteFooter`, redesign #142): a blue title band, then a white section holding a deep-blue stage and a white controls panel. Its rules live in `apps/web/app/ascii-live/ascii-live.css`, brand tokens only. Choices use the on-white pill look, Start and Stop use `Cta`, and the renderer's `ink` is white (read from `--brand-white`) so the output is white on blue; source-color mode still shows the camera's own colours.
+
 ## Reference captures
 
 `docs/design/reference/landing-desktop.png` and `landing-mobile.png` exist but predate this pass — the sculpture set, wordmark, and background layers have all changed since they were captured. Recapture both from a local production build before treating them as current.

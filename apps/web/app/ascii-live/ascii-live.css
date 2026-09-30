@@ -1,0 +1,48 @@
+/* /ascii-live on the brand theme (#151). Brand tokens only. */
+[data-theme="brand"] .ascii-live-header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: var(--space-4) var(--space-6); }
+[data-theme="brand"] .ascii-live-header h1 { margin: var(--space-3) 0 0; font-size: var(--brand-text-h1); line-height: 1.05; letter-spacing: var(--brand-tracking-display); font-weight: 500; }
+[data-theme="brand"] .ascii-live-privacy { max-width: 24rem; margin: 0; color: var(--brand-muted); font-size: var(--text-sm); }
+
+[data-theme="brand"] .ascii-live-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 340px); gap: var(--space-5); align-items: start; }
+[data-theme="brand"] .ascii-live-workspace--single { grid-template-columns: 1fr; }
+
+[data-theme="brand"] .ascii-live-stage { position: relative; display: grid; place-items: center; min-height: 34rem; overflow: hidden; border-radius: var(--brand-radius); background: var(--brand-blue-deep); color: var(--brand-white); }
+[data-theme="brand"] .ascii-live-stage video { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+[data-theme="brand"] .ascii-live-stage canvas { position: absolute; inset: 3%; display: block; width: 94%; height: 94%; object-fit: contain; }
+[data-theme="brand"] .ascii-live-empty { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; padding: var(--space-5); text-align: center; }
+[data-theme="brand"] .ascii-live-empty > span { font: clamp(2.5rem, 7vw, 6rem) / 1 var(--font-mono); letter-spacing: 0.08em; color: var(--brand-muted-on-blue); }
+[data-theme="brand"] .ascii-live-empty h2 { margin: var(--space-5) 0 var(--space-2); font-size: var(--brand-text-h3); font-weight: 500; }
+[data-theme="brand"] .ascii-live-empty p { margin: 0 0 var(--space-5); max-width: 40ch; color: var(--brand-muted-on-blue); font-size: var(--text-sm); }
+[data-theme="brand"] .ascii-live-readout { position: absolute; right: var(--space-3); bottom: var(--space-3); padding: var(--space-2) var(--space-3); border: 1px solid var(--brand-line-on-blue); border-radius: var(--brand-radius-sm); background: var(--brand-blue); font: var(--text-xs) / 1 var(--font-mono); color: var(--brand-white); }
+
+[data-theme="brand"] .ascii-live-controls { padding: var(--space-5); border: 1px solid var(--brand-line-on-white); border-radius: var(--brand-radius); background: var(--brand-white); color: var(--brand-ink); }
+[data-theme="brand"] .ascii-live-control-heading { display: flex; align-items: center; gap: var(--space-3); margin: var(--space-5) 0 var(--space-3); padding-top: var(--space-4); border-top: 1px solid var(--brand-line-on-white); }
+[data-theme="brand"] .ascii-live-control-heading:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+[data-theme="brand"] .ascii-live-control-heading span { font: var(--text-xs) / 1 var(--font-mono); color: var(--brand-muted-on-white); }
+[data-theme="brand"] .ascii-live-control-heading h2 { margin: 0; font: 500 var(--text-xs) / 1 var(--font-mono); letter-spacing: var(--brand-tracking-label); text-transform: uppercase; color: var(--brand-muted-on-white); }
+[data-theme="brand"] .ascii-live-controls label { display: grid; gap: var(--space-2); margin: var(--space-3) 0; font-size: var(--text-sm); }
+[data-theme="brand"] .ascii-live-controls label > span { display: flex; justify-content: space-between; }
+[data-theme="brand"] .ascii-live-controls output { font-family: var(--font-mono); color: var(--brand-blue); }
+[data-theme="brand"] .ascii-live-controls select { width: 100%; min-height: var(--brand-tap); padding: 0 var(--space-3); border: 1px solid var(--brand-line-on-white); border-radius: var(--brand-radius); background: var(--brand-white); color: var(--brand-ink); font: inherit; }
+[data-theme="brand"] .ascii-live-controls input[type="range"] { width: 100%; min-height: var(--brand-tap); accent-color: var(--brand-blue); }
+[data-theme="brand"] .ascii-live-controls .ascii-live-check { display: flex; align-items: center; gap: var(--space-3); min-height: var(--brand-tap); margin: 0; cursor: pointer; }
+[data-theme="brand"] .ascii-live-check input { width: 1.25rem; height: 1.25rem; accent-color: var(--brand-blue); }
+
+/* Choice pills: the on-white pill look (soft container, active solid blue). */
+[data-theme="brand"] .ascii-live-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-1); padding: var(--space-1); border-radius: var(--brand-radius); background: var(--brand-blue-soft); }
+[data-theme="brand"] .ascii-live-options button { min-height: var(--brand-tap); padding: 0 var(--space-3); border: 0; border-radius: var(--brand-radius-sm); background: transparent; color: var(--brand-blue); font: inherit; font-weight: 500; cursor: pointer; transition: background-color var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease); }
+[data-theme="brand"] .ascii-live-options button:hover { background: var(--brand-line-on-white); }
+[data-theme="brand"] .ascii-live-options button[aria-pressed="true"] { background: var(--brand-blue); color: var(--brand-white); }
+[data-theme="brand"] .ascii-live-options button:last-child:nth-child(odd) { grid-column: 1 / -1; }
+
+[data-theme="brand"] .ascii-live-controls select:focus-visible,
+[data-theme="brand"] .ascii-live-controls input:focus-visible,
+[data-theme="brand"] .ascii-live-options button:focus-visible { outline: 2px solid var(--brand-blue); outline-offset: 2px; }
+[data-theme="brand"] .ascii-live-actions { margin-top: var(--space-5); }
+[data-theme="brand"] .ascii-live-error { margin: 0 0 var(--space-4); padding: var(--space-3) var(--space-4); border: 1px solid var(--brand-danger-on-white); border-radius: var(--brand-radius); color: var(--brand-danger-on-white); font-size: var(--text-sm); }
+[data-theme="brand"] .ascii-live-engine { margin: var(--space-4) 0 0; font: var(--text-xs) / 1.5 var(--font-mono); color: var(--brand-muted-on-white); }
+
+@media (max-width: 800px) {
+  [data-theme="brand"] .ascii-live-workspace { grid-template-columns: 1fr; }
+  [data-theme="brand"] .ascii-live-stage { min-height: min(72svh, 34rem); }
+}

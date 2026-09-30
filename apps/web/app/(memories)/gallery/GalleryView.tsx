@@ -4,6 +4,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useRef, useState } from "react";
+import { Cta, PillGroup, PillToggle } from "@grad/ui";
 import type { GalleryItem } from "../../../data/gallery";
 import "./gallery.css";
 
@@ -46,7 +47,7 @@ export function GalleryView() {
 
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const closeBarRef = useRef<HTMLDivElement>(null);
   const lastFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -110,7 +111,7 @@ export function GalleryView() {
   // Dialog: focus the close button on open, close on Escape, return focus on close.
   useEffect(() => {
     if (!selectedItem) return;
-    closeButtonRef.current?.focus();
+    closeBarRef.current?.querySelector("button")?.focus();
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setSelectedItem(null);
     };
@@ -206,50 +207,38 @@ export function GalleryView() {
   return (
     <>
       <div className="gal-controls">
-        <div className="mem-pills" role="group" aria-label="Show">
+        <PillGroup as="toggle" label="Show" tone="on-white">
           {FILTERS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => setFilter(option.value)}
-              className="mem-pill"
-              aria-pressed={filter === option.value}
-            >
+            <PillToggle key={option.value} pressed={filter === option.value} onClick={() => setFilter(option.value)}>
               {option.label}
-            </button>
+            </PillToggle>
           ))}
-        </div>
+        </PillGroup>
 
         <div className="gal-control-group">
           {viewMode === "GRID" && (
-            <div className="gal-control-group" role="group" aria-label="Card size">
+            <div className="gal-control-group">
               <span className="mem-label mem-group-label" aria-hidden="true">Size</span>
-              <div className="mem-pills">
+              <PillGroup as="toggle" label="Card size" tone="on-white">
                 {GRID_SIZES.map((option) => (
-                  <button
+                  <PillToggle
                     key={option.value}
-                    type="button"
+                    pressed={gridSize === option.value}
                     onClick={() => setGridSize(option.value)}
-                    className="mem-pill"
-                    aria-pressed={gridSize === option.value}
                     aria-label={option.label}
                     title={option.label}
                   >
                     {option.value}
-                  </button>
+                  </PillToggle>
                 ))}
-              </div>
+              </PillGroup>
             </div>
           )}
 
-          <div className="mem-pills" role="group" aria-label="Layout">
-            <button type="button" onClick={() => setViewMode("GRID")} className="mem-pill" aria-pressed={viewMode === "GRID"}>
-              Grid
-            </button>
-            <button type="button" onClick={() => setViewMode("CAROUSEL")} className="mem-pill" aria-pressed={viewMode === "CAROUSEL"}>
-              Carousel
-            </button>
-          </div>
+          <PillGroup as="toggle" label="Layout" tone="on-white">
+            <PillToggle pressed={viewMode === "GRID"} onClick={() => setViewMode("GRID")}>Grid</PillToggle>
+            <PillToggle pressed={viewMode === "CAROUSEL"} onClick={() => setViewMode("CAROUSEL")}>Carousel</PillToggle>
+          </PillGroup>
         </div>
       </div>
 
@@ -295,8 +284,8 @@ export function GalleryView() {
           onTouchEnd={handleTouchEnd}
         >
           <div className="gal-carousel-nav">
-            <button type="button" className="mem-button mem-button--square" onClick={handlePrev} aria-label="Previous memory">←</button>
-            <button type="button" className="mem-button mem-button--square" onClick={handleNext} aria-label="Next memory">→</button>
+            <Cta tone="on-white" variant="secondary" onClick={handlePrev} aria-label="Previous memory">←</Cta>
+            <Cta tone="on-white" variant="secondary" onClick={handleNext} aria-label="Next memory">→</Cta>
           </div>
 
           <div className="gal-carousel-track">
@@ -337,10 +326,8 @@ export function GalleryView() {
             aria-label={selectedItem.type === "WISH" ? `Wish from ${selectedItem.sender}` : `Photo from ${selectedItem.sender}`}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="gal-dialog-bar">
-              <button ref={closeButtonRef} type="button" className="mem-button" onClick={() => setSelectedItem(null)}>
-                Close
-              </button>
+            <div className="gal-dialog-bar" ref={closeBarRef}>
+              <Cta tone="on-white" variant="secondary" onClick={() => setSelectedItem(null)}>Close</Cta>
             </div>
 
             <CardMeta item={selectedItem} formatDate={formatDate} />
@@ -407,9 +394,7 @@ function GalleryCard({
       )}
 
       <div className="gal-card-footer">
-        <button type="button" className="mem-button" onClick={onView} tabIndex={tabIndex}>
-          View details
-        </button>
+        <Cta tone="on-white" variant="secondary" onClick={onView} tabIndex={tabIndex}>View details</Cta>
       </div>
     </article>
   );

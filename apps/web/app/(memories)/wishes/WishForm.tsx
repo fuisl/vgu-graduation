@@ -49,9 +49,7 @@ export function WishForm() {
       <div className="mem-panel mem-panel--center">
         <h2 className="mem-heading" role="status">Memory sealed.</h2>
         <p className="mem-help">Your wish is in the guestbook and the graduation archive.</p>
-        <button type="button" onClick={() => setSuccess(false)} className="mem-button">
-          Write another
-        </button>
+        <Cta tone="on-white" variant="secondary" onClick={() => setSuccess(false)}>Write another</Cta>
       </div>
     );
   }

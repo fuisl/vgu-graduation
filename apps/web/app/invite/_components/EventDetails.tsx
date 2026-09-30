@@ -1,3 +1,4 @@
+import { Cta } from "@grad/ui";
 import type { EventConfig } from "@grad/contract";
 import type { ApiResult } from "../../../lib/api/result";
 import { formatEventWhen } from "../../../lib/invite/format";
@@ -36,9 +37,9 @@ export function EventDetails({ event }: { event: ApiResult<EventConfig> }) {
             <br />
             {data.venue.address}
             <br />
-            <a href={data.venue.mapUrl} target="_blank" rel="noopener noreferrer">
-              Directions (opens map<span className="sr-only"> in a new tab</span>)
-            </a>
+            <span className="invite-facts__action">
+              <Cta tone="on-white" variant="secondary" href={data.venue.mapUrl} external>Directions</Cta>
+            </span>
           </dd>
         </div>
         {data.arrivalInfo ? (

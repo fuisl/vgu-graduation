@@ -1,6 +1,5 @@
 import type {Metadata} from "next";
-import Link from "next/link";
-import {BrandEyebrow, BrandTheme, Section} from "@grad/ui";
+import {BrandEyebrow, BrandTheme, Cta, Section} from "@grad/ui";
 import {SiteFooter} from "../../site/SiteFooter";
 import {SiteHeader} from "../../site/SiteHeader";
 import {GalleryView} from "./GalleryView";
@@ -16,7 +15,7 @@ export default function GalleryPage() {
           <div className="mem-hero">
             <BrandEyebrow ellipsis>Archive / All memories</BrandEyebrow>
             <h1 id="gallery-title" className="mem-title">Digital Locket.</h1>
-            <Link className="mem-link" href="/polaroid">Take a disposable photo</Link>
+            <Cta tone="on-blue" variant="secondary" href="/polaroid">Take a disposable photo</Cta>
           </div>
         </Section>
         <Section tone="white" density="compact">

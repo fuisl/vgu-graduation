@@ -28,16 +28,8 @@
 [data-theme="brand"] .ascii-live-controls .ascii-live-check { display: flex; align-items: center; gap: var(--space-3); min-height: var(--brand-tap); margin: 0; cursor: pointer; }
 [data-theme="brand"] .ascii-live-check input { width: 1.25rem; height: 1.25rem; accent-color: var(--brand-blue); }
 
-/* Choice pills: the on-white pill look (soft container, active solid blue). */
-[data-theme="brand"] .ascii-live-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-1); padding: var(--space-1); border-radius: var(--brand-radius); background: var(--brand-blue-soft); }
-[data-theme="brand"] .ascii-live-options button { min-height: var(--brand-tap); padding: 0 var(--space-3); border: 0; border-radius: var(--brand-radius-sm); background: transparent; color: var(--brand-blue); font: inherit; font-weight: 500; cursor: pointer; transition: background-color var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease); }
-[data-theme="brand"] .ascii-live-options button:hover { background: var(--brand-line-on-white); }
-[data-theme="brand"] .ascii-live-options button[aria-pressed="true"] { background: var(--brand-blue); color: var(--brand-white); }
-[data-theme="brand"] .ascii-live-options button:last-child:nth-child(odd) { grid-column: 1 / -1; }
-
 [data-theme="brand"] .ascii-live-controls select:focus-visible,
-[data-theme="brand"] .ascii-live-controls input:focus-visible,
-[data-theme="brand"] .ascii-live-options button:focus-visible { outline: 2px solid var(--brand-blue); outline-offset: 2px; }
+[data-theme="brand"] .ascii-live-controls input:focus-visible { outline: 2px solid var(--brand-blue); outline-offset: 2px; }
 [data-theme="brand"] .ascii-live-actions { margin-top: var(--space-5); }
 [data-theme="brand"] .ascii-live-error { margin: 0 0 var(--space-4); padding: var(--space-3) var(--space-4); border: 1px solid var(--brand-danger-on-white); border-radius: var(--brand-radius); color: var(--brand-danger-on-white); font-size: var(--text-sm); }
 [data-theme="brand"] .ascii-live-engine { margin: var(--space-4) 0 0; font: var(--text-xs) / 1.5 var(--font-mono); color: var(--brand-muted-on-white); }

@@ -76,11 +76,9 @@ export default async function VenuePage() {
                 <br />
                 {event.venue.address}
               </p>
-              <p className="venue-text">
-                <a className="venue-link" href={event.venue.mapUrl} target="_blank" rel="noopener noreferrer">
-                  Directions (opens map<span className="sr-only"> in a new tab</span>)
-                </a>
-              </p>
+              <div className="venue-hero__action">
+                <Cta tone="on-blue" variant="secondary" href={event.venue.mapUrl} external>Directions</Cta>
+              </div>
             </section>
           </div>
         </Section>
@@ -120,9 +118,9 @@ export default async function VenuePage() {
               <p>No email needed. Subscribing keeps your calendar up to date if the date or venue changes.</p>
               <div className="venue-actions">
                 <Cta tone="on-white" href={links.webcal}>Subscribe (Apple / Outlook)</Cta>
-                <a className="venue-secondary" href={links.google}>Add to Google Calendar</a>
-                <a className="venue-secondary" href={links.outlook}>Add to Outlook</a>
-                <a className="venue-secondary" href={links.ics}>Download .ics</a>
+                <Cta tone="on-white" variant="secondary" href={links.google}>Add to Google Calendar</Cta>
+                <Cta tone="on-white" variant="secondary" href={links.outlook}>Add to Outlook</Cta>
+                <Cta tone="on-white" variant="secondary" href={links.ics}>Download .ics</Cta>
               </div>
               <p className="venue-note">
                 Google Calendar refreshes subscribed calendars slowly (up to a day). The Google and Outlook buttons add a

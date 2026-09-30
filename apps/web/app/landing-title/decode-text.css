@@ -2,7 +2,8 @@
 [data-theme="brand"] .landing-decode,
 [data-theme="brand"] .landing-decode-visual{display:inline}
 [data-theme="brand"] .landing-decode-word{display:inline-block;white-space:pre}
-[data-theme="brand"] .landing-decode-char{position:relative;display:inline-block;vertical-align:baseline}
+/* contain:paint clips each glyph layer to its own box, so noise can never ink outside the letter it replaces. */
+[data-theme="brand"] .landing-decode-char{position:relative;display:inline-block;vertical-align:baseline;contain:paint}
 [data-theme="brand"] .landing-decode-char::before{content:attr(data-original);visibility:hidden}
 [data-theme="brand"] .landing-decode-char>span{position:absolute;inset:0;white-space:pre}
 [data-theme="brand"] .landing-decode-char>span.is-noise{width:100%;font-family:var(--font-mono);font-weight:560;text-align:center;color:var(--brand-muted-on-blue)}

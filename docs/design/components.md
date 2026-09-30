@@ -1,5 +1,7 @@
 # Component Foundations
 
+> **Being replaced (2026-10-01):** the blue-and-white redesign supersedes this for guest-facing pages. See [redesign-2026-10.md](redesign-2026-10.md) and epic #142. Admin and docs are unchanged.
+
 The shared UI package begins deliberately small. Components earn their place through reuse.
 
 ## Primitives

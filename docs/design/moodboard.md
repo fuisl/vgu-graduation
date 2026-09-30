@@ -1,4 +1,7 @@
 # Moodboard
+
+> **Being replaced (2026-10-01):** the blue-and-white redesign supersedes this for guest-facing pages. See [redesign-2026-10.md](redesign-2026-10.md) and epic #142. Admin and docs are unchanged.
+
 Store external references under `docs/design/references/` and approved screenshots under `docs/design/golden/`.
 For every reference record what we borrow, what we do not borrow, and which GRAD surface it informs.
 ## Vercel Ship

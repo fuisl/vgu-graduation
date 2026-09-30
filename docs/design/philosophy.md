@@ -1,4 +1,7 @@
 # Visual Philosophy
+
+> **Being replaced (2026-10-01):** the blue-and-white redesign supersedes this for guest-facing pages. See [redesign-2026-10.md](redesign-2026-10.md) and epic #142. Admin and docs are unchanged.
+
 GRAD '26 combines engineering precision with the emotional weight of graduation.
 ## Character
 Precise, quiet, technical, editorial, experimental, warm without becoming sentimental.

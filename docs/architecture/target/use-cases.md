@@ -63,7 +63,7 @@ sequenceDiagram
 
 Degradation: if Garage is down, uploads fail with a clear message (`503` with `Retry-After`) and the guest is asked to retry later; the invitation and everything else keep working. If the home connection is down and the venue LAN overlay exists, uploads succeed over the LAN; otherwise they wait.
 
-**Gallery.** Vercel renders the listing from a cached API call. Image URLs point at the API's derivative endpoint. Names still carry a random unguessable identifier so they're safe to share, but there is no edge cache in front of them (ADR-009): every view fetches the derivative from the home connection directly, which is slower for guests than the original Cloudflare-cache design and adds load there on the day. Only visible, processed photos get derivative URLs, and those URLs are shown only to invited guests until a photo is flagged public. A moderator hiding or removing a photo revalidates the listing tag.
+**Gallery.** Vercel renders the listing from a cached API call. Image URLs point at the API's derivative endpoint. Names still carry a random unguessable identifier so they're safe to share, but there is no edge cache in front of them (ADR-009): every view fetches the derivative from the home connection directly, which is slower for guests than the original Cloudflare-cache design and adds load there on the day. Only visible, processed photos get derivative URLs, and those URLs are shown only to invited guests (the listing needs the invitation credential) until a photo is flagged public. Derivative responses are `Cache-Control: public, max-age=31536000, immutable`, since a name never changes content, so a guest's browser fetches each image from the home connection once. A moderator hiding or removing a photo revalidates the listing tag, and the API stops serving its derivatives on the next request (browsers that already hold a copy keep it).
 
 **Wishes.** Small text writes follow the RSVP pattern. Wishes appear on the event display while they are visible; a moderator can hide one at any time.
 
@@ -97,7 +97,7 @@ Degradation: the translation pod is a Flux Kustomization that can be suspended. 
 
 ## 6.4 Cross-cutting
 
-**Anonymous visitors** see only Vercel-served pages and any explicitly public gallery items. No anonymous request ever reaches the API except cached derivative fetches.
+**Anonymous visitors** see Vercel-served pages, the photo gallery and the wishes. Decided 2026-09-30: invited guests are trusted, so photos and wishes appear without pre-review, and both are public so people who aren't guests can follow the graduation day. Anonymous requests reach the API only for these cached, read-only listings (`GET /gallery`, `GET /wishes`) and derivative fetches (`GET /media/{id}/{variant}`). Posting a photo or a wish still needs an invitation. Moderation is takedown only: an admin can hide or remove an item after the fact. There is no approval queue.
 
 **Admins** sign in on Vercel; the web app mints a short-lived session token that the API verifies with a shared secret. All admin actions are recorded in the `audit` table.
 

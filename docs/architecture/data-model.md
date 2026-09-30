@@ -19,4 +19,6 @@ Photo and wish lifecycle: content is shown without pre-review. `moderation_statu
 
 Wishes (#61): a guest posts one with their invitation credential (`POST /wishes`); `author_name` defaults to the guest's name and the body is 1 to 1000 characters after trimming (contract and CHECK). One invitation may post at most five wishes per ten minutes (`429` with `Retry-After`), on top of Traefik's per-IP limit. `GET /wishes` is public and lists `visible` wishes only, newest first; `GET /admin/wishes` lists every state so a hidden wish can be restored; `POST /admin/wishes/{id}/moderate` sets any of the three states and writes a `wish.moderate` audit row (`from`/`to` only) when the state actually changes. Every state change also sets `updated_at`.
 
+`updated_at` on `photos` and `wishes` is maintained by a database trigger (`set_updated_at`, migration `0003`) on every `UPDATE`, whatever the writer passes. The live display feed polls on it (`use-cases.md` §6.2), so a writer can't forget it.
+
 Never put sensitive data in public slugs, analytics, client logs or URLs beyond the necessary invitation credential.

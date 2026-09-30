@@ -1,6 +1,9 @@
 import type {Metadata} from "next";
 import type {ReactNode} from "react";
 import {ArrowUpRightPixel, BrandEyebrow, BrandTheme, Cta, PillGroup, PillItem, Section} from "@grad/ui";
+import {BrandLogo} from "../logo/BrandLogo";
+import {SiteFooter} from "../site/SiteFooter";
+import {SiteHeader} from "../site/SiteHeader";
 
 export const metadata: Metadata = {title: "Design system · GRAD '26"};
 
@@ -81,9 +84,9 @@ function Tone({label, children}: {label: string; children: ReactNode}) {
   );
 }
 
-function Pills({title}: {title: string}) {
+function Pills({title, tone = "on-blue"}: {title: string; tone?: "on-blue" | "on-white"}) {
   return (
-    <PillGroup label={title}>
+    <PillGroup label={title} tone={tone}>
       <PillItem href="#pills" current>Home</PillItem>
       <PillItem href="#pills">Venue</PillItem>
       <PillItem href="#pills">Gallery</PillItem>
@@ -154,8 +157,10 @@ export default function DesignSystem() {
           <h3 className="brand-ds-h3">Vietnamese</h3>
           <p className="brand-ds-lead" lang="vi">Chúc mừng tốt nghiệp, khóa 2026</p>
           <h3 className="brand-ds-h3">Labels</h3>
-          <BrandEyebrow>Software engineering</BrandEyebrow>
-          <BrandEyebrow ellipsis>Software engineering</BrandEyebrow>
+          <div className="brand-ds-stack">
+            <BrandEyebrow>Software engineering</BrandEyebrow>
+            <BrandEyebrow ellipsis>Software engineering</BrandEyebrow>
+          </div>
         </Section>
 
         <Section tone="white" aria-labelledby="ds-space">
@@ -181,8 +186,12 @@ export default function DesignSystem() {
           <h2 id="ds-on-blue" className="brand-ds-h2">On blue</h2>
           <Tone label="Cta as link"><Cta tone="on-blue" href="#ctas">Your invitation</Cta></Tone>
           <Tone label="Cta as button"><Cta tone="on-blue">Your invitation</Cta></Tone>
-          <Tone label="Cta disabled"><Cta tone="on-blue" disabled>Your invitation</Cta></Tone>
-          <Tone label="PillGroup"><Pills title="Pills on blue" /></Tone>
+          <Tone label="Cta disabled (outlined)">
+            <Cta tone="on-blue" disabled>Your invitation</Cta>
+            <Cta tone="on-blue" href="#ctas" disabled>As a link</Cta>
+          </Tone>
+          <Tone label="PillGroup tone on-blue (deep-blue container)"><Pills title="Pills on blue" /></Tone>
+          <Tone label="BrandLogo compact, on-blue (header mark)"><span className="brand-ds-logo brand-ds-logo--compact"><BrandLogo variant="compact" tone="on-blue" /></span></Tone>
           <Tone label="BrandEyebrow"><BrandEyebrow ellipsis>Venue and time</BrandEyebrow></Tone>
           <Tone label="ArrowUpRightPixel"><span className="brand-ds-arrow"><ArrowUpRightPixel /></span></Tone>
           <p className="brand-ds-note">This band is itself a <code>{'Section tone="blue"'}</code>: full bleed, content in Container.</p>
@@ -193,18 +202,57 @@ export default function DesignSystem() {
           <h2 id="ds-on-white" className="brand-ds-h2">On white</h2>
           <Tone label="Cta as link"><Cta tone="on-white" href="#ctas">Your invitation</Cta></Tone>
           <Tone label="Cta as button"><Cta tone="on-white">Your invitation</Cta></Tone>
-          <Tone label="Cta disabled"><Cta tone="on-white" disabled>Your invitation</Cta></Tone>
-          <Tone label="PillGroup (container is blue-deep on any surface)"><Pills title="Pills on white" /></Tone>
+          <Tone label="Cta disabled (outlined)">
+            <Cta tone="on-white" disabled>Your invitation</Cta>
+            <Cta tone="on-white" href="#ctas" disabled>As a link</Cta>
+          </Tone>
+          <Tone label="PillGroup tone on-white (blue-soft container, blue active pill)"><Pills title="Pills on white" tone="on-white" /></Tone>
+          <Tone label="BrandLogo compact and full, on-white">
+            <span className="brand-ds-logo brand-ds-logo--compact"><BrandLogo variant="compact" tone="on-white" /></span>
+            <span className="brand-ds-logo brand-ds-logo--full"><BrandLogo variant="full" tone="on-white" /></span>
+          </Tone>
           <Tone label="BrandEyebrow"><BrandEyebrow ellipsis>Venue and time</BrandEyebrow></Tone>
           <Tone label="ArrowUpRightPixel"><span className="brand-ds-arrow"><ArrowUpRightPixel /></span></Tone>
           <p className="brand-ds-note">This band is a <code>{'Section tone="white"'}</code>.</p>
         </Section>
 
+        <Section tone="white" aria-labelledby="ds-density">
+          <BrandEyebrow ellipsis>Density</BrandEyebrow>
+          <h2 id="ds-density" className="brand-ds-h2">Airy and compact</h2>
+          <p className="brand-ds-note">
+            <code>{'Section density="airy"'}</code> (default) pads about 6rem on desktop and 4rem on mobile.{" "}
+            <code>{'density="compact"'}</code> pads about 3rem and 2rem, for forms, the invitation, RSVP and the gallery.
+            Content is capped at <code>--brand-content</code> (1200px); reading text at <code>--brand-measure</code> (70ch).
+          </p>
+        </Section>
+        <Section tone="blue" density="compact" aria-labelledby="ds-compact">
+          <BrandEyebrow>Compact</BrandEyebrow>
+          <h3 id="ds-compact" className="brand-ds-h3">Blue band, compact density</h3>
+        </Section>
+        <Section tone="white" density="airy" aria-labelledby="ds-airy">
+          <BrandEyebrow>Airy</BrandEyebrow>
+          <h3 id="ds-airy" className="brand-ds-h3">White band, airy density</h3>
+        </Section>
+        <Section tone="blue-deep" density="compact" aria-labelledby="ds-deep">
+          <BrandEyebrow>Blue-deep</BrandEyebrow>
+          <h3 id="ds-deep" className="brand-ds-h3">Blue-deep tone, compact density</h3>
+        </Section>
+
+        <Section tone="blue" aria-labelledby="ds-shell">
+          <BrandEyebrow ellipsis>Site shell</BrandEyebrow>
+          <h2 id="ds-shell" className="brand-ds-h2">Header and footer</h2>
+          <p className="brand-ds-note">The real <code>SiteHeader</code> (compact mark only, Menu pill on mobile) and <code>SiteFooter</code> (deep-blue band, the only full wordmark), shown below.</p>
+        </Section>
+        <SiteHeader current="home" />
+        <Section tone="white" density="compact" aria-labelledby="ds-shell-gap">
+          <h3 id="ds-shell-gap" className="brand-ds-h3">Page content sits here</h3>
+        </Section>
+        <SiteFooter />
+
         <Section tone="blue" aria-labelledby="ds-placeholders">
           <BrandEyebrow ellipsis>Placeholders</BrandEyebrow>
           <h2 id="ds-placeholders" className="brand-ds-h2">Coming soon</h2>
           <ul className="brand-ds-placeholders">
-            <li className="brand-ds-placeholder">Site header, desktop and mobile menu sheet: coming in #145.</li>
             <li className="brand-ds-placeholder">Guest chip, signed out (Your invitation): coming in #146.</li>
             <li className="brand-ds-placeholder">Guest chip, signed in (blobatar and first name): coming in #146.</li>
           </ul>

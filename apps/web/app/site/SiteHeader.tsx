@@ -14,7 +14,7 @@ type Props = {
 };
 
 /**
- * Shared brand header (#145). Server component; only the mobile sheet is client code.
+ * Shared brand header (#145). Shows only the compact "F" mark; the full wordmark lives in the footer. Server component; only the mobile sheet is client code.
  * Render inside <BrandTheme>. Desktop and mobile variants are both in the DOM and
  * CSS hides the one that does not apply (display:none, so it leaves the a11y tree).
  */
@@ -23,7 +23,7 @@ export function SiteHeader({current, action}: Props) {
   return (
     <header className="brand-header">
       <div className="brand-header__inner">
-        <Link className="brand-wordmark" href="/"><BrandLogo variant="full" tone="on-blue" /></Link>
+        <Link className="brand-wordmark" href="/"><BrandLogo variant="compact" tone="on-blue" /></Link>
         <div className="brand-header__nav">
           <PillGroup label="Main">
             {SITE_NAV.map((item) => (

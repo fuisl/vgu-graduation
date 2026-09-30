@@ -9,6 +9,7 @@ type Props = {
   href?: string;
   onClick?: () => void;
   type?: "button" | "submit";
+  /** Outlined, muted and inert. A disabled link renders without href and with aria-disabled. */
   disabled?: boolean;
 };
 
@@ -20,6 +21,10 @@ export function Cta({tone, children, href, onClick, type = "button", disabled}: 
       <span className="brand-cta__tile"><ArrowUpRightPixel /></span>
     </>
   );
+  if (href && disabled) {
+    // No href: a disabled link must not navigate or take focus.
+    return <a className={className} role="link" aria-disabled="true">{inner}</a>;
+  }
   return href ? (
     <a className={className} href={href} onClick={onClick}>{inner}</a>
   ) : (

@@ -23,6 +23,16 @@ The schema is defined in `apps/api/src/db/schema.ts` with Drizzle (ADR-002); ver
 - `pnpm db:reset` wipes the local database volume and starts a fresh Postgres; run `pnpm db:migrate` afterwards. Use it once if your volume predates the migrations (it was previously seeded by an init script that no longer exists).
 - Migration tests need Postgres: `pnpm db:up` first. They create and drop their own scratch databases, never touching `grad26`.
 
+## Background jobs: the worker
+
+The worker is the API image started as `node dist/worker.js` (§4.3); locally, `pnpm --filter @grad/api worker`. It polls the `jobs` table, one job at a time per process, so scale it with replicas. Code lives in `apps/api/src/worker/`.
+
+- **Enqueue** with `JobQueue.enqueue(type, payload)`. Payloads carry ids only, never tokens or guest PII.
+- **Handlers** are registered by job type in `apps/api/src/worker.ts`. They must be idempotent: a job whose worker dies mid-run is re-claimed once its 10-minute lease expires.
+- **Claims** use `FOR UPDATE SKIP LOCKED`, so concurrent workers never take the same job.
+- **Failures** retry with exponential backoff (10s, doubling, capped at 10 minutes) until `max_attempts` (default 5), then stay `failed` with `last_error` set. An unregistered type fails like any other error. To see what's stuck: `SELECT id, type, attempts, last_error FROM jobs WHERE status = 'failed'`; to retry one, set it back to `status = 'queued', attempts = 0, run_at = now()`.
+- On SIGTERM the worker stops claiming, finishes the job in progress and exits.
+
 ## Object storage: Garage
 
 `pnpm services:up` runs Garage v2.4.1, the same object store as the homelab (ADR-005), as a single node from `docker-compose.yml` and `docker/garage/garage.toml`. `scripts/dev-garage-init.sh` then creates the three buckets (`grad-originals`, `grad-derivatives`, `grad-backups`), grants the dev key read/write on the first two, and proves it works with a signed upload, download and delete. It is idempotent, so re-running `services:up` is safe.

@@ -23,21 +23,26 @@ function monoFontFamily() {
   return getComputedStyle(document.documentElement).getPropertyValue("--font-geist-mono").trim() || "monospace";
 }
 
-function glyphTexture() {
+/**
+ * Glyph atlas rasterised at the device-pixel size of one grid cell (css cell x devicePixelRatio),
+ * so each glyph is sampled ~1:1 instead of being minified from a 48x64 bitmap (#6).
+ */
+function glyphTexture(cssCellWidth: number, cssCellHeight: number, ratio: number) {
   const canvas = document.createElement("canvas");
-  const cellWidth = 48;
-  const cellHeight = 64;
+  const cellWidth = Math.max(8, Math.round(cssCellWidth * ratio));
+  const cellHeight = Math.max(10, Math.round(cssCellHeight * ratio));
   canvas.width = GLYPHS.length * cellWidth;
   canvas.height = cellHeight;
   const context = canvas.getContext("2d")!;
   context.clearRect(0, 0, canvas.width, canvas.height);
   context.fillStyle = "#fff";
-  context.font = `700 58px ${monoFontFamily()}`;
+  context.font = `700 ${Math.round(cellHeight * 0.9)}px ${monoFontFamily()}`;
   context.textAlign = "center";
   context.textBaseline = "middle";
   [...GLYPHS].forEach((glyph, index) => context.fillText(glyph, index * cellWidth + cellWidth / 2, cellHeight / 2));
   const texture = new CanvasTexture(canvas);
   texture.colorSpace = SRGBColorSpace;
+  texture.generateMipmaps = false;
   texture.minFilter = LinearFilter;
   texture.magFilter = LinearFilter;
   return texture;
@@ -77,11 +82,14 @@ const drawFragmentShader = `uniform sampler2D tCells;
       vec2 local = fract(vUv * uGrid);
       vec2 glyphUv = vec2((index + local.x) / uGlyphCount, 1.0 - local.y);
       float glyph = texture2D(tGlyphs, glyphUv).a;
-      vec3 shadow = vec3(0.52, 0.42, 0.82);
-      vec3 midtone = vec3(0.44, 0.62, 0.96);
-      vec3 highlightColor = vec3(0.78, 0.96, 1.0);
-      vec3 color = lightness < 0.5 ? mix(shadow, midtone, lightness * 2.0) : mix(midtone, highlightColor, (lightness - 0.5) * 2.0);
-      float strength = glyph * (0.72 + 0.28 * lightness);
+      // Blue-and-white ramp (redesign #147): --brand-blue-deep #16378A -> --brand-muted-on-blue #B9C8EE -> white.
+      vec3 shadow = vec3(0.0862, 0.2157, 0.5412);
+      vec3 midtone = vec3(0.7255, 0.7843, 0.9333);
+      vec3 highlightColor = vec3(1.0);
+      // Stops at 0.0 / 0.4 / 0.8: bright cells reach pure white early, and dim cells start as
+      // the deep blue but are lifted by the alpha floor below so they never melt into the #1F4BB0 background.
+      vec3 color = lightness < 0.4 ? mix(shadow, midtone, lightness / 0.4) : mix(midtone, highlightColor, clamp((lightness - 0.4) / 0.4, 0.0, 1.0));
+      float strength = glyph * (0.85 + 0.15 * lightness);
       gl_FragColor = vec4(color * strength, strength);
     }`;
 
@@ -151,18 +159,20 @@ class AsciiEnginePass extends Pass {
 function AsciiPass({ onFirstFrame }: { onFirstFrame: () => void }) {
   const { gl, scene, camera, size } = useThree();
   const seen = useRef(false);
+  const phone = size.width < 500;
+  const cellWidth = phone ? 6 : 7;
+  const cellHeight = phone ? 8 : 9;
+  const ratio = gl.getPixelRatio();
   const composer = useMemo(() => {
     const effect = new EffectComposer(gl);
     effect.addPass(new RenderPass(scene, camera));
-    const pass = new AsciiEnginePass(glyphTexture());
+    const pass = new AsciiEnginePass(glyphTexture(cellWidth, cellHeight, ratio));
     effect.addPass(pass);
     return { effect, pass };
-  }, [gl, scene, camera]);
+  }, [gl, scene, camera, cellWidth, cellHeight, ratio]);
 
   useEffect(() => {
     composer.effect.setSize(size.width, size.height);
-    const cellWidth = size.width < 500 ? 6 : 7;
-    const cellHeight = size.width < 500 ? 8 : 9;
     composer.pass.setGrid(
       Math.max(24, Math.floor(size.width / cellWidth)),
       Math.max(20, Math.floor(size.height / cellHeight)),
@@ -310,7 +320,6 @@ export function Sculpture() {
   }, []);
 
   return <div className="sculpture" aria-label={`Animated ASCII sculpture: ${SHAPE_NAMES[shapeIndex]}`} role="img">
-    <div className="sculpture-halo" aria-hidden="true" />
     <ShapeCodeBackdrop index={shapeIndex} animate={enabled && ready && visible && !failed} departing={departing} />
     <pre className={`sculpture-fallback${ready && fontReady && enabled && !failed ? " is-hidden" : ""}`} aria-hidden="true">{`             .   :   .
        .  :  +  *  +  :  .
@@ -325,7 +334,7 @@ export function Sculpture() {
       <Canvas
         className="sculpture-canvas"
         frameloop={visible ? "always" : "never"}
-        dpr={[1, 1.25]}
+        dpr={[1, 2]}
         camera={{ position: [0, 2.0, 4.8], fov: 40, near: 0.1, far: 30 }}
         gl={{ antialias: false, alpha: true, powerPreference: "low-power" }}
         onCreated={({ gl }) => {

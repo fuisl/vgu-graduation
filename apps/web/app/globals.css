@@ -43,14 +43,14 @@
 .landing-event-meta>.landing-event-signal{display:inline-flex;align-items:center;color:var(--landing-muted)}
 .landing-event-meta>.landing-event-signal::after{content:"";display:inline-block;width:.55em;height:.55em;background:#738bd0;box-shadow:0 0 18px rgba(115,139,208,.6)}
 .landing-visual{position:relative;display:grid;place-items:center;width:min(100%,760px);margin:0 auto;min-height:0;overflow:hidden}
+/* Sculpture colours: #B9C8EE = --brand-muted-on-blue, #FFFFFF on --brand-blue #1F4BB0 (redesign #147) */
 .sculpture{position:relative;width:100%;height:100%;min-height:280px;max-height:470px;margin:0}
-.sculpture-halo{position:absolute;pointer-events:none;inset:11% 13% 12%;background:radial-gradient(ellipse at center,rgba(42,91,152,.16),rgba(99,71,153,.09) 42%,transparent 72%);filter:blur(36px)}
-.sculpture-code{position:absolute;z-index:0;max-width:46%;margin:0;overflow:hidden;color:rgba(150,169,207,.16);font:clamp(9px,.75vw,11px)/1.7 var(--font-mono);letter-spacing:.01em;text-align:left;white-space:pre;pointer-events:none}
+.sculpture-code{position:absolute;z-index:0;max-width:46%;margin:0;overflow:hidden;color:rgba(185,200,238,.16);font:clamp(9px,.75vw,11px)/1.7 var(--font-mono);letter-spacing:.01em;text-align:left;white-space:pre;pointer-events:none}
 .sculpture-code-left{top:25%;left:6%;mask-image:linear-gradient(90deg,#000 52%,transparent 100%)}
 .sculpture-code-right{top:47%;right:6%;mask-image:linear-gradient(270deg,#000 52%,transparent 100%)}
-.sculpture-code-function{color:rgba(137,180,242,.34)}
-.sculpture-canvas{position:absolute!important;inset:0;z-index:1;mix-blend-mode:screen}
-.sculpture-fallback{position:absolute;inset:0;display:grid;place-content:center;margin:0;font-family:var(--font-mono);font-size:clamp(9px,1.27vw,15px);line-height:1.35;letter-spacing:.04em;text-align:left;white-space:pre;color:#879edc;text-shadow:0 0 42px rgba(80,120,232,.18);transition:opacity .5s ease}
+.sculpture-code-function{color:rgba(255,255,255,.3)}
+.sculpture-canvas{position:absolute!important;inset:0;z-index:1}
+.sculpture-fallback{position:absolute;inset:0;display:grid;place-content:center;margin:0;font-family:var(--font-mono);font-size:clamp(9px,1.27vw,15px);line-height:1.35;letter-spacing:.04em;text-align:left;white-space:pre;color:#B9C8EE;transition:opacity .5s ease}
 .sculpture-fallback.is-hidden{opacity:0}
 .landing-message{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:.2rem;height:var(--landing-grid-unit);padding:0 clamp(1.25rem,2.5vw,2.5rem);border-top:1px solid var(--landing-line);text-align:center;overflow:hidden}
 .landing-message h2{margin:0;font-size:clamp(1rem,1.6vw,1.4rem);line-height:1.1;font-weight:400;letter-spacing:-.04em;color:#edf1f9}

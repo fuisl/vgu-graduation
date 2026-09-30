@@ -4,6 +4,8 @@
 
 One CloudNativePG `Cluster` with a single instance on the local-path storage class. Entities follow `architecture/data-model.md`: `User`, `Guest`, `Invitation`, `InvitationInviter`, `RSVP`, `Photo`, `Wish`, `TranslationSegment`, plus a `jobs` table for the worker and an `audit` table for admin actions.
 
+> **Status (2026-09-30):** Postgres backups are not configured; there is no backup target yet (#126, closed as not planned). The design below is what to apply once one is chosen.
+
 Backups use the Barman Cloud plugin, which requires CloudNativePG 1.26 or newer and replaces the deprecated in-tree object store configuration. Continuous WAL archiving plus a nightly base backup go to the `grad-backups` bucket in Garage. Retention is 30 days. Restore is rehearsed once before the ceremony by bootstrapping a scratch cluster from the backup.
 
 ## 5.2 Garage buckets

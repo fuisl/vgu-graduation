@@ -44,12 +44,12 @@ The API reads it through the `S3_*` variables in `.env.example`: endpoint `http:
 | | Local (this repo) | Homelab (infrastructure repository, #49) |
 | --- | --- | --- |
 | Runs as | one Docker Compose container | StatefulSet from the vendored Helm chart on k3s |
-| Layout | assigned automatically (`--single-node`) | assigned once by hand during bootstrap |
-| Keys | fixed dev key from `.env` | `api-key` and `backup-key` imported from SOPS-encrypted secrets |
+| Layout | assigned automatically (`--single-node`) | assigned automatically (`--single-node`) |
+| Keys | fixed dev key from `.env` | `api-key` and `backup-key` imported from SOPS-encrypted secrets by `scripts/garage-bootstrap.sh` |
 | Backups | none | nightly offsite mirror (ADR-005) |
 | Exposure | `localhost:3900` | ClusterIP only, never public |
 
-Nothing here is deployed and the infrastructure repository never reads this compose file. Keep the Garage version in `docker-compose.yml` the same as the one pinned in the cluster: `kubernetes-workloads.md` §7.6 still says v2.3.0 and should be bumped to v2.4.1 when #49 vendors the chart.
+Nothing here is deployed and the infrastructure repository never reads this compose file. Keep the Garage version in `docker-compose.yml` the same as the chart vendored in the cluster (`charts/garage`, v2.4.1).
 
 ## API authentication
 

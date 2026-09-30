@@ -12,6 +12,20 @@ const NAME = "YOUR NAME HERE";
 const ANCHOR_Y = 2.6;
 const CARD_ATTACH_Y = 1.18;
 
+// Brand palette (packages/design-tokens/src/brand.css). Three.js and canvas cannot read CSS
+// variables, so the hex values are mirrored here; keep them in sync with the tokens.
+const BRAND = {
+  blue: "#1f4bb0", // --brand-blue
+  blueDeep: "#16378a", // --brand-blue-deep
+  blueSoft: "#e8eefb", // --brand-blue-soft
+  white: "#ffffff", // --brand-white
+  ink: "#0b1a3a", // --brand-ink
+  mutedOnBlue: "#b9c8ee", // --brand-muted-on-blue
+  mutedOnWhite: "#5b6784", // --brand-muted-on-white
+  lineOnWhite: "#d9e0f0", // --brand-line-on-white
+};
+const MONO = '"SFMono-Regular", Consolas, monospace';
+
 function badgeArtwork() {
   const canvas = document.createElement("canvas");
   canvas.width = 1024;
@@ -20,13 +34,13 @@ function badgeArtwork() {
   if (!ctx) throw new Error("Badge texture canvas unavailable");
   const w = canvas.width;
   const h = canvas.height;
-  ctx.fillStyle = "#090d16";
+  ctx.fillStyle = BRAND.white;
   ctx.fillRect(0, 0, w, h);
-  ctx.strokeStyle = "rgba(177,195,226,.18)";
+  ctx.strokeStyle = BRAND.lineOnWhite;
   ctx.lineWidth = 2;
   ctx.strokeRect(24, 24, w - 48, h - 48);
-  ctx.fillStyle = "#dbe5f7";
-  ctx.font = '500 29px "SFMono-Regular", Consolas, monospace';
+  ctx.fillStyle = BRAND.blue;
+  ctx.font = `500 29px ${MONO}`;
   ctx.textBaseline = "middle";
   ctx.fillText("VGU", 70, 108);
   ctx.textAlign = "right";
@@ -41,34 +55,31 @@ function badgeArtwork() {
     "      .  :  +  :  .      ",
     "         .  :  .         ",
   ];
-  ctx.font = '39px "SFMono-Regular", Consolas, monospace';
-  ctx.shadowColor = "rgba(176,202,245,.25)";
-  ctx.shadowBlur = 9;
+  ctx.font = `39px ${MONO}`;
   art.forEach((line, index) => {
-    ctx.fillStyle = index === 3 ? "#e8f0ff" : "#a6bce0";
+    ctx.fillStyle = index === 3 ? BRAND.blue : BRAND.mutedOnWhite;
     ctx.fillText(line, w / 2, 350 + index * 91);
   });
-  ctx.shadowBlur = 0;
-  ctx.fillStyle = "#f4f7ff";
+  ctx.fillStyle = BRAND.ink;
   ctx.textAlign = "left";
-  ctx.font = '700 62px "SFMono-Regular", Consolas, monospace';
+  ctx.font = `700 62px ${MONO}`;
   ctx.fillText("GUEST", 70, 1050);
-  ctx.fillStyle = "#b3c2df";
-  ctx.font = '29px "SFMono-Regular", Consolas, monospace';
+  ctx.fillStyle = BRAND.mutedOnWhite;
+  ctx.font = `29px ${MONO}`;
   ctx.fillText(NAME, 70, 1112);
-  ctx.strokeStyle = "rgba(172,191,225,.38)";
+  ctx.strokeStyle = BRAND.lineOnWhite;
   ctx.beginPath(); ctx.moveTo(70, 1170); ctx.lineTo(w - 70, 1170); ctx.stroke();
   ctx.textAlign = "left";
-  ctx.fillStyle = "#b6c8e6";
-  ctx.font = '27px "SFMono-Regular", Consolas, monospace';
+  ctx.fillStyle = BRAND.blue;
+  ctx.font = `27px ${MONO}`;
   ctx.fillText("NOV 2026", 70, 1235);
   ctx.fillText("VGU CAMPUS", 70, 1274);
   ctx.textAlign = "right";
   ctx.fillText("PASS / 001", w - 70, 1235);
   ctx.fillText("PREVIEW", w - 70, 1274);
   ctx.textAlign = "left";
-  ctx.fillStyle = "#7289ae";
-  ctx.font = '24px "SFMono-Regular", Consolas, monospace';
+  ctx.fillStyle = BRAND.mutedOnWhite;
+  ctx.font = `24px ${MONO}`;
   ctx.fillText("SAME PEOPLE. A BRIGHTER YOU.", 70, 1380);
   const texture = new CanvasTexture(canvas);
   texture.colorSpace = SRGBColorSpace;
@@ -82,12 +93,12 @@ function bandTexture() {
   canvas.height = 128;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Band texture canvas unavailable");
-  ctx.fillStyle = "#26344e";
+  ctx.fillStyle = BRAND.white;
   ctx.fillRect(0, 0, 512, 128);
-  ctx.fillStyle = "#d5e2f7";
+  ctx.fillStyle = BRAND.blue;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.font = '700 37px "SFMono-Regular", Consolas, monospace';
+  ctx.font = `700 37px ${MONO}`;
   ctx.fillText("GRADUATION '26", 256, 64);
   const texture = new CanvasTexture(canvas);
   texture.colorSpace = SRGBColorSpace;
@@ -100,27 +111,27 @@ function BadgeFace() {
   useEffect(() => () => artwork.dispose(), [artwork]);
   return <mesh position={[0, 0, .014]}>
     <planeGeometry args={[1.98, 2.82]} />
-    <meshPhysicalMaterial map={artwork} side={DoubleSide} roughness={.38} metalness={.24} clearcoat={1} clearcoatRoughness={.14} />
+    <meshPhysicalMaterial map={artwork} side={DoubleSide} roughness={.5} metalness={0} clearcoat={.6} clearcoatRoughness={.2} toneMapped={false} emissive={BRAND.white} emissiveMap={artwork} emissiveIntensity={.5} />
   </mesh>;
 }
 
 function BadgeModel() {
   return <group scale={.8}>
     <RoundedBox args={[2, 2.84, .024]} radius={.01} smoothness={4}>
-      <meshPhysicalMaterial color="#8498ba" metalness={.72} roughness={.22} clearcoat={1} clearcoatRoughness={.1} />
+      <meshPhysicalMaterial color={BRAND.mutedOnBlue} metalness={.4} roughness={.3} clearcoat={1} clearcoatRoughness={.1} />
     </RoundedBox>
     <mesh position={[-.985, 0, .019]}>
       <boxGeometry args={[.008, 2.77, .004]} />
-      <meshBasicMaterial color="#dce9ff" transparent opacity={.42} />
+      <meshBasicMaterial color={BRAND.blueSoft} transparent opacity={.42} />
     </mesh>
     <BadgeFace />
     <mesh position={[0, 1.48, .015]}>
       <torusGeometry args={[.12, .033, 12, 32]} />
-      <meshStandardMaterial color="#bdcae2" metalness={.9} roughness={.2} />
+      <meshStandardMaterial color={BRAND.blueDeep} metalness={.3} roughness={.35} />
     </mesh>
     <mesh position={[0, 1.44, .03]}>
       <boxGeometry args={[.28, .1, .02]} />
-      <meshStandardMaterial color="#53647d" metalness={.8} roughness={.3} />
+      <meshStandardMaterial color={BRAND.blue} metalness={.3} roughness={.4} />
     </mesh>
   </group>;
 }
@@ -141,10 +152,14 @@ function Band() {
 
   const geometry = useMemo(() => new MeshLineGeometry(), []);
   const texture = useMemo(bandTexture, []);
-  const material = useMemo(() => new MeshLineMaterial({
-    color: "#ffffff", map: texture, useMap: 1, lineWidth: 1.2, sizeAttenuation: 1,
-    resolution: new Vector2(1, 1), repeat: new Vector2(-3, 1),
-  }), [texture]);
+  const material = useMemo(() => {
+    const line = new MeshLineMaterial({
+      color: BRAND.white, map: texture, useMap: 1, lineWidth: 1.2, sizeAttenuation: 1,
+      resolution: new Vector2(1, 1), repeat: new Vector2(-3, 1),
+    });
+    line.toneMapped = false; // keep the white print at the exact brand hex
+    return line;
+  }, [texture]);
   useEffect(() => { material.resolution.set(size.width, size.height); }, [material, size.width, size.height]);
   useEffect(() => () => { geometry.dispose(); material.dispose(); texture.dispose(); }, [geometry, material, texture]);
 
@@ -263,10 +278,10 @@ export function BadgeCanvas({ onReady, visible }: { onReady: (ready: boolean) =>
       <Band />
     </Physics>
     <Environment resolution={128}>
-      <Lightformer form="rect" intensity={2} color="#f4f8ff" position={[0, -1, 5]} rotation={[0, 0, Math.PI / 3]} scale={[8, .1, 1]} />
-      <Lightformer form="rect" intensity={2.4} color="#dbe7ff" position={[-3, 2, 4]} rotation={[0, .55, 0]} scale={[.16, 6, 1]} />
-      <Lightformer form="rect" intensity={1.4} color="#99b7ef" position={[3, -1, 3]} rotation={[0, -.5, 0]} scale={[.1, 4, 1]} />
-      <Lightformer form="rect" intensity={6} color="#ffffff" position={[-6, 0, 8]} rotation={[0, Math.PI / 2, Math.PI / 3]} scale={[10, 2, 1]} />
+      <Lightformer form="rect" intensity={2} color={BRAND.white} position={[0, -1, 5]} rotation={[0, 0, Math.PI / 3]} scale={[8, .1, 1]} />
+      <Lightformer form="rect" intensity={2.4} color={BRAND.blueSoft} position={[-3, 2, 4]} rotation={[0, .55, 0]} scale={[.16, 6, 1]} />
+      <Lightformer form="rect" intensity={1.4} color={BRAND.mutedOnBlue} position={[3, -1, 3]} rotation={[0, -.5, 0]} scale={[.1, 4, 1]} />
+      <Lightformer form="rect" intensity={6} color={BRAND.white} position={[-6, 0, 8]} rotation={[0, Math.PI / 2, Math.PI / 3]} scale={[10, 2, 1]} />
     </Environment>
   </Canvas>;
 }

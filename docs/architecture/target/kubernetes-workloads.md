@@ -526,18 +526,18 @@ apiVersion: image.toolkit.fluxcd.io/v1
 kind: ImageUpdateAutomation
 metadata: { name: grad, namespace: flux-system }
 spec:
-  interval: 10m
+  interval: 5m
   sourceRef: { kind: GitRepository, name: flux-system }
   git:
     checkout: { ref: { branch: main } }
     commit:
       author: { name: fluxcdbot, email: fluxcdbot@users.noreply.github.com }
       messageTemplate: "chore(deploy): bump images"
-    push: { branch: flux/image-updates }
-  update: { path: ./deploy/apps, strategy: Setters }
+    push: { branch: main }          # auto-deploy; flux/image-updates to freeze
+  update: { path: ./workloads/home, strategy: Setters }
 ```
 
-Pushing to a separate branch keeps the bump under review, which matches the pull-request workflow in `development/workflow.md`.
+Decided 2026-09-30 (#52): **auto-deploy with immutable tags.** The automation commits each bump straight to `main`, so a new CI build is live within about 10 minutes (5m registry scan + 5m automation), and the api and worker use `imagePullPolicy: IfNotPresent`. Every deploy is a git commit by fluxcdbot: `git log` shows what's running and `git revert` rolls back, and a pod restart always brings back the same build. `:latest` is still pushed but never deployed: Kubernetes doesn't re-pull a moved tag, so it only changed code on random restarts, with no record and no rollback. To freeze deploys (for example the week of the ceremony), set `push.branch: flux/image-updates`; bumps then wait on that branch for a reviewed pull request.
 
 **Translation (GPU)**
 

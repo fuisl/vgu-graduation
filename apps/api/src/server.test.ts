@@ -71,3 +71,14 @@ describe("log redaction", () => {
     expect(output).toContain("[Redacted]");
   });
 });
+
+describe("Cache-Control", () => {
+  it("defaults to no-store, including errors, and keeps a route's own value", async () => {
+    const app = buildServer({ config });
+    app.get("/__cacheable", async (_request, reply) => reply.header("Cache-Control", "public, max-age=60").send("ok"));
+    expect((await app.inject({ method: "GET", url: "/healthz" })).headers["cache-control"]).toBe("no-store");
+    expect((await app.inject({ method: "GET", url: "/no-such-route" })).headers["cache-control"]).toBe("no-store");
+    expect((await app.inject({ method: "GET", url: "/__cacheable" })).headers["cache-control"]).toBe("public, max-age=60");
+    await app.close();
+  });
+});

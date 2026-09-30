@@ -72,6 +72,14 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
 
+  // Responses are private unless a route says otherwise: routes that are safe to
+  // share (gallery, wishes, derivatives, event info) set their own Cache-Control.
+  // Traefik no longer forces no-store, so this default is what keeps the rest safe.
+  app.addHook("onSend", async (_request, reply, payload) => {
+    if (!reply.hasHeader("cache-control")) reply.header("Cache-Control", "no-store");
+    return payload;
+  });
+
   // Every error leaves as the contract's { error, message }; internals are never echoed.
   app.setErrorHandler((error, request, reply) => {
     if (hasZodFastifySchemaValidationErrors(error)) {

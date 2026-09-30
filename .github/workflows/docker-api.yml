@@ -33,6 +33,8 @@ on:
       - pnpm-workspace.yaml
       - turbo.json
       - .github/workflows/docker-api.yml
+  # Rebuild by hand (Actions tab -> Run workflow) without a code change.
+  workflow_dispatch:
 
 concurrency:
   group: docker-api-${{ github.ref }}

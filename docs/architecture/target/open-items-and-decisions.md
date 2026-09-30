@@ -49,5 +49,5 @@ Decided 2026-09-29:
 - Graduates, the inviters, are added by admins one at a time through the admin UI; there is no import (#32, #42).
 - Each invitation has a roll of 36 photo shots, like film (#58, #62). The API enforces the cap and the camera shows the shots left. A shot is spent once uploaded; hiding or removing a photo doesn't give it back.
 - The ceremony date and time are still unconfirmed (#83). Everything builds against the placeholder with `timeConfirmed: false` in the event configuration; nothing else may hard-code them.
-- A light theme to complement the documented dark theme is wanted later, once there is substantial web UI to test it on (#10). A more minimal landing layout (#5) is researched by fuisl and reviewed before any change.
+- Guest-facing pages use one fixed blue-and-white theme, with no light/dark switch (redesign #142, `docs/design/redesign-2026-10.md`). A light theme (#10) and a more minimal landing layout (#5) are superseded by it.
 - CI: the API image is built and pushed only when something merges to `main`, and pull-request CI runs only the packages a change affects (#103, #104, #105). Local development and the cluster both run Garage v2.4.1 (#49 vendored the chart).

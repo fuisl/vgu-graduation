@@ -1,5 +1,7 @@
 # Landing teaser — GRAD '26
 
+> **Being replaced (2026-10-01):** the blue-and-white redesign supersedes this for guest-facing pages. See [redesign-2026-10.md](redesign-2026-10.md) and epic #142. Admin and docs are unchanged.
+
 The public root route (`/`) is a quiet teaser for the November ceremony. The `/guest/prototype` badge preview reuses its background layers and adds a focused, interactive 3D badge. Invitation and documentation routes stay separate and don't inherit this palette or motion. This page documents the approved aesthetic as shipped — treat it as the reference for future changes, not a changelog.
 
 ## Palette

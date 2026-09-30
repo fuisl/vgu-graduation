@@ -51,11 +51,6 @@ export type UploadResult =
   | { status: "unsupported" }
   | { status: "empty" };
 
-export type GalleryResult =
-  | { status: "ok"; page: GalleryResponse }
-  | { status: "invalid" }
-  | { status: "expired" };
-
 export class MediaService {
   constructor(
     private readonly invitations: Pick<InvitationsService, "resolveByToken"> = new InvitationsService(),
@@ -143,11 +138,8 @@ export class MediaService {
     };
   }
 
-  /** GET /gallery for an invited guest: visible, processed photos only, newest first. */
-  async listGallery(token: string, query: PageQuery): Promise<GalleryResult> {
-    const resolved = await this.invitations.resolveByToken(token);
-    if (resolved.status !== "ok") return { status: resolved.status };
-
+  /** GET /gallery (public): visible, processed photos only, newest first. */
+  async listGallery(query: PageQuery): Promise<GalleryResponse> {
     const rows = await this.repository.listGallery(query.limit, query.cursor);
     const items = rows.slice(0, query.limit).map((r) => ({
       publicId: r.publicId,
@@ -156,7 +148,7 @@ export class MediaService {
       createdAt: r.createdAt.toISOString(),
     }));
     const nextCursor = rows.length > query.limit ? items[items.length - 1]!.publicId : null;
-    return { status: "ok", page: { items, nextCursor } };
+    return { items, nextCursor };
   }
 
   /**

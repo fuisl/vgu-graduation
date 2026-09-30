@@ -32,10 +32,11 @@ const STORAGE_RETRY_AFTER_SECONDS = 30;
 const DERIVATIVE_CACHE = "public, max-age=31536000, immutable";
 
 /**
- * Gallery listing: identical for every guest but guest-only, so no shared cache;
- * a 60-second browser cache matches the Vercel layer's window (§4.1).
+ * Gallery listing: public (decided 2026-09-30) and identical for everyone, so
+ * shared caches may keep it for the Vercel layer's 60-second window (§4.1);
+ * a takedown drops out within that window.
  */
-const GALLERY_CACHE = "private, max-age=60";
+const GALLERY_CACHE = "public, s-maxage=60";
 
 function storageUnavailable(
   request: FastifyRequest,
@@ -162,7 +163,11 @@ export const mediaRoutes: FastifyPluginAsync<MediaRoutesOptions> = async (fastif
     },
   );
 
-  /** GET /gallery: visible, processed photos, newest first, for invited guests only (use-cases.md §6.2). */
+  /**
+   * GET /gallery: visible, processed photos, newest first. Public, no credential:
+   * the owner decided (2026-09-30) that photos and wishes are open to everyone,
+   * guests or not, around the graduation date.
+   */
   app.get(
     "/gallery",
     {
@@ -171,30 +176,13 @@ export const mediaRoutes: FastifyPluginAsync<MediaRoutesOptions> = async (fastif
         response: {
           200: galleryResponseSchema,
           400: errorResponseSchema,
-          401: errorResponseSchema,
-          404: errorResponseSchema,
-          410: errorResponseSchema,
         },
       },
     },
     async (request, reply) => {
-      const token = invitationToken(request);
-      if (!token) {
-        return reply.status(401).send({
-          error: "Unauthorized",
-          message: "Missing invitation bearer token or session cookie",
-        });
-      }
-      const result = await service.listGallery(token, request.query);
-      switch (result.status) {
-        case "expired":
-          return reply.status(410).send({ error: "Gone", message: "This invitation has expired" });
-        case "invalid":
-          return reply.status(404).send({ error: "Not Found", message: "Invalid or revoked invitation" });
-        case "ok":
-          reply.header("Cache-Control", GALLERY_CACHE);
-          return reply.status(200).send(result.page);
-      }
+      const page = await service.listGallery(request.query);
+      reply.header("Cache-Control", GALLERY_CACHE);
+      return reply.status(200).send(page);
     },
   );
 

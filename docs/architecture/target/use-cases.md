@@ -97,7 +97,7 @@ Degradation: the translation pod is a Flux Kustomization that can be suspended. 
 
 ## 6.4 Cross-cutting
 
-**Anonymous visitors** see only Vercel-served pages and any explicitly public gallery items. No anonymous request ever reaches the API except cached derivative fetches.
+**Anonymous visitors** see Vercel-served pages, the photo gallery and the wishes. Decided 2026-09-30: invited guests are trusted, so photos and wishes appear without pre-review, and both are public so people who aren't guests can follow the graduation day. Anonymous requests reach the API only for these cached, read-only listings (`GET /gallery`, `GET /wishes`) and derivative fetches (`GET /media/{id}/{variant}`). Posting a photo or a wish still needs an invitation. Moderation is takedown only: an admin can hide or remove an item after the fact. There is no approval queue.
 
 **Admins** sign in on Vercel; the web app mints a short-lived session token that the API verifies with a shared secret. All admin actions are recorded in the `audit` table.
 

@@ -56,8 +56,8 @@ export const galleryItemSchema = z.object({
 export type GalleryItem = z.infer<typeof galleryItemSchema>;
 
 /**
- * GET /gallery: visible, ready photos, newest first, for invited guests only
- * (invitation credential; 401/404/410 like GET /invitations/me). Query is
+ * GET /gallery: visible, ready photos, newest first. Public, no credential
+ * (decided 2026-09-30). Query is
  * `pageQuerySchema`; `nextCursor` is opaque.
  */
 export const galleryResponseSchema = pageSchema(galleryItemSchema);

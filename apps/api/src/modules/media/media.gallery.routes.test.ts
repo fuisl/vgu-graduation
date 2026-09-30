@@ -99,13 +99,14 @@ async function adminToken(handle = "tester") {
 }
 
 describe("GET /gallery", () => {
-  it("requires an invitation: 401 without, 404 invalid, 410 expired", async () => {
-    const { service } = setup();
+  it("is public: no credential needed, and an invalid one is ignored", async () => {
+    const { service, add } = setup();
+    add(1);
     const app = server(service);
-    expect((await app.inject({ method: "GET", url: "/gallery" })).statusCode).toBe(401);
-    expect((await app.inject({ method: "GET", url: "/gallery", headers: { authorization: "Bearer nope" } })).statusCode).toBe(404);
-    const expired = server(setup(() => ({ status: "expired" })).service);
-    expect((await expired.inject({ method: "GET", url: "/gallery", headers: auth })).statusCode).toBe(410);
+    const anonymous = await app.inject({ method: "GET", url: "/gallery" });
+    expect(anonymous.statusCode).toBe(200);
+    expect(anonymous.json().items).toHaveLength(1);
+    expect((await app.inject({ method: "GET", url: "/gallery", headers: { authorization: "Bearer nope" } })).statusCode).toBe(200);
   });
 
   it("lists only visible, ready photos, newest first, with the contract shape", async () => {
@@ -118,7 +119,7 @@ describe("GET /gallery", () => {
     add(6);
     const res = await server(service).inject({ method: "GET", url: "/gallery", headers: auth });
     expect(res.statusCode).toBe(200);
-    expect(res.headers["cache-control"]).toBe("private, max-age=60");
+    expect(res.headers["cache-control"]).toBe("public, s-maxage=60");
     const body = galleryResponseSchema.parse(res.json());
     expect(body.items.map((i) => i.publicId)).toEqual(["pub0000000000000000006", "pub0000000000000000001"]);
     expect(body.nextCursor).toBeNull();

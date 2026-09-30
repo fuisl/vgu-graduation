@@ -47,7 +47,8 @@ describe("SiteHeader", () => {
 describe("SiteFooter", () => {
   it("renders landmark, links and credit", () => {
     const out = html(<SiteFooter />);
-    expect(out).toMatch(/^<footer/);
+    expect(out).toContain("<footer");
+    expect(out).toContain("/brand/logo-full.png");
     expect(out).toContain('aria-label="Footer"');
     expect(out).toContain("VGU graduation · Class of 2026");
   });

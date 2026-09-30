@@ -1,0 +1,203 @@
+/* Guest invitation pages (#150). Brand tokens only; no hex, gradients, blur or shadows. */
+[data-theme="brand"] .invite-main {
+  min-height: 100svh;
+  background: var(--brand-white);
+}
+
+[data-theme="brand"] .invite-title {
+  margin: var(--space-4) 0 0;
+  font-size: var(--brand-text-h2);
+  font-weight: 500;
+  line-height: var(--brand-leading-display);
+  letter-spacing: var(--brand-tracking-display);
+  overflow-wrap: anywhere;
+}
+[data-theme="brand"] .invite-title--display {
+  font-size: var(--brand-text-display);
+}
+[data-theme="brand"] .invite-lead {
+  max-width: var(--brand-measure);
+  margin: var(--space-4) 0 0;
+  font-size: var(--brand-text-lead);
+  color: var(--brand-muted);
+}
+[data-theme="brand"] .invite-lead + .invite-lead {
+  margin-top: var(--space-2);
+}
+[data-theme="brand"] .invite-link--on-blue {
+  color: var(--brand-white);
+}
+[data-theme="brand"] .invite-actions {
+  margin-top: var(--space-5);
+}
+
+/* Body layout -------------------------------------------------------- */
+[data-theme="brand"] .invite-grid {
+  display: grid;
+  gap: var(--space-6);
+  align-items: start;
+}
+[data-theme="brand"] .invite-stack {
+  display: grid;
+  gap: var(--space-6);
+  min-width: 0;
+}
+@media (min-width: 900px) {
+  [data-theme="brand"] .invite-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-7);
+  }
+}
+
+[data-theme="brand"] .invite-heading {
+  margin: 0 0 var(--space-3);
+  font-size: var(--brand-text-h3);
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+[data-theme="brand"] .invite-body p {
+  max-width: var(--brand-measure);
+  margin: 0 0 var(--space-3);
+}
+
+/* Links -------------------------------------------------------------- */
+[data-theme="brand"] .invite-link,
+[data-theme="brand"] .invite-body a {
+  display: inline-block;
+  padding-block: var(--space-2);
+  color: var(--brand-blue);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  transition: color var(--motion-fast) var(--ease);
+}
+[data-theme="brand"] .invite-link--on-blue {
+  color: var(--brand-white);
+}
+[data-theme="brand"] .invite-link:hover,
+[data-theme="brand"] .invite-body a:hover {
+  color: var(--brand-blue-deep);
+}
+[data-theme="brand"] .invite-link--on-blue:hover {
+  color: var(--brand-blue-soft);
+}
+[data-theme="brand"] .invite-link:focus-visible,
+[data-theme="brand"] .invite-body a:focus-visible,
+[data-theme="brand"] .invite-input:focus-visible,
+[data-theme="brand"] .invite-choice input:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 2px;
+}
+[data-theme="brand"] .invite-link--on-blue:focus-visible {
+  outline-color: var(--brand-accent);
+}
+
+/* Event details ------------------------------------------------------ */
+[data-theme="brand"] .invite-facts {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+}
+[data-theme="brand"] .invite-facts > div {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--brand-line);
+}
+[data-theme="brand"] .invite-facts dt {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--brand-tracking-label);
+  text-transform: uppercase;
+  color: var(--brand-muted);
+}
+[data-theme="brand"] .invite-facts dd {
+  margin: var(--space-1) 0 0;
+}
+
+/* RSVP form ---------------------------------------------------------- */
+[data-theme="brand"] .invite-fieldset {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+[data-theme="brand"] .invite-field {
+  display: grid;
+  gap: var(--space-1);
+}
+[data-theme="brand"] .invite-field > p {
+  margin: 0;
+  font-weight: 500;
+}
+[data-theme="brand"] .invite-choice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--brand-tap);
+  cursor: pointer;
+}
+[data-theme="brand"] .invite-choice input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  accent-color: var(--brand-blue);
+}
+[data-theme="brand"] .invite-input {
+  display: block;
+  width: 100%;
+  min-height: var(--brand-tap);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--brand-muted);
+  border-radius: var(--brand-radius);
+  background: var(--brand-white);
+  color: var(--brand-ink);
+  font: inherit;
+}
+[data-theme="brand"] .invite-input:disabled {
+  border-color: var(--brand-line);
+  color: var(--brand-muted);
+}
+[data-theme="brand"] .invite-status:empty,
+[data-theme="brand"] .invite-error:empty {
+  display: none;
+}
+[data-theme="brand"] .invite-status {
+  margin-top: var(--space-4);
+  color: var(--brand-success);
+  font-weight: 500;
+}
+[data-theme="brand"] .invite-error {
+  margin-top: var(--space-4);
+  color: var(--brand-danger);
+  font-weight: 500;
+}
+
+/* Pass: a card-like object inside the white section ------------------ */
+[data-theme="brand"] .invite-pass {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+  padding: var(--space-5);
+  border: 1px solid var(--brand-line);
+  border-radius: var(--brand-radius);
+  background: var(--brand-blue-soft);
+}
+[data-theme="brand"] .invite-pass__qr {
+  width: min(100%, 16rem);
+  padding: var(--space-3);
+  border-radius: var(--brand-radius-sm);
+  background: var(--brand-white);
+  line-height: 0;
+}
+[data-theme="brand"] .invite-pass__qr svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+[data-theme="brand"] .invite-pass__meta {
+  margin: 0;
+}
+[data-theme="brand"] .invite-pass .invite-heading {
+  margin-bottom: 0;
+}

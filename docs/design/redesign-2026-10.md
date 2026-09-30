@@ -1,6 +1,27 @@
 # Redesign brief: blue and white (October 2026)
 
-Status: **Decided, not yet implemented.** Decisions below were made by the project owner on 2026-10-01. Exact values marked *proposed* are finalised in the tokens sub-issue and then moved into the regular design docs (`philosophy.md`, `tokens.md`, `landing.md`, `components.md`, `motion.md`, `anti-patterns.md`, `llm-reference.md`, `moodboard.md`), which this brief supersedes where they disagree. Tracking epic: see "Work breakdown".
+Status: **Implemented on `refactor/blue-white-redesign`; merged to main with #155.** This page is kept as the decision record. The permanent docs (`philosophy.md`, `tokens.md`, `components.md`, `landing.md`, `motion.md`, `anti-patterns.md`, `llm-reference.md`, `moodboard.md`, `responsive.md`) describe the language as shipped and supersede this brief where they disagree; the code is authoritative for exact values. Decisions were made by the project owner on 2026-10-01. Values marked *proposed* below were finalised in #143 and #153 (see `tokens.md`). Tracking epic: see "Work breakdown".
+
+## What shipped
+
+All on the integration branch `refactor/blue-white-redesign` (epic #142):
+
+- #156 and #158 this brief and its handbook navigation entry
+- #159 brand tokens, Inter Tight and the `packages/ui` primitives (#143, #144)
+- #157 sculpture and code backdrop recoloured, blur fixed (#147, #6)
+- #161 Fuisloy pixel logo and favicon replace the ASCII VGU logo
+- #160 `/design-system` rebuilt as the blue-and-white showcase (#153)
+- #162 site header, mobile menu sheet and footer (#145)
+- #163 owner sign-off applied: content width, pill tone, density, footer band, disabled `Cta`
+- #164 invitation, demo invitation, venue and pass (#150)
+- #165 landing page (#148)
+- #166 gallery, wishes and polaroid (#149)
+- #167 two-state guest chip with animated blobatar (#146)
+- #168 `/ascii-live` (#151)
+- #169 `/guest/prototype` badge (#152)
+- #171 consolidation: shared `Cta` and pill primitives, dead code removed (#155)
+
+Outcomes of the open questions: the landing is event-first (hero, when and where, gallery teaser, wishes teaser, footer) and the ASCII graduation chapter was dropped; `DecodeText` stayed on the hero headline only; the footer is a deep-blue band; the invitation is a blue greeting band plus a compact white band that also holds the pass.
 
 ## Why
 

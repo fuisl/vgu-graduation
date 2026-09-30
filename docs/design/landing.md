@@ -1,39 +1,26 @@
-# Landing teaser — GRAD '26
+# Landing and sculpture
 
-> **Being replaced (2026-10-01):** the blue-and-white redesign supersedes this for guest-facing pages. See [redesign-2026-10.md](redesign-2026-10.md) and epic #142. Admin and docs are unchanged.
+The public root route (`/`) is an event-first page on the blue-and-white brand theme ([redesign-2026-10.md](redesign-2026-10.md)). This page documents `/` as shipped, plus the technical detail of the sculpture, the ASCII renderer and the experimental routes that share them. Treat it as the reference for future changes, not a changelog.
 
-The public root route (`/`) is a quiet teaser for the November ceremony. The `/guest/prototype` badge preview reuses its background layers and adds a focused, interactive 3D badge. Invitation and documentation routes stay separate and don't inherit this palette or motion. This page documents the approved aesthetic as shipped — treat it as the reference for future changes, not a changelog.
+## Composition
 
-## Palette
+`/` renders inside `BrandTheme` with `SiteHeader current="home"` and `SiteFooter`. Styles are route-local in `apps/web/app/landing.css`, brand tokens only. Sections, in order:
 
-- Near-black surface: `#070A12`. Header/body text a near-white `#ECF0F9`/`#D8E1F2`; the header wordmark is pure white (`#fff`).
-- A restrained blue-violet radial glow sits behind everything (`.landing::before`), independent of the sculpture's own halo.
-- This palette — including the sculpture's ASCII shader gradient (violet shadow → blue midtone → icy cyan highlight) — belongs to the landing experience and its guest badge prototype. It does not change `packages/design-tokens`; see `docs/design/tokens.md`.
+1. **Blue hero** (`Section tone="blue"`, airy). The sculpture fills the stage (`.home-visual`, 320 to 520px high, at most 820px wide, centred). Below it the `Graduation ’26` headline in display size, and beside it the event line (mono, uppercase: date and venue name, from `getEvent`) and the single primary `Cta` "Your invitation" to `/invite`. At 960px and below the headline drops to the h1 size and the foot stacks.
+2. **White "When and where"**. A `BrandEyebrow`, the heading "Join us on the day", then three columns (one column below 960px): **When** (date, time, and a note when `timeConfirmed` is false), **Where** (venue name, address and a secondary external "Directions" `Cta` to the map URL) and the calendar action (a primary "Add to calendar" `Cta` to the webcal feed, and a link to `/venue` for all calendar options and arrival details). If the event API fails, a status line links to `/venue`.
+3. **Blue gallery teaser**. "Latest photos": the latest six `thumb` derivatives in a grid (three columns, two below 960px), then "Open gallery". Empty state: "First photos appear on ceremony day." Unavailable state: "Photos are temporarily unavailable." (with `role="status"`).
+4. **White wishes teaser**. "Words for the class of 2026": the latest three wishes as soft-blue quote panels (body clamped to five lines, author in mono), then a "Leave a wish" `Cta` and a "Read all wishes" link. Empty and unavailable states as above.
+5. **Footer** (`SiteFooter`, deep blue).
 
-## Background layers
+The page is server-rendered and `force-dynamic`; the event, gallery and wishes calls run in parallel and each section degrades on its own when the API is down. The earlier ASCII graduation chapter (text wall and stock image), the aurora, twinkle field, grid cells, pointer parallax and glow text-shadows, the animated VGU logo and the "Coming soon in November" sweep were removed.
 
-Four independent, always-on layers sit behind the content, all `pointer-events:none` and `z-index:-1`:
+## Headline
 
-1. **Aurora** (`.landing-aurora`) — three large, softly-blurred radial-gradient blobs (reusing the sculpture halo's blue-violet hues), each drifting and scaling on its own slow loop: 46s, 58s, 39s, all `ease-in-out`, unsynced so they never repeat in an obvious pattern.
-2. **Grid** (`.landing-field`) — a stationary, very subtle 64px blue-gray line grid, masked to an ellipse so it fades at the edges. `GridCells.tsx` picks up to nine deterministic cells outside the central sculpture/message zone for independent opacity pulses from 0 to 5% over their original square. Each pulse spans 33% of its cycle, allowing more overlap. Positions snap to the grid and update on resize.
-3. **Twinkle and ASCII field** (`TwinkleField.tsx`) — 26 dots at deterministic positions from a seeded PRNG (the same low-discrepancy technique the sculpture's point clouds use — not literal per-render randomness), each flickering independently on its own delay/duration. Five fixed ASCII glyphs briefly appear near the outer grid, leaving the sculpture and message area clear.
-4. **Pointer parallax** (`BackgroundMotion.tsx`) — a side-effect-only client component that writes `--pointer-x` and `--pointer-y` onto the document root (rAF-throttled). Only the aurora consumes these through CSS, eased over 0.5s and nudged toward the cursor at 16px. Neither the grid nor aurora reacts to page scroll. Cursor tracking only attaches on `(hover: hover) and (pointer: fine)` devices, and the component no-ops under `prefers-reduced-motion: reduce`.
+`DecodeText` (`apps/web/app/landing-title/`) is used on the `Graduation ’26` headline only. It decodes once per page mount (80ms delay, 900ms), each letter position passing through ASCII noise glyphs (`#%&@*+=:./\<>[]`) before settling. Block and Braille glyphs were dropped because they fall back to another font whose oversized ink spilled outside the letters. Updates step at about 30fps. Every changing glyph is an absolutely positioned visual layer over an invisible original glyph, so the real typeface alone determines width and line height; each character layer uses `contain: paint` so nothing draws outside its cell. The `h1` carries `aria-label="Graduation ’26"` and the decoded copy is `aria-hidden`; hidden pages cancel the work and reduced motion shows plain text. Noise glyphs use `--brand-muted-on-blue`. The component also supports a repeating `sweep` variant; nothing uses it.
 
-All motion here is intentionally small and slow — it should read as "the page is alive," not as an animated background competing with the sculpture for attention. Under reduced motion, aurora movement, cell pulses, twinkle-dot animation, and ASCII signals are switched off; the static grid remains.
+## Sculpture as the motif
 
-## Header
-
-- The header is a full-width segmented navigation bar inspired by the clear event hierarchy of GitHub Universe, translated into GRAD's dark, bordered visual system. It contains Gallery, ASCII live, and Guest preview; ASCII live opens the user-initiated camera renderer and the guest link leads to the placeholder badge prototype.
-- Left: the Fuisloy pixel logo (`BrandLogo`, `apps/web/app/logo/BrandLogo.tsx`), in its on-blue variant: the dark blocks turn white, the light blocks pale blue (`--brand-muted-on-blue`), and the eyes take the section blue. Files in `apps/web/public/brand/`: `logo-full.png` and `logo-compact.png` (original blues, for white surfaces) and their `-on-blue` variants. The favicon, app icon and Apple touch icon come from the compact mark (`app/icon.png`, `app/apple-icon.png`, `app/favicon.ico`, also in `apps/docs`). This replaced the animated ASCII VGU logo on 2026-10-01.
-- Guest sign in is the single raised accent action: muted blue fill, hard offset shadow, and a locally drawn compact northeast arrow. It lifts another 2px on hover or keyboard focus.
-- Hero and credit copy use the shared ASCIIGen-style `DecodeText` primitive on first arrival, while header navigation stays immediately readable and does not animate. The headline begins the stagger, followed by the year, event metadata, message, subtitle and credit; each animated element decodes exactly once per page mount. "Coming soon in November." joins that entrance at 780ms and remains the only line that repeats, holding for 4.2s between later runs. Unlike the entrance decodes, it uses a five-character noise band that travels across otherwise-readable text in 1.05s, restoring characters immediately behind it to create a distinct sweep. Noise draws from a pool balanced across three engine families—ASCII punctuation, blocks/quadrants, and Braille. Updates are capped near 30fps and deterministic within each frame. Every changing glyph is an absolutely positioned visual layer over an invisible original glyph, so the original typeface alone determines character width, line height and the surrounding frame geometry. Words wrap together on narrow screens. Accessible copies remain constant; hidden pages cancel active work, and reduced motion shows plain text.
-
-## Hero structure
-
-- `GRADUATION ’26` is the primary headline, set nearly edge-to-edge above the media stage. The year uses the landing's muted blue accent. Below 960px the headline keeps a fluid `clamp()` scale with a smaller 13.5vw slope and 2.6rem–6.25rem bounds, preventing the word from overwhelming phone-width layouts without freezing its responsive behavior.
-- The media stage is a transparent bordered two-column layout sized with the header and headline to fill one desktop viewport. The single desktop background grid uses `5vw` squares, producing exactly 20 columns: the header consumes one grid row, the headline consumes three, the media frame starts on row four, and its center divider lands on column ten. It does not draw another grid; the page-level grid continues through both panels. The WebGL composer also renders with transparent clear and fragment alpha so it does not cover that grid. The left column is an edge-to-edge placeholder for future pictures and recap media; inserted images and video fill the panel with `object-fit: cover`, matching the reference's crop behavior. Its label overlays the bottom of the media instead of consuming a separate row. The right column centers the live sculpture responsively. Its code backdrops sit slightly closer to the model with enough contrast to remain visible, followed by the animated coming-soon message.
-- The right column begins with the compact event line: `November 2026 / VGU Campus, HCMC` and `Graduation ceremony`.
-- On screens at or below 960px, the navigation and media columns stack while preserving the same reading order and normal document scrolling.
+The sculpture is white line art on blue: the ASCII shader's ramp runs from `--brand-blue-deep` through `--brand-muted-on-blue` to white, and dim cells are lifted by an alpha floor so they do not sink into the blue surface. It is the only signature visual in the brand language. Its code backdrop and static fallback use the same colours. All rules are in `apps/web/app/sculpture/sculpture.css`, brand tokens only.
 
 ## Sculpture
 
@@ -64,7 +51,7 @@ Each point's brightness (`SHADES`, precomputed once per shape) drives glyph dens
 
 ### Code backdrop
 
-`CodeBackdrop.tsx` displays two short PyTorch-style fragments for each of the six shapes, in the same order as the sculpture cycle. The right fragment sits lower and starts typing 250ms after the left; both finish during the shape's hold. As soon as morphing begins, both retract character by character faster than they appeared, completing before the next shape arrives. The text sits behind the canvas, with grid-level blue-gray contrast and a slightly brighter muted blue on function calls; each side fades toward the sculpture's center. It is decorative and hidden from assistive technology. Reduced motion and unavailable WebGL show the complete static fragments instead of typing.
+`CodeBackdrop.tsx` displays two short PyTorch-style fragments for each of the six shapes, in the same order as the sculpture cycle. The right fragment sits lower and starts typing 250ms after the left; both finish during the shape's hold. As soon as morphing begins, both retract character by character faster than they appeared, completing before the next shape arrives. The text sits behind the canvas in `--brand-muted-on-blue` at low opacity (16%), with function calls a little brighter (white at 30%); each side fades toward the sculpture's centre with a mask. It is decorative and hidden from assistive technology. Reduced motion and unavailable WebGL show the complete static fragments instead of typing.
 
 ## ASCII rendering
 
@@ -83,11 +70,7 @@ The route sits on the blue-and-white brand theme (`BrandTheme`, `SiteHeader`, `S
 
 ## Reference captures
 
-`docs/design/reference/landing-desktop.png` and `landing-mobile.png` exist but predate this pass — the sculpture set, wordmark, and background layers have all changed since they were captured. Recapture both from a local production build before treating them as current.
-
-## Landing composition (#148)
-
-`/` is a blue-and-white, event-first page inside `BrandTheme` (styles in `apps/web/app/landing.css`): blue hero (recoloured sculpture with its code backdrop, mono labels around it on wide screens, the `Graduation ’26` headline with `DecodeText` as the only decoded copy, event line, one "Your invitation" Cta), white "When and where" (from `getEvent`, map link, calendar Cta), blue gallery teaser (latest six thumb derivatives, empty and unavailable states), white wishes teaser (latest three, clamped), then the shared footer. The page is server-rendered and `force-dynamic`; each data section degrades on its own when the API is down. The earlier ASCII graduation chapter and its watermarked stock image were removed (owner decision, 2026-10-01).
+Captures of the shipped landing live in `docs/design/reference/`: `landing-desktop.png` (1440px wide) and `landing-mobile.png` (390px wide), full page. They are stills of a live, animated page with no event API behind it, so the data sections show their unavailable states; the sculpture is whichever shape was showing when the capture was taken.
 
 ## Guest badge prototype
 

@@ -71,7 +71,7 @@ export function MobileMenu({current, action}: {current?: SiteNavKey; action: Rea
         onKeyDown={onKeyDown}
       >
         <div className="brand-header__inner">
-          <Link className="brand-wordmark" href="/"><BrandLogo variant="full" tone="on-blue" /></Link>
+          <Link className="brand-wordmark" href="/"><BrandLogo variant="compact" tone="on-blue" /></Link>
           <button ref={closeRef} type="button" className="brand-menu-button" onClick={close}>Close</button>
         </div>
         <nav className="brand-sheet__nav" aria-label="Main">

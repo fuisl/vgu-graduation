@@ -12,7 +12,7 @@ export default function SiteShellPreview() {
       <main>
         <Section tone="blue">
           <BrandEyebrow>Preview</BrandEyebrow>
-          <h1 style={{margin: 0, fontSize: "var(--brand-text-h1)", fontWeight: 500}}>Blue section</h1>
+          <h1 style={{margin: "var(--space-4) 0 0", fontSize: "var(--brand-text-h1)", fontWeight: 500}}>Blue section</h1>
         </Section>
         <Section tone="white">
           <h2 style={{margin: 0, fontSize: "var(--brand-text-h2)", fontWeight: 500}}>White section</h2>

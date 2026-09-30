@@ -13,7 +13,10 @@ describe("/design-system", () => {
     expect(out).toContain("brand-section--blue");
     expect(out).toContain("brand-section--white");
     expect(out).toContain("Chúc mừng tốt nghiệp, khóa 2026");
-    expect(out).toContain("coming in #145");
+    expect(out).not.toContain("coming in #145");
+    expect(out).toContain("brand-section--compact");
+    expect(out).toContain("brand-pills--on-white");
+    expect(out).toContain("brand-footer");
   });
   it("sets the title", () => expect(metadata.title).toBe("Design system · GRAD '26"));
 });

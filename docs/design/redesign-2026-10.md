@@ -76,6 +76,23 @@ mobile:   ▐ Fuisloy                                                     [ Menu
 - The signed-in state reads the guest's name through the web BFF (the invitation cookie is `HttpOnly`, so the browser can't read it). The blobatar seed is a stable, non-secret value such as the guest id, never the token.
 - The blobatar comes from `blobatar` and `@blobatar/react` (MIT, no dependencies, about 4 KB).
 
+## Sign-off decisions (2026-10-01)
+
+Owner sign-off on #153, applied in the "design-system sign-off fixes" PR:
+
+| Topic | Decision |
+| --- | --- |
+| Content width | 1200px maximum inside brand sections (`--brand-content`). Bands stay full-bleed; reading text stays at 70ch. |
+| Pills on white | `PillGroup tone="on-white"`: `--brand-blue-soft` container, blue text, active item solid `--brand-blue` with white text. The deep-blue container stays for blue surfaces. |
+| Density | `Section density="airy"` (default, about 6rem desktop, 4rem mobile) and `"compact"` (about 3rem, 2rem) for forms, the invitation, RSVP and the gallery. |
+| Logo | Compact "F" mark only in the header (desktop, mobile and the mobile sheet). The full wordmark appears only in the footer. |
+| Footer | Deep-blue band (`Section tone="blue-deep"`) with the full logo (on-blue), the four links, "VGU graduation · Class of 2026", and a "Grad '26" label. The credits link is a `TODO(owner)` until a credits destination exists. |
+| Mobile menu | Keep the text "Menu" pill. |
+| Disabled `Cta` | Outlined: transparent fill, hairline border, muted label. Replaces `opacity: .6`. |
+| Small fixes | `aria-disabled` (and no `href`) on a disabled `Cta` link; `BrandEyebrow` has no built-in bottom margin; `blue-deep` tone on `Section`. |
+
+This resolves open question 4 (footer: blue-deep, with the content above).
+
 ## Open questions (decide during implementation, with the owner)
 
 1. Landing structure below the hero: which sections (event facts, venue, gallery teaser, wishes teaser, credits) and in what order.

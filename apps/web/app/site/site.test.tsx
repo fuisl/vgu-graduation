@@ -13,6 +13,13 @@ describe("SiteHeader", () => {
     expect(out).toMatch(/aria-current="page"[^>]*>Venue</);
   });
 
+  it("shows only the compact logo, also inside the mobile sheet", () => {
+    const out = html(<SiteHeader />);
+    expect(out).toContain("/brand/logo-compact-on-blue.png");
+    expect(out).not.toContain("logo-full");
+    expect(out.match(/<img[^>]*logo-compact-on-blue\.png/g)).toHaveLength(2);
+  });
+
   it("has no current item by default", () => {
     expect(html(<SiteHeader />)).not.toContain("aria-current");
   });
@@ -48,7 +55,8 @@ describe("SiteFooter", () => {
   it("renders landmark, links and credit", () => {
     const out = html(<SiteFooter />);
     expect(out).toContain("<footer");
-    expect(out).toContain("/brand/logo-full.png");
+    expect(out).toContain("/brand/logo-full-on-blue.png");
+    expect(out).toContain("brand-section--blue-deep");
     expect(out).toContain('aria-label="Footer"');
     expect(out).toContain("VGU graduation · Class of 2026");
   });

@@ -1,5 +1,6 @@
 import fastifyCookie from "@fastify/cookie";
 import fastifyCors from "@fastify/cors";
+import fastifyWebsocket from "@fastify/websocket";
 import Fastify, { type FastifyInstance } from "fastify";
 import { type Config, config as defaultConfig } from "./config.js";
 import {
@@ -14,6 +15,7 @@ import { createEventRoutes } from "./modules/event/event.routes.js";
 import type { GraduatesService } from "./modules/graduates/graduates.service.js";
 import { graduatesRoutes } from "./modules/graduates/graduates.routes.js";
 import { mediaRoutes, type MediaRoutesOptions } from "./modules/media/media.routes.js";
+import { liveRoutes, type LiveRoutesOptions } from "./modules/live/live.routes.js";
 import { invitationsRoutes } from "./modules/invitations/invitations.routes.js";
 import type { InvitationsService } from "./modules/invitations/invitations.service.js";
 import { passRoutes } from "./modules/pass/pass.routes.js";
@@ -53,6 +55,8 @@ export interface BuildServerOptions {
   wishesService?: Pick<WishesService, "createByToken" | "listVisible" | "listAll" | "moderate">;
   /** Override for tests; defaults to the database- and Garage-backed service. */
   mediaService?: MediaRoutesOptions["service"];
+  /** Overrides for tests: the display feed's data source and timings. */
+  live?: Pick<LiveRoutesOptions, "displaySource" | "feed">;
   /** Log destination; defaults to stdout. Tests pass a stream to inspect output. */
   logStream?: { write(line: string): void };
 }
@@ -100,6 +104,10 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
   // Cookies
   app.register(fastifyCookie);
 
+  // WebSockets (/live/*). Registered before any route so it can handle upgrades.
+  // Clients only listen, so inbound frames are capped small.
+  app.register(fastifyWebsocket, { options: { maxPayload: 1024 } });
+
   // Admin approval, read by requireAdmin on every /admin request (#119)
   app.decorate("adminAccounts", options.adminAccounts ?? new AdminAccountsRepository());
 
@@ -120,6 +128,7 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
   });
   app.register(wishesRoutes, { service: options.wishesService });
   app.register(mediaRoutes, { service: options.mediaService });
+  app.register(liveRoutes, { config, invitationsService: options.invitationsService, ...options.live });
 
   return app;
 }

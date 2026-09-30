@@ -57,6 +57,7 @@ Three credential types, all checked by the API itself (`apps/api/src/auth/`):
 
 - **Invitation token** (guests): 128-bit random, only its SHA-256 hash is stored, compared in constant time. Sent as `Authorization: Bearer` (from Vercel) or the `inv` cookie. `GET /invitations/me` answers `404` for unknown, revoked and not-yet-valid tokens (indistinguishable on purpose), and `410 Gone` once `valid_until` has passed, so the web app can show an "expired" page instead of "not found". `GET /pass` takes the same credential and answers with the same status codes.
 - **Admin session** (`/admin/*`): HS256 token signed with `ADMIN_SESSION_SECRET`, minted by the web app after GitHub sign-in.
+- **Event display** (`WS /live/display`, `GET /live/display/feed`): the invitation credential, like any guest route. The kiosk has its own invitation and sends the `inv` cookie on the WebSocket handshake. A browser `Origin` other than `PUBLIC_ORIGIN` is refused. To watch it locally: `npx wscat -c ws://localhost:4000/live/display -H "Authorization: Bearer $TOKEN"`, then hide or add a wish; messages arrive within about 2 seconds (details in `use-cases.md` §6.2).
 - **Service token** (`/internal/*`): a static bearer token per service, guarded by `requireService("translation" | "printer")`. Each token only opens its own scope, and a scope with no configured token rejects everything.
 
 Request and response bodies are validated with the `@grad/contract` Zod schemas, and every error leaves as `{ error, message }`.

@@ -7,6 +7,8 @@ import {
   createWishRequestSchema,
   eventSchema,
   ingestTranslationSegmentRequestSchema,
+  liveDisplayFeedQuerySchema,
+  liveDisplayFeedResponseSchema,
   liveDisplayMessageSchema,
   liveTranslationMessageSchema,
   mediaVariantParamsSchema,
@@ -164,6 +166,14 @@ describe("live display", () => {
     expect(liveDisplayMessageSchema.safeParse({ type: "wish", wish }).success).toBe(true);
     expect(liveDisplayMessageSchema.safeParse({ type: "hidden", kind: "wish", id: uuid }).success).toBe(true);
     expect(liveDisplayMessageSchema.safeParse({ type: "wish", photo: {} }).success).toBe(false);
+  });
+
+  it("carries a keepalive cursor and a catch-up page", () => {
+    expect(liveDisplayMessageSchema.safeParse({ type: "keepalive", until: now }).success).toBe(true);
+    expect(liveDisplayFeedQuerySchema.safeParse({ since: "yesterday" }).success).toBe(false);
+    expect(liveDisplayFeedQuerySchema.parse({}).since).toBeUndefined();
+    const hidden = { type: "hidden", kind: "photo", id: "p1" };
+    expect(liveDisplayFeedResponseSchema.safeParse({ messages: [hidden], until: now }).success).toBe(true);
   });
 });
 

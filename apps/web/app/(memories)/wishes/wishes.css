@@ -1,0 +1,3 @@
+/* /wishes (#149): the form panel is a plain white panel; shared styles live in ../memories.css. */
+[data-theme="brand"] .wishes-form { width: 100%; }
+[data-theme="brand"] .wishes-form .brand-cta { align-self: flex-start; }

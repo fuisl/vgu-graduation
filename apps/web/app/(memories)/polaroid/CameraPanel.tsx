@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { DecodeText } from "../landing-title/DecodeText";
-import { MemoriesShell } from "../memories/MemoriesShell";
-import { browserApiOrigin } from "../../lib/api/browser-origin";
+import { browserApiOrigin } from "../../../lib/api/browser-origin";
+import "./polaroid.css";
 
 function jpegBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   return new Promise((resolve, reject) => {
@@ -30,7 +29,7 @@ function isUploadMediaResponse(value: unknown): value is UploadMediaResponse {
     && response.shotsRemaining >= 0;
 }
 
-export default function PolaroidPage() {
+export function CameraPanel() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -162,86 +161,70 @@ export default function PolaroidPage() {
   const mirrored = facingMode === "user";
 
   return (
-    <MemoriesShell current="polaroid" label="Disposable camera">
-      <div className="memories-wrapper">
-        <div className="memories-container">
-          <div className="memories-heading">
-            <div className="landing-event-meta mono">
-              <p><DecodeText text="1-TAKE / POLAROID" delay={80} /></p>
-              <span className="landing-event-signal" aria-hidden="true" />
+    <form onSubmit={handleCaptureAndSubmit} className="mem-panel cam-panel">
+      <div className="mem-field">
+        <p className="mem-label" id="viewfinder-label">01 / Viewfinder</p>
+        <div className="cam-viewfinder" role="group" aria-labelledby="viewfinder-label">
+          {cameraError ? (
+            <div className="cam-message" role="alert">{cameraError}</div>
+          ) : (
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              aria-label="Camera preview"
+              className={`cam-video${mirrored ? " is-mirrored" : ""}`}
+            />
+          )}
+
+          {/* Mechanical odometer: rolls to the new count after each shot */}
+          <div
+            className="cam-overlay cam-overlay--right cam-counter"
+            aria-label={photosRemaining === null ? "Shots remaining unknown until your first photo" : `${photosRemaining} shots remaining`}
+            role="img"
+          >
+            <div className={`cam-counter-track${isRolling ? " is-rolling" : ""}`} aria-hidden="true">
+              <div className="cam-counter-num">{photosRemaining ?? "--"}</div>
+              <div className="cam-counter-num">{photosRemaining === null ? "--" : Math.max(photosRemaining - 1, 0)}</div>
             </div>
-            <h1 className="memories-title"><DecodeText text="Snap a memory." delay={200} duration={800} /></h1>
           </div>
 
-          <form onSubmit={handleCaptureAndSubmit} className="memories-panel">
-            <div className="memories-field">
-              <p className="memories-label" id="viewfinder-label">01 / Viewfinder</p>
-              <div className="memories-viewfinder" role="group" aria-labelledby="viewfinder-label">
-                {cameraError ? (
-                  <div className="memories-viewfinder-message" role="alert">{cameraError}</div>
-                ) : (
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    aria-label="Camera preview"
-                    className={`memories-viewfinder-video${mirrored ? " is-mirrored" : ""}`}
-                  />
-                )}
+          <button
+            type="button"
+            onClick={() => setFacingMode((prev) => (prev === "user" ? "environment" : "user"))}
+            className="cam-flip cam-overlay cam-overlay--left"
+            aria-label={`Switch to ${mirrored ? "rear" : "selfie"} camera`}
+          >
+            Flip ({mirrored ? "Selfie" : "Rear"})
+          </button>
 
-                {/* Mechanical odometer: rolls to the new count after each shot */}
-                <div
-                  className="memories-viewfinder-overlay memories-viewfinder-overlay--right memories-counter"
-                  aria-label={photosRemaining === null ? "Shots remaining unknown until your first photo" : `${photosRemaining} shots remaining`}
-                  role="img"
-                >
-                  <div className={`memories-counter-track${isRolling ? " is-rolling" : ""}`} aria-hidden="true">
-                    <div className="memories-counter-num">{photosRemaining ?? "--"}</div>
-                    <div className="memories-counter-num">{photosRemaining === null ? "--" : Math.max(photosRemaining - 1, 0)}</div>
-                  </div>
-                </div>
+          <div className="cam-shutter">
+            <button
+              type="submit"
+              disabled={isSubmitting || !!cameraError || photosRemaining === 0}
+              className="cam-shutter-button"
+              aria-label={isSubmitting ? "Uploading photo" : "Take photo"}
+            >
+              <span className="cam-shutter-inner" aria-hidden="true" />
+            </button>
+          </div>
 
-                <button
-                  type="button"
-                  onClick={() => setFacingMode((prev) => (prev === "user" ? "environment" : "user"))}
-                  className="memories-button memories-viewfinder-overlay memories-viewfinder-overlay--left"
-                  aria-label={`Switch to ${mirrored ? "rear" : "selfie"} camera`}
-                >
-                  Flip ({mirrored ? "Selfie" : "Rear"})
-                </button>
-
-                <div className="memories-shutter">
-                  <button
-                    type="submit"
-                    disabled={isSubmitting || !!cameraError || photosRemaining === 0}
-                    className="memories-shutter-button"
-                    aria-label={isSubmitting ? "Uploading photo" : "Take photo"}
-                  >
-                    <span className="memories-shutter-inner" aria-hidden="true" />
-                  </button>
-                </div>
-
-                {photosRemaining === 0 && (
-                  <div className="memories-film-empty">
-                    <span className="memories-label memories-status--error">
-                      Film roll empty
-                    </span>
-                    <p className="memories-status">You have used all exposures.</p>
-                  </div>
-                )}
-              </div>
-              <canvas ref={canvasRef} hidden />
-              <p className="memories-help">
-                Your photo is public: it may be shown on the event display and gallery, and kept in the four-year
-                graduation archive. Contact an organizer to have something removed.
-              </p>
-              {uploadError ? <p role="alert" className="memories-status memories-status--error memories-status--left">{uploadError}</p> : null}
-              {uploadSuccess ? <p role="status" className="memories-status memories-status--success memories-status--left">{uploadSuccess}</p> : null}
+          {photosRemaining === 0 && (
+            <div className="cam-film-empty">
+              <span className="mem-label cam-film-empty__label">Film roll empty</span>
+              <p className="cam-film-empty__text">You have used all exposures.</p>
             </div>
-          </form>
+          )}
         </div>
+        <canvas ref={canvasRef} hidden />
+        <p className="mem-help">
+          Your photo is public: it may be shown on the event display and gallery, and kept in the four-year
+          graduation archive. Contact an organizer to have something removed.
+        </p>
+        {uploadError ? <p role="alert" className="mem-status mem-status--error">{uploadError}</p> : null}
+        {uploadSuccess ? <p role="status" className="mem-status mem-status--success">{uploadSuccess}</p> : null}
       </div>
-    </MemoriesShell>
+    </form>
   );
 }

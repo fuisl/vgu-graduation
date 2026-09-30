@@ -4,9 +4,8 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useRef, useState } from "react";
-import type { GalleryItem } from "../../data/gallery";
-import { DecodeText } from "../landing-title/DecodeText";
-import { MemoriesShell } from "../memories/MemoriesShell";
+import type { GalleryItem } from "../../../data/gallery";
+import "./gallery.css";
 
 type Filter = "ALL" | "WISHES" | "POLAROIDS";
 type ViewMode = "GRID" | "CAROUSEL";
@@ -27,7 +26,7 @@ function prefersReducedMotion() {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-export default function GalleryPage() {
+export function GalleryView() {
   const [isMounted, setIsMounted] = useState(false);
   const [filter, setFilter] = useState<Filter>("ALL");
   const [viewMode, setViewMode] = useState<ViewMode>("CAROUSEL");
@@ -205,151 +204,141 @@ export default function GalleryPage() {
   });
 
   return (
-    <MemoriesShell current="gallery" label="Gallery">
-      <div className="memories-wrapper">
-        <div className="memories-container memories-container--wide">
-          <div className="memories-heading">
-            <div className="landing-event-meta mono">
-              <p><DecodeText text="ARCHIVE / ALL MEMORIES" delay={80} /></p>
-              <span className="landing-event-signal" aria-hidden="true" />
-            </div>
-            <h1 className="memories-title"><DecodeText text="Digital Locket." delay={200} duration={800} /></h1>
-          </div>
-
-          <div className="memories-controls">
-            <div className="memories-control-group" role="group" aria-label="Show">
-              {FILTERS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => setFilter(option.value)}
-                  className="memories-button"
-                  aria-pressed={filter === option.value}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="memories-control-group">
-              {viewMode === "GRID" && (
-                <div className="memories-control-group" role="group" aria-label="Card size">
-                  <span className="memories-control-label" aria-hidden="true">Size</span>
-                  {GRID_SIZES.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => setGridSize(option.value)}
-                      className="memories-button memories-button--square"
-                      aria-pressed={gridSize === option.value}
-                      aria-label={option.label}
-                      title={option.label}
-                    >
-                      {option.value}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              <div className="memories-control-group" role="group" aria-label="Layout">
-                <button type="button" onClick={() => setViewMode("GRID")} className="memories-button" aria-pressed={viewMode === "GRID"}>
-                  Grid
-                </button>
-                <button type="button" onClick={() => setViewMode("CAROUSEL")} className="memories-button" aria-pressed={viewMode === "CAROUSEL"}>
-                  Carousel
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {isPartial ? (
-            <p role="status" className="memories-status memories-status--notice">
-              Some memories could not be loaded. Showing the entries that are available.
-            </p>
-          ) : null}
-
-          {isLoading ? (
-            <p role="status" className="memories-status">Loading memories…</p>
-          ) : loadError ? (
-            <p role="alert" className="memories-status memories-status--error">{loadError}</p>
-          ) : len === 0 ? (
-            <p className="memories-status">No entries yet.</p>
-          ) : viewMode === "GRID" ? (
-            <div className="memories-masonry">
-              {masonryColumns.map((col, colIndex) => (
-                <div key={colIndex} className="memories-masonry-col">
-                  {col.map((item, itemIndex) => (
-                    <GalleryCard
-                      key={item.id}
-                      item={item}
-                      index={colIndex * 2 + itemIndex}
-                      onView={() => openItem(item)}
-                      formatDate={formatDate}
-                    />
-                  ))}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div
-              className="memories-carousel"
-              role="region"
-              aria-roledescription="carousel"
-              aria-label="Memories"
-              onMouseEnter={() => setIsAutoPlaying(false)}
-              onMouseLeave={() => setIsAutoPlaying(true)}
-              onFocus={() => setIsAutoPlaying(false)}
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
+    <>
+      <div className="gal-controls">
+        <div className="mem-pills" role="group" aria-label="Show">
+          {FILTERS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setFilter(option.value)}
+              className="mem-pill"
+              aria-pressed={filter === option.value}
             >
-              <div className="memories-carousel-nav">
-                <button type="button" className="memories-button memories-button--square" onClick={handlePrev} aria-label="Previous memory">←</button>
-                <button type="button" className="memories-button memories-button--square" onClick={handleNext} aria-label="Next memory">→</button>
-              </div>
+              {option.label}
+            </button>
+          ))}
+        </div>
 
-              <div className="memories-carousel-track">
-                {filteredItems.map((item, index) => (
-                  <div
-                    key={`carousel-${item.id}`}
-                    className="memories-carousel-slot"
-                    style={getCarouselCardStyle(index)}
-                    onClick={() => handleCardClick(index)}
-                    aria-hidden={index !== frontIndex}
+        <div className="gal-control-group">
+          {viewMode === "GRID" && (
+            <div className="gal-control-group" role="group" aria-label="Card size">
+              <span className="mem-label mem-group-label" aria-hidden="true">Size</span>
+              <div className="mem-pills">
+                {GRID_SIZES.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setGridSize(option.value)}
+                    className="mem-pill"
+                    aria-pressed={gridSize === option.value}
+                    aria-label={option.label}
+                    title={option.label}
                   >
-                    <GalleryCard
-                      item={item}
-                      index={0}
-                      tabIndex={index === frontIndex ? 0 : -1}
-                      onView={(e) => {
-                        e?.stopPropagation();
-                        handleCardClick(index);
-                      }}
-                      formatDate={formatDate}
-                    />
-                  </div>
+                    {option.value}
+                  </button>
                 ))}
               </div>
-
-              <p className="memories-carousel-count" aria-live="polite">
-                {frontIndex + 1} / {len}
-              </p>
             </div>
           )}
+
+          <div className="mem-pills" role="group" aria-label="Layout">
+            <button type="button" onClick={() => setViewMode("GRID")} className="mem-pill" aria-pressed={viewMode === "GRID"}>
+              Grid
+            </button>
+            <button type="button" onClick={() => setViewMode("CAROUSEL")} className="mem-pill" aria-pressed={viewMode === "CAROUSEL"}>
+              Carousel
+            </button>
+          </div>
         </div>
       </div>
 
+      {isPartial ? (
+        <p role="status" className="mem-status mem-status--notice">
+          Some memories could not be loaded. Showing the entries that are available.
+        </p>
+      ) : null}
+
+      {isLoading ? (
+        <p role="status" className="mem-status mem-status--center">Loading memories…</p>
+      ) : loadError ? (
+        <p role="alert" className="mem-status mem-status--error mem-status--center">{loadError}</p>
+      ) : len === 0 ? (
+        <p className="mem-status mem-status--center">No entries yet.</p>
+      ) : viewMode === "GRID" ? (
+        <div className="gal-masonry">
+          {masonryColumns.map((col, colIndex) => (
+            <div key={colIndex} className="gal-masonry-col">
+              {col.map((item, itemIndex) => (
+                <GalleryCard
+                  key={item.id}
+                  item={item}
+                  index={colIndex * 2 + itemIndex}
+                  onView={() => openItem(item)}
+                  formatDate={formatDate}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div
+          className="gal-carousel"
+          role="region"
+          aria-roledescription="carousel"
+          aria-label="Memories"
+          onMouseEnter={() => setIsAutoPlaying(false)}
+          onMouseLeave={() => setIsAutoPlaying(true)}
+          onFocus={() => setIsAutoPlaying(false)}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          <div className="gal-carousel-nav">
+            <button type="button" className="mem-button mem-button--square" onClick={handlePrev} aria-label="Previous memory">←</button>
+            <button type="button" className="mem-button mem-button--square" onClick={handleNext} aria-label="Next memory">→</button>
+          </div>
+
+          <div className="gal-carousel-track">
+            {filteredItems.map((item, index) => (
+              <div
+                key={`carousel-${item.id}`}
+                className="gal-carousel-slot"
+                style={getCarouselCardStyle(index)}
+                onClick={() => handleCardClick(index)}
+                aria-hidden={index !== frontIndex}
+              >
+                <GalleryCard
+                  item={item}
+                  index={0}
+                  tabIndex={index === frontIndex ? 0 : -1}
+                  onView={(e) => {
+                    e?.stopPropagation();
+                    handleCardClick(index);
+                  }}
+                  formatDate={formatDate}
+                />
+              </div>
+            ))}
+          </div>
+
+          <p className="gal-carousel-count" aria-live="polite">
+            {frontIndex + 1} / {len}
+          </p>
+        </div>
+      )}
+
       {selectedItem && (
-        <div className="memories-dialog-backdrop" onClick={() => setSelectedItem(null)}>
+        <div className="gal-dialog-backdrop" onClick={() => setSelectedItem(null)}>
           <div
-            className="memories-dialog"
+            className="gal-dialog"
             role="dialog"
             aria-modal="true"
             aria-label={selectedItem.type === "WISH" ? `Wish from ${selectedItem.sender}` : `Photo from ${selectedItem.sender}`}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="memories-dialog-bar">
-              <button ref={closeButtonRef} type="button" className="memories-button" onClick={() => setSelectedItem(null)}>
+            <div className="gal-dialog-bar">
+              <button ref={closeButtonRef} type="button" className="mem-button" onClick={() => setSelectedItem(null)}>
                 Close
               </button>
             </div>
@@ -357,32 +346,32 @@ export default function GalleryPage() {
             <CardMeta item={selectedItem} formatDate={formatDate} />
 
             {selectedItem.type === "WISH" ? (
-              <div className="memories-wish memories-wish--full">
-                <span className="memories-quote" aria-hidden="true">&ldquo;</span>
+              <div className="gal-wish gal-wish--full">
+                <span className="gal-quote" aria-hidden="true">&ldquo;</span>
                 {selectedItem.content}
               </div>
             ) : (
-              <div className="memories-polaroid">
-                <div className="memories-polaroid-frame">
-                  <img src={selectedItem.content} alt={`Photo from ${selectedItem.sender}`} className="memories-polaroid-img" />
+              <div className="mem-polaroid">
+                <div className="mem-polaroid-frame">
+                  <img src={selectedItem.content} alt={`Photo from ${selectedItem.sender}`} className="mem-polaroid-img" />
                 </div>
               </div>
             )}
           </div>
         </div>
       )}
-    </MemoriesShell>
+    </>
   );
 }
 
 function CardMeta({ item, formatDate }: { item: GalleryItem; formatDate: (d: string) => string }) {
   return (
-    <div className="memories-meta">
-      <p className="memories-meta-list">
-        <span className="memories-meta-label">From: <span className="memories-meta-value">{item.sender}</span></span>
-        <span className="memories-meta-label">To: <span className="memories-meta-value">{item.receivers.join(", ")}</span></span>
+    <div className="gal-meta">
+      <p className="gal-meta-list">
+        <span className="gal-meta-label">From: <span className="gal-meta-value">{item.sender}</span></span>
+        <span className="gal-meta-label">To: <span className="gal-meta-value">{item.receivers.join(", ")}</span></span>
       </p>
-      <time className="memories-meta-time" dateTime={item.timestamp}>{formatDate(item.timestamp)}</time>
+      <time className="gal-meta-time" dateTime={item.timestamp}>{formatDate(item.timestamp)}</time>
     </div>
   );
 }
@@ -401,24 +390,24 @@ function GalleryCard({
   tabIndex?: number;
 }) {
   return (
-    <article className="memories-card" style={{ animationDelay: `${index * 50}ms` }}>
+    <article className="gal-card" style={{ animationDelay: `${index * 50}ms` }}>
       <CardMeta item={item} formatDate={formatDate} />
 
       {item.type === "WISH" ? (
-        <div className="memories-wish memories-wish--clamp">
-          <span className="memories-quote" aria-hidden="true">&ldquo;</span>
+        <div className="gal-wish gal-wish--clamp">
+          <span className="gal-quote" aria-hidden="true">&ldquo;</span>
           {item.content}
         </div>
       ) : (
-        <div className="memories-polaroid">
-          <div className="memories-polaroid-frame">
-            <img src={item.content} alt={`Photo from ${item.sender}`} className="memories-polaroid-img" loading="lazy" />
+        <div className="mem-polaroid">
+          <div className="mem-polaroid-frame">
+            <img src={item.content} alt={`Photo from ${item.sender}`} className="mem-polaroid-img" loading="lazy" />
           </div>
         </div>
       )}
 
-      <div className="memories-card-footer">
-        <button type="button" className="memories-button" onClick={onView} tabIndex={tabIndex}>
+      <div className="gal-card-footer">
+        <button type="button" className="mem-button" onClick={onView} tabIndex={tabIndex}>
           View details
         </button>
       </div>

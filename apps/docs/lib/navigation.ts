@@ -120,6 +120,7 @@ export const navGroups: readonly NavGroup[] = [
     sections: [
       {
         items: [
+          ["development/onboarding", "Onboarding"],
           ["development/workflow", "Workflow"],
           ["development/local-development", "Local development"],
           ["development/private-dependencies", "Private dependencies"],

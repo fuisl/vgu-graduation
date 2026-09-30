@@ -71,6 +71,10 @@ Request and response bodies are validated with the `@grad/contract` Zod schemas,
 - **Garage down** (or `S3_*` unset locally) is `503` with `Retry-After: 30` and the contract's `{ error, message }`; nothing else in the API is affected.
 - The original's key is the photo's row id, never its public id, and the photo row plus its `media.derive` job (payload `{ photoId }`) are inserted in one transaction.
 
+**Derivatives** (`apps/api/src/modules/media/derivatives.ts`, run by the worker): the `media.derive` job reads the original, applies its EXIF orientation, and writes two sRGB JPEGs to `grad-derivatives` as `{publicId}-{variant}.jpg`: `thumb` (fits 640 px) and `display` (fits 2048 px), never upscaled, transparency flattened onto white. All metadata (EXIF including GPS, XMP, IPTC, ICC) is dropped. The photo then becomes `ready` and stays `visible` (no pre-review). If every attempt fails (a corrupt file that only looked like an image), the photo is marked `failed` and never listed; the original is kept. Locally, run `pnpm --filter @grad/api worker` next to the API to process uploads.
+
+Images are processed with [sharp](https://sharp.pixelplumbing.com) (libvips). It ships prebuilt binaries for macOS and for Linux musl (`node:24-alpine`, x64 and arm64) as optional dependencies, so it needs no build step: `pnpm` reporting "Ignored build scripts: sharp" is expected, and the Dockerfile's `--ignore-scripts` install works unchanged.
+
 ## API configuration
 
 `apps/api` reads configuration from the environment only (`apps/api/src/config.ts`, validated with Zod; variables listed in `applications-and-repository.md` §4.3). Locally every variable has a safe default, so `.env` only needs overriding for what you change. With `NODE_ENV=production` the API refuses to start unless the S3, service-token, `PASS_SIGNING_KEY` and `ADMIN_SESSION_SECRET` variables are set, and the error names the missing variables, never their values. Locally, leaving `PASS_SIGNING_KEY` unset makes the API sign passes with an ephemeral key and log a warning (signature scheme: `use-cases.md` §6.1).

@@ -19,6 +19,7 @@ let admin: pg.Client | undefined;
 let pool: pg.Pool | undefined;
 let repo: InstanceType<typeof import("./media.repository.js").MediaRepository>;
 let DERIVE_JOB: string;
+let derivatives: typeof import("./derivatives.js");
 let invitationId: string;
 
 beforeAll(async () => {
@@ -51,6 +52,7 @@ beforeAll(async () => {
   const mod = await import("./media.repository.js");
   repo = new mod.MediaRepository();
   DERIVE_JOB = mod.DERIVE_JOB;
+  derivatives = await import("./derivatives.js");
 });
 
 afterAll(async () => {
@@ -109,5 +111,38 @@ describe("MediaRepository (real Postgres)", () => {
     await repo.createWithJob(newPhoto(), 2);
     await pool!.query("UPDATE photos SET moderation_status = 'removed'");
     expect(await repo.createWithJob(newPhoto(), 2)).toEqual({ status: "roll_finished" });
+  });
+
+  it("runs the queued derive job end to end: pending, then ready with dimensions", async () => {
+    const { JobQueue } = await import("../../worker/queue.js");
+    const { fakeObjectStore } = await import("../../storage/object-store.fake.js");
+    const sharp = (await import("sharp")).default;
+    const storage = fakeObjectStore();
+    const photo = newPhoto();
+    await storage.store.put("grad-originals", photo.originalKey,
+      await sharp({ create: { width: 1200, height: 800, channels: 3, background: "#123456" } }).jpeg().toBuffer(), "image/jpeg");
+    await repo.createWithJob(photo, 36);
+
+    const queue = new JobQueue(pool!);
+    const job = await queue.claim("test-worker");
+    expect(job).toMatchObject({ type: DERIVE_JOB, payload: { photoId: photo.id } });
+    const handler = derivatives.deriveHandler({
+      store: storage.store,
+      config: loadConfig({ S3_BUCKET_ORIGINALS: "grad-originals", S3_BUCKET_DERIVATIVES: "grad-derivatives" }),
+    });
+    await handler(job!);
+    await queue.complete(job!, "test-worker");
+
+    const { rows } = await pool!.query("SELECT processing_status, moderation_status, width, height FROM photos");
+    expect(rows).toEqual([{ processing_status: "ready", moderation_status: "visible", width: 1200, height: 800 }]);
+    expect(storage.objects.has(`grad-derivatives/${photo.publicId}-display.jpg`)).toBe(true);
+  });
+
+  it("marks a photo failed", async () => {
+    const photo = newPhoto();
+    await repo.createWithJob(photo, 36);
+    await repo.markFailed(photo.id);
+    expect(await repo.findForDerivation(photo.id)).toMatchObject({ processingStatus: "failed", moderationStatus: "visible" });
+    expect(await repo.findForDerivation(crypto.randomUUID())).toBeNull();
   });
 });

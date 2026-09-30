@@ -68,9 +68,9 @@ Each point's brightness (`SHADES`, precomputed once per shape) drives glyph dens
 
 ## ASCII rendering
 
-The scene renders normally, then passes through a two-stage GPU character renderer in `Sculpture.tsx`, adapted from ASCIIGen's live WebGL2 pipeline. The first stage runs at character-grid resolution: each cell averages a 3×3 neighborhood, tracks peak brightness, and stores one calibrated lightness value. The full-resolution second stage draws a font atlas using a 10-glyph ramp (space, then `.:-=+*#%@`, sparsest to densest). This avoids repeating nine source samples for every output pixel. Color follows that same blended lightness through a 3-stop gradient (violet shadow → blue midtone → icy cyan highlight) — color follows lighting, not screen position.
+The scene renders normally, then passes through a two-stage GPU character renderer in `Sculpture.tsx`, adapted from ASCIIGen's live WebGL2 pipeline. The first stage runs at character-grid resolution: each cell averages a 3×3 neighborhood, tracks peak brightness, and stores one calibrated lightness value. The full-resolution second stage draws a font atlas using a 10-glyph ramp (space, then `.:-=+*#%@`, sparsest to densest). This avoids repeating nine source samples for every output pixel. Color follows that same blended lightness through a 3-stop gradient (`#16378A` deep-blue shadow → `#B9C8EE` muted-blue midtone → `#FFFFFF` highlight, stops at 0 / 0.4 / 0.8; redesign #147) — color follows lighting, not screen position.
 
-- Device pixel ratio capped at 1.25; grid cell size adapts for phones (6×8px) vs. desktop (7×9px).
+- Device pixel ratio capped at 2; the glyph atlas is rasterised at the device-pixel size of one cell (css cell × DPR) and sampled ~1:1 so glyphs stay crisp on 1x and 2x (#6). The canvas uses normal blending (no `mix-blend-mode`) and there is no halo; grid cell size adapts for phones (6×8px) vs. desktop (7×9px).
 - The glyph atlas uses the same self-hosted Geist Mono face as the page and is created only after the font is ready, avoiding platform-dependent `monospace` substitutions.
 - The render loop pauses entirely when the document is hidden (`frameloop="never"`).
 - A static ASCII motif ships in server-rendered HTML and stays visible whenever the canvas isn't: reduced motion, no WebGL, a render error, or WebGL context loss.

@@ -1,16 +1,18 @@
 # Design Tokens
 
-> **Being replaced (2026-10-01):** the blue-and-white redesign supersedes this for guest-facing pages. See [redesign-2026-10.md](redesign-2026-10.md) and epic #142. Admin and docs are unchanged.
-
 Tokens are implemented in `packages/design-tokens`; code is authoritative for exact values.
-Families: color, typography, spacing, radius, motion, layout, depth.
-Use a small consistent scale. Prefer square/small radii, borders and spacing before shadows, and semantic accent colors. Do not use arbitrary values when a token fits. New token families require design review.
+Use a small consistent scale. Prefer square/small radii, borders and spacing before shadows. Do not use arbitrary values when a token fits. New token families require design review.
 
-## Brand theme (redesign #142)
+Two layers exist:
 
-Implemented in `packages/design-tokens/src/brand.css`, exported as `@grad/design-tokens/brand.css` and loaded by `apps/web/app/layout.tsx` after `tokens.css`. It is **opt-in and scoped**: every rule lives under `[data-theme="brand"]`, with no `:root` rules and no `prefers-color-scheme` switch (one fixed theme). Admin and `apps/docs` never set the attribute, so they are unchanged. `tokens.css` is untouched; the brand layer reuses its `--space-*`, `--motion-*`, `--ease`, `--gutter`, `--content`, `--text-xs` and `--font-mono`.
+- **Brand theme** (`brand.css`): the primary system for everything a guest sees. Documented first, below.
+- **Neutral tokens** (`tokens.css`): the original neutral light/dark tokens, now the admin and docs theme. They also supply the spacing, motion and layout scales that the brand layer reuses.
 
-Opt in with `<BrandTheme>` from `@grad/ui` (renders `<div data-theme="brand">`). Inside it, `--font-sans` becomes Inter Tight (`next/font/google`, Latin, Latin Extended and Vietnamese, `display: swap`, variable `--font-inter-tight`); Geist Mono stays for labels.
+## Brand theme
+
+Implemented in `packages/design-tokens/src/brand.css`, exported as `@grad/design-tokens/brand.css` and loaded by `apps/web/app/layout.tsx` after `tokens.css`. It is **opt-in and scoped**: every rule lives under `[data-theme="brand"]`, with no `:root` rules and no `prefers-color-scheme` switch (one fixed theme). Admin and `apps/docs` never set the attribute, so they are unaffected. `tokens.css` is untouched; the brand layer reuses its `--space-*`, `--motion-*`, `--ease`, `--gutter`, `--content`, `--text-xs` and `--font-mono`.
+
+Opt in with `<BrandTheme>` from `@grad/ui` (renders `<div data-theme="brand">`). Inside it, `--font-sans` becomes Inter Tight (`next/font/google` in `apps/web/app/layout.tsx`: Latin, Latin Extended and Vietnamese subsets, `display: swap`, variable `--font-inter-tight`); Geist Mono stays for labels. The brand theme sets the page background to white and the text colour to `--brand-fg`.
 
 ### Palette
 
@@ -66,3 +68,14 @@ All brief values passed unchanged. `muted-on-blue` on `blue` is the tightest pai
 - `PillGroup tone`: `on-blue` (default) is a `--brand-blue-deep` container with white text and a white active pill (blue text on white: 7.80). `on-white` is a `--brand-blue-soft` container with `--brand-blue` text (6.71) and an active pill of solid `--brand-blue` with white text (7.80).
 - `Section tone="blue-deep"` (used by the footer): text follows the blue tone; `--brand-muted-on-blue` on `--brand-blue-deep` is 6.45.
 - Disabled `Cta`: transparent fill, 1px `--brand-line` border, `--brand-muted` label; disabled controls are exempt from contrast rules.
+
+## Neutral tokens (admin and docs)
+
+`packages/design-tokens/src/tokens.css` defines the original neutral theme on `:root`: `--color-bg`, `--color-surface`, `--color-fg`, `--color-muted`, `--color-subtle`, `--color-border`, `--color-border-strong`, `--color-accent` (near-black in light, white in dark) and `--color-danger`, with short aliases `--bg`, `--surface`, `--fg`, `--muted`, `--border`. It follows `prefers-color-scheme` (light by default, dark override) and uses Geist Sans and Geist Mono. Shared scales:
+
+- Type: `--text-xs` to `--text-xl`. Spacing: `--space-1` to `--space-9`.
+- Radius: `--radius-sm` 4px, `--radius-md` 8px.
+- Layout: `--content` 760px, `--wide` 1440px, `--gutter` `clamp(1rem, 4vw, 3rem)`.
+- Motion: `--motion-fast` 120ms, `--motion-default` 220ms, `--motion-slow` 480ms, `--ease`. A global reduced-motion rule shortens animations and transitions.
+
+Use these only in admin, the docs site and shared scales. Guest-facing pages use the brand theme; do not mix `--color-*` into brand routes.

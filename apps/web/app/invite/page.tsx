@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { Container } from "@grad/ui";
+import { BrandTheme } from "@grad/ui";
 import { getEvent } from "../../lib/api/event";
 import { getInvitation } from "../../lib/api/invitations";
 import { INVITATION_COOKIE } from "../../lib/invite/cookie";
 import { selectInvitePageState } from "../../lib/invite/state";
+import { SiteFooter } from "../site/SiteFooter";
+import { SiteHeader } from "../site/SiteHeader";
 import { InviteNotice } from "./_components/InviteNotice";
 import { PersonalInvitation } from "./_components/PersonalInvitation";
+import "./invite.css";
 
 // Personal page behind a bearer credential: keep it out of search and never leak the URL.
 export const metadata: Metadata = {
@@ -23,16 +26,16 @@ export default async function InvitePage() {
   const state = selectInvitePageState(invitation);
 
   return (
-    <main style={{ minHeight: "100svh", padding: "var(--space-6) 0" }}>
-      <Container narrow>
-        <div style={{ display: "grid", gap: "var(--space-6)" }}>
-          {state.kind === "personal" ? (
-            <PersonalInvitation invitation={state.invitation} event={event} />
-          ) : (
-            <InviteNotice kind={state.kind} event={event} />
-          )}
-        </div>
-      </Container>
-    </main>
+    <BrandTheme>
+      <SiteHeader />
+      <main className="invite-main">
+        {state.kind === "personal" ? (
+          <PersonalInvitation invitation={state.invitation} event={event} />
+        ) : (
+          <InviteNotice kind={state.kind} event={event} />
+        )}
+      </main>
+      <SiteFooter />
+    </BrandTheme>
   );
 }

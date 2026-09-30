@@ -25,9 +25,9 @@ export async function PassBadge({ guestName, event }: { guestName: string; event
 
 export function PassBadgeSkeleton() {
   return (
-    <section aria-labelledby="badge-heading">
-      <h2 id="badge-heading">Your badge</h2>
-      <p role="status">Preparing your badge…</p>
+    <section aria-labelledby="badge-heading" className="invite-pass">
+      <h2 id="badge-heading" className="invite-heading">Your badge</h2>
+      <p className="invite-pass__meta" role="status">Preparing your badge…</p>
     </section>
   );
 }

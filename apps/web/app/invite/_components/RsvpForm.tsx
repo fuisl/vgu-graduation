@@ -1,22 +1,10 @@
 "use client";
 
 import type { Invitation } from "@grad/contract";
+import { Cta } from "@grad/ui";
 import { useState, useTransition, type FormEvent } from "react";
 import { IDLE, RETRY_MESSAGE, type RsvpFormState } from "../../../lib/invite/rsvp-form";
 import { submitRsvp } from "./rsvp-actions";
-
-const fieldStyle = { display: "block", width: "100%", minHeight: 44, marginTop: 4, font: "inherit" } as const;
-const groupStyle = { marginTop: "1rem" } as const;
-const buttonStyle = {
-  minHeight: 44,
-  padding: "0 1rem",
-  border: "1px solid var(--color-border-strong)",
-  borderRadius: "var(--radius-sm)",
-  background: "var(--fg)",
-  color: "var(--bg)",
-  fontFamily: "var(--font-mono)",
-  fontSize: 12,
-} as const;
 
 export function RsvpForm({ invitation }: { invitation: Invitation }) {
   const { rsvp, maxPlusOnes } = invitation;
@@ -45,13 +33,13 @@ export function RsvpForm({ invitation }: { invitation: Invitation }) {
 
   return (
     <form onSubmit={onSubmit} aria-busy={pending} aria-labelledby="rsvp-form-heading">
-      <h2 id="rsvp-form-heading">{rsvp ? "Change your RSVP" : "Respond to the invitation"}</h2>
+      <h2 id="rsvp-form-heading" className="invite-heading">{rsvp ? "Change your RSVP" : "Respond to the invitation"}</h2>
       <p>You can change your answer at any time.</p>
 
-      <fieldset disabled={pending} style={{ border: 0, padding: 0, margin: 0 }}>
-        <div role="radiogroup" aria-labelledby="rsvp-attending-label" style={groupStyle}>
+      <fieldset disabled={pending} className="invite-fieldset">
+        <div role="radiogroup" aria-labelledby="rsvp-attending-label" className="invite-field">
           <p id="rsvp-attending-label">Will you attend?</p>
-          <label>
+          <label className="invite-choice">
             <input
               type="radio"
               name="attending"
@@ -59,24 +47,23 @@ export function RsvpForm({ invitation }: { invitation: Invitation }) {
               checked={attending === "yes"}
               onChange={() => setAttending("yes")}
               required
-            />{" "}
+            />
             Yes, I will attend
           </label>
-          <br />
-          <label>
+          <label className="invite-choice">
             <input
               type="radio"
               name="attending"
               value="no"
               checked={attending === "no"}
               onChange={() => setAttending("no")}
-            />{" "}
+            />
             No, I cannot attend
           </label>
         </div>
 
         {showPlusOnes ? (
-          <div style={groupStyle}>
+          <div className="invite-field">
             <label htmlFor="rsvp-plus-ones">Guests you are bringing (0 to {maxPlusOnes})</label>
             <input
               id="rsvp-plus-ones"
@@ -88,13 +75,13 @@ export function RsvpForm({ invitation }: { invitation: Invitation }) {
               step={1}
               value={plusOnes}
               onChange={(e) => setPlusOnes(e.target.value)}
-              style={fieldStyle}
+              className="invite-input"
             />
           </div>
         ) : null}
 
         {attending === "yes" ? (
-          <div style={groupStyle}>
+          <div className="invite-field">
             <label htmlFor="rsvp-dietary">Dietary requirements (optional)</label>
             <input
               id="rsvp-dietary"
@@ -103,12 +90,12 @@ export function RsvpForm({ invitation }: { invitation: Invitation }) {
               maxLength={500}
               value={dietary}
               onChange={(e) => setDietary(e.target.value)}
-              style={fieldStyle}
+              className="invite-input"
             />
           </div>
         ) : null}
 
-        <div style={groupStyle}>
+        <div className="invite-field">
           <label htmlFor="rsvp-notes">Notes (optional)</label>
           <textarea
             id="rsvp-notes"
@@ -117,21 +104,21 @@ export function RsvpForm({ invitation }: { invitation: Invitation }) {
             maxLength={1000}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            style={fieldStyle}
+            className="invite-input"
           />
         </div>
 
-        <div style={groupStyle}>
-          <button type="submit" disabled={pending} style={buttonStyle}>
+        <div>
+          <Cta tone="on-white" type="submit" disabled={pending}>
             {pending ? "Saving..." : state.status === "error" && state.kind === "retry" ? "Try again" : "Save RSVP"}
-          </button>
+          </Cta>
         </div>
       </fieldset>
 
-      <div role="status" aria-live="polite" style={groupStyle}>
+      <div role="status" aria-live="polite" className="invite-status">
         {pending ? "Saving your RSVP..." : state.status === "success" ? state.message : null}
       </div>
-      <div role="alert" style={groupStyle}>
+      <div role="alert" className="invite-error">
         {!pending && state.status === "error" ? state.message : null}
       </div>
     </form>

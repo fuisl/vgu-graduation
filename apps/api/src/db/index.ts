@@ -11,6 +11,10 @@ export const pool = new Pool({
 
 pool.on("error", (err) => {
   console.error("Unexpected error on idle database client", err);
+  // In production a dead idle connection means restart (k8s brings the pod back).
+  // Under Vitest, test cleanup drops scratch databases WITH (FORCE), which kills
+  // idle pooled connections on purpose; exiting there fails the whole run at random.
+  if (process.env.VITEST) return;
   process.exit(-1);
 });
 

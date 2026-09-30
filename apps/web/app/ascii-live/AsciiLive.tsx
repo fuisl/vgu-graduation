@@ -1,6 +1,6 @@
 "use client";
 
-import { BrandEyebrow, BrandTheme, Cta, Section } from "@grad/ui";
+import { BrandEyebrow, BrandTheme, Cta, PillGroup, PillToggle, Section } from "@grad/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { SiteFooter } from "../site/SiteFooter";
 import { SiteHeader } from "../site/SiteHeader";
@@ -244,9 +244,9 @@ export function AsciiLive() {
             <div className="ascii-live-control-heading">
               <span>02</span><h2>Character set</h2>
             </div>
-            <div className="ascii-live-options" role="group" aria-label="Character set">
-              {CHARSETS.map((option) => <button key={option.id} type="button" aria-pressed={settings.charset === option.id} onClick={() => setSettings((value) => ({ ...value, charset: option.id }))}>{option.label}</button>)}
-            </div>
+            <PillGroup as="toggle" label="Character set" tone="on-white">
+              {CHARSETS.map((option) => <PillToggle key={option.id} pressed={settings.charset === option.id} onClick={() => setSettings((value) => ({ ...value, charset: option.id }))}>{option.label}</PillToggle>)}
+            </PillGroup>
 
             <div className="ascii-live-control-heading">
               <span>03</span><h2>Image</h2>

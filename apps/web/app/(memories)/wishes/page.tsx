@@ -1,6 +1,5 @@
 import type {Metadata} from "next";
-import Link from "next/link";
-import {BrandEyebrow, BrandTheme, Section} from "@grad/ui";
+import {BrandEyebrow, BrandTheme, Cta, Section} from "@grad/ui";
 import {SiteFooter} from "../../site/SiteFooter";
 import {SiteHeader} from "../../site/SiteHeader";
 import {WishForm} from "./WishForm";
@@ -16,7 +15,7 @@ export default function WishesPage() {
           <div className="mem-hero">
             <BrandEyebrow ellipsis>Guestbook / Digital locket</BrandEyebrow>
             <h1 id="wishes-title" className="mem-title">Leave a memory.</h1>
-            <Link className="mem-link" href="/polaroid">Take a disposable photo instead</Link>
+            <Cta tone="on-blue" variant="secondary" href="/polaroid">Take a disposable photo instead</Cta>
           </div>
         </Section>
         <Section tone="white" density="compact" narrow>

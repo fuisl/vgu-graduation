@@ -63,7 +63,7 @@
 
 /* Links -------------------------------------------------------------- */
 [data-theme="brand"] .invite-link,
-[data-theme="brand"] .invite-body a {
+[data-theme="brand"] .invite-body a:not(.brand-cta) {
   display: inline-block;
   padding-block: var(--space-2);
   color: var(--brand-blue);
@@ -75,14 +75,14 @@
   color: var(--brand-white);
 }
 [data-theme="brand"] .invite-link:hover,
-[data-theme="brand"] .invite-body a:hover {
+[data-theme="brand"] .invite-body a:not(.brand-cta):hover {
   color: var(--brand-blue-deep);
 }
 [data-theme="brand"] .invite-link--on-blue:hover {
   color: var(--brand-blue-soft);
 }
 [data-theme="brand"] .invite-link:focus-visible,
-[data-theme="brand"] .invite-body a:focus-visible,
+[data-theme="brand"] .invite-body a:not(.brand-cta):focus-visible,
 [data-theme="brand"] .invite-input:focus-visible,
 [data-theme="brand"] .invite-choice input:focus-visible {
   outline: 2px solid var(--brand-blue);
@@ -200,4 +200,8 @@
 }
 [data-theme="brand"] .invite-pass .invite-heading {
   margin-bottom: 0;
+}
+[data-theme="brand"] .invite-facts__action {
+  display: inline-block;
+  margin-top: var(--space-2);
 }

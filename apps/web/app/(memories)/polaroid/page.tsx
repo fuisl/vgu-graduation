@@ -1,6 +1,5 @@
 import type {Metadata} from "next";
-import Link from "next/link";
-import {BrandEyebrow, BrandTheme, Section} from "@grad/ui";
+import {BrandEyebrow, BrandTheme, Cta, Section} from "@grad/ui";
 import {SiteFooter} from "../../site/SiteFooter";
 import {SiteHeader} from "../../site/SiteHeader";
 import {CameraPanel} from "./CameraPanel";
@@ -17,7 +16,7 @@ export default function PolaroidPage() {
           <div className="mem-hero">
             <BrandEyebrow ellipsis>1-take / Polaroid</BrandEyebrow>
             <h1 id="polaroid-title" className="mem-title">Snap a memory.</h1>
-            <Link className="mem-link" href="/gallery">Back to the gallery</Link>
+            <Cta tone="on-blue" variant="secondary" href="/gallery">Back to the gallery</Cta>
           </div>
         </Section>
         <Section tone="white" density="compact" narrow>

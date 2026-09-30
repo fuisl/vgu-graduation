@@ -1,6 +1,6 @@
 import type {Metadata} from "next";
 import type {ReactNode} from "react";
-import {ArrowUpRightPixel, BrandEyebrow, BrandTheme, Cta, PillGroup, PillItem, Section} from "@grad/ui";
+import {ArrowUpRightPixel, BrandEyebrow, BrandTheme, Cta, PillGroup, PillItem, PillToggle, Section} from "@grad/ui";
 import {BrandLogo} from "../logo/BrandLogo";
 import {SiteFooter} from "../site/SiteFooter";
 import {SignedInChip} from "../site/GuestChip";
@@ -97,6 +97,15 @@ function Pills({title, tone = "on-blue"}: {title: string; tone?: "on-blue" | "on
   );
 }
 
+function Toggles({title, tone}: {title: string; tone: "on-blue" | "on-white"}) {
+  return (
+    <PillGroup as="toggle" label={title} tone={tone}>
+      <PillToggle pressed>Grid</PillToggle>
+      <PillToggle pressed={false}>Carousel</PillToggle>
+    </PillGroup>
+  );
+}
+
 export default function DesignSystem() {
   return (
     <BrandTheme>
@@ -188,11 +197,16 @@ export default function DesignSystem() {
           <h2 id="ds-on-blue" className="brand-ds-h2">On blue</h2>
           <Tone label="Cta as link"><Cta tone="on-blue" href="#ctas">Your invitation</Cta></Tone>
           <Tone label="Cta as button"><Cta tone="on-blue">Your invitation</Cta></Tone>
+          <Tone label="Cta secondary (outlined) and external">
+            <Cta tone="on-blue" variant="secondary" href="#ctas">Back to gallery</Cta>
+            <Cta tone="on-blue" variant="secondary" href="https://example.com" external>Directions</Cta>
+          </Tone>
           <Tone label="Cta disabled (outlined)">
             <Cta tone="on-blue" disabled>Your invitation</Cta>
             <Cta tone="on-blue" href="#ctas" disabled>As a link</Cta>
           </Tone>
           <Tone label="PillGroup tone on-blue (deep-blue container)"><Pills title="Pills on blue" /></Tone>
+          <Tone label="PillGroup as toggle (buttons, aria-pressed)"><Toggles title="Toggle on blue" tone="on-blue" /></Tone>
           <Tone label="BrandLogo compact, on-blue (header mark)"><span className="brand-ds-logo brand-ds-logo--compact"><BrandLogo variant="compact" tone="on-blue" /></span></Tone>
           <Tone label="BrandEyebrow"><BrandEyebrow ellipsis>Venue and time</BrandEyebrow></Tone>
           <Tone label="ArrowUpRightPixel"><span className="brand-ds-arrow"><ArrowUpRightPixel /></span></Tone>
@@ -204,11 +218,16 @@ export default function DesignSystem() {
           <h2 id="ds-on-white" className="brand-ds-h2">On white</h2>
           <Tone label="Cta as link"><Cta tone="on-white" href="#ctas">Your invitation</Cta></Tone>
           <Tone label="Cta as button"><Cta tone="on-white">Your invitation</Cta></Tone>
+          <Tone label="Cta secondary (outlined) and external">
+            <Cta tone="on-white" variant="secondary" href="#ctas">Back to gallery</Cta>
+            <Cta tone="on-white" variant="secondary" href="https://example.com" external>Directions</Cta>
+          </Tone>
           <Tone label="Cta disabled (outlined)">
             <Cta tone="on-white" disabled>Your invitation</Cta>
             <Cta tone="on-white" href="#ctas" disabled>As a link</Cta>
           </Tone>
           <Tone label="PillGroup tone on-white (blue-soft container, blue active pill)"><Pills title="Pills on white" tone="on-white" /></Tone>
+          <Tone label="PillGroup as toggle (buttons, aria-pressed)"><Toggles title="Toggle on white" tone="on-white" /></Tone>
           <Tone label="BrandLogo compact and full, on-white">
             <span className="brand-ds-logo brand-ds-logo--compact"><BrandLogo variant="compact" tone="on-white" /></span>
             <span className="brand-ds-logo brand-ds-logo--full"><BrandLogo variant="full" tone="on-white" /></span>

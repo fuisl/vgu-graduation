@@ -1,6 +1,6 @@
 import { renderToStaticMarkup as html } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { ArrowUpRightPixel, BrandEyebrow, BrandTheme, Cta, PillGroup, PillItem, Section } from "@grad/ui";
+import { ArrowUpRightPixel, BrandEyebrow, BrandTheme, Cta, PillGroup, PillItem, PillToggle, Section } from "@grad/ui";
 
 describe("brand primitives", () => {
   it("BrandTheme renders the opt-in root", () => {
@@ -34,6 +34,49 @@ describe("brand primitives", () => {
     expect(a).toContain("brand-cta__tile");
     const b = html(<Cta tone="on-white">Go</Cta>);
     expect(b).toMatch(/^<button class="brand-cta brand-cta--on-white" type="button"/);
+  });
+
+  it("Cta secondary is outlined: no tile for internal actions, modifier class on both tones", () => {
+    const a = html(<Cta tone="on-white" variant="secondary" href="/venue">Back</Cta>);
+    expect(a).toContain("brand-cta brand-cta--on-white brand-cta--secondary");
+    expect(a).not.toContain("brand-cta__tile");
+    expect(a).not.toContain("_blank");
+    expect(html(<Cta tone="on-blue" variant="secondary">Close</Cta>)).toMatch(/^<button class="brand-cta brand-cta--on-blue brand-cta--secondary"/);
+    expect(html(<Cta tone="on-white">Go</Cta>)).not.toContain("brand-cta--secondary");
+  });
+
+  it("Cta external opens a new tab with rel, an sr-only note and the arrow", () => {
+    const a = html(<Cta tone="on-blue" variant="secondary" href="https://maps.example" external>Directions</Cta>);
+    expect(a).toContain('target="_blank"');
+    expect(a).toContain('rel="noopener noreferrer"');
+    expect(a).toContain("(opens in a new tab)");
+    expect(a).toContain("brand-cta__tile");
+    const primary = html(<Cta tone="on-white" href="https://maps.example" external>Directions</Cta>);
+    expect(primary).toContain('target="_blank"');
+    const plain = html(<Cta tone="on-white" href="/x">Go</Cta>);
+    expect(plain).not.toContain("_blank");
+    expect(plain).not.toContain("opens in a new tab");
+  });
+
+  it("disabled secondary Cta stays inert and is never external", () => {
+    const a = html(<Cta tone="on-white" variant="secondary" href="https://x.example" external disabled>Go</Cta>);
+    expect(a).toContain('aria-disabled="true"');
+    expect(a).not.toContain("href");
+    expect(a).not.toContain("_blank");
+  });
+
+  it("PillGroup toggle renders a labelled group of aria-pressed buttons", () => {
+    const out = html(
+      <PillGroup as="toggle" label="Layout" tone="on-white">
+        <PillToggle pressed onClick={() => {}}>Grid</PillToggle>
+        <PillToggle pressed={false} onClick={() => {}}>Carousel</PillToggle>
+      </PillGroup>,
+    );
+    expect(out).toMatch(/^<div class="brand-pills brand-pills--on-white brand-pills--toggle" role="group" aria-label="Layout"/);
+    expect(out).not.toContain("<nav");
+    expect(out).toContain('type="button" aria-pressed="true"');
+    expect(out).toContain('aria-pressed="false"');
+    expect(out).not.toContain("aria-current");
   });
 
   it("PillGroup maps tone to a class, on-blue by default", () => {

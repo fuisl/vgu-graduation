@@ -26,6 +26,9 @@
   padding-top: var(--space-3);
   border-top: 1px solid var(--brand-line);
 }
+[data-theme="brand"] .venue-hero__action {
+  margin-top: var(--space-3);
+}
 [data-theme="brand"] .venue-label {
   margin: 0 0 var(--space-2);
   font-family: var(--font-mono);
@@ -60,13 +63,11 @@
 [data-theme="brand"] .venue-link:hover {
   text-decoration-thickness: 2px;
 }
-[data-theme="brand"] .venue-link:focus-visible,
-[data-theme="brand"] .venue-secondary:focus-visible {
+[data-theme="brand"] .venue-link:focus-visible {
   outline: 2px solid var(--brand-accent);
   outline-offset: 2px;
 }
-[data-theme="brand"] .venue-link--on-white:focus-visible,
-[data-theme="brand"] .venue-secondary:focus-visible {
+[data-theme="brand"] .venue-link--on-white:focus-visible {
   outline-color: var(--brand-blue);
 }
 
@@ -88,22 +89,6 @@
   flex-wrap: wrap;
   gap: var(--space-3);
   margin-top: var(--space-2);
-}
-/* Secondary calendar actions: Cta has no outlined variant yet (see PR). */
-[data-theme="brand"] .venue-secondary {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--brand-tap);
-  padding: 0 var(--space-4);
-  border: 1px solid var(--brand-blue);
-  border-radius: var(--brand-radius);
-  color: var(--brand-blue);
-  font-weight: 500;
-  text-decoration: none;
-  transition: background-color var(--motion-fast) var(--ease);
-}
-[data-theme="brand"] .venue-secondary:hover {
-  background: var(--brand-blue-soft);
 }
 [data-theme="brand"] .venue-pre {
   white-space: pre-line;

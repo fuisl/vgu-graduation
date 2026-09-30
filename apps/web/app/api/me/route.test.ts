@@ -45,7 +45,7 @@ describe("GET /api/me", () => {
     const spy = stubApi(200, invitation);
     const response = await GET(request(true));
     const text = await response.text();
-    expect(JSON.parse(text)).toEqual({ signedIn: true, firstName: "Linh", avatarSeed: invitation.guest.id });
+    expect(JSON.parse(text)).toEqual({ signedIn: true, firstName: "Tran", avatarSeed: invitation.guest.id });
     expect(text).not.toContain(TOKEN);
     expect(text).not.toContain("linh@example.com");
     expect(response.headers.get("Cache-Control")).toBe("private, no-store");
@@ -53,6 +53,17 @@ describe("GET /api/me", () => {
       "http://api.example.test/invitations/me",
       expect.objectContaining({ headers: expect.objectContaining({ Authorization: `Bearer ${TOKEN}` }) }),
     );
+  });
+
+  it.each([
+    ["Nguyen Van An", "An"],
+    ["  Linh   Tran ", "Tran"],
+    ["Madonna", "Madonna"],
+  ])("uses the last whitespace-separated word of %j (#170)", async (name, expected) => {
+    vi.stubEnv("API_ORIGIN", "http://api.example.test");
+    stubApi(200, { ...invitation, guest: { ...invitation.guest, name } });
+    const response = await GET(request(true));
+    expect((await response.json()).firstName).toBe(expected);
   });
 
   it.each([401, 404, 410, 500])("is signed out when the API answers %i", async (status) => {

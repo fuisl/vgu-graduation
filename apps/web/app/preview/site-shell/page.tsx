@@ -4,7 +4,7 @@ import {SiteHeader} from "../../site/SiteHeader";
 
 export const metadata = {title: "Site shell preview", robots: {index: false}};
 
-/** Temporary, unlinked audit route for #145. Removed in #155. */
+/** Temporary, unlinked audit route for #145. Remove before merging to main (owner is auditing with it). */
 export default function SiteShellPreview() {
   return (
     <BrandTheme>

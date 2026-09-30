@@ -515,3 +515,62 @@
   letter-spacing: var(--brand-tracking-label);
   text-transform: uppercase;
 }
+
+/* guest chip (#146) -------------------------------------------------- */
+[data-theme="brand"] .brand-guest-chip {
+  display: inline-flex;
+  align-items: stretch;
+  min-height: var(--brand-tap);
+  border-radius: var(--brand-radius);
+  background: var(--brand-white);
+  color: var(--brand-blue);
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  transition: background-color var(--motion-fast) var(--ease);
+}
+[data-theme="brand"] .brand-guest-chip:hover {
+  background: var(--brand-blue-soft);
+}
+[data-theme="brand"] .brand-guest-chip:hover .brand-arrow {
+  transform: translate(1px, -1px);
+}
+[data-theme="brand"] .brand-guest-chip:focus-visible {
+  outline: 2px solid var(--brand-accent);
+  outline-offset: 2px;
+}
+[data-theme="brand"] .brand-guest-chip .guest-avatar {
+  align-self: center;
+  margin-left: var(--space-2);
+}
+[data-theme="brand"] .brand-guest-chip__name {
+  display: inline-flex;
+  align-items: center;
+  max-width: 12ch;
+  padding: 0 var(--space-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+[data-theme="brand"] .brand-guest-chip__tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--brand-tap);
+  margin: var(--space-1);
+  border-radius: var(--brand-radius-sm);
+  background: var(--brand-blue);
+  color: var(--brand-white);
+  font-size: 1.125rem;
+}
+[data-theme="brand"] .guest-avatar {
+  display: inline-flex;
+  flex: none;
+  line-height: 0;
+}
+[data-theme="brand"] .guest-avatar svg,
+[data-theme="brand"] .guest-avatar img {
+  display: block;
+  border-radius: 50%;
+}
+/* end guest chip (#146) */

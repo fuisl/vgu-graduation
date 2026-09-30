@@ -5,7 +5,7 @@ import DesignSystem, { metadata } from "./page";
 describe("/design-system", () => {
   const out = html(<DesignSystem />);
   it("renders every section heading", () => {
-    for (const h of ["Design system", "Colour", "Contrast", "Inter Tight and Geist Mono", "Rhythm and shape", "On blue", "On white", "Coming soon", "Do and don"])
+    for (const h of ["Design system", "Colour", "Contrast", "Inter Tight and Geist Mono", "Rhythm and shape", "On blue", "On white", "Two states", "Do and don"])
       expect(out).toContain(h);
   });
   it("alternates tones inside the brand theme and proves diacritics", () => {

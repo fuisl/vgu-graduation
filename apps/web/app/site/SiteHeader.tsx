@@ -3,13 +3,13 @@ import type {ReactNode} from "react";
 import {PillGroup, PillItem} from "@grad/ui";
 import {BrandLogo} from "../logo/BrandLogo";
 import {MobileMenu} from "./MobileMenu";
-import {SignedOutChip} from "./SiteAction";
+import {GuestChip} from "./GuestChip";
 import {SITE_NAV, type SiteNavKey} from "./nav";
 
 type Props = {
   /** Marks the active page (aria-current, white pill). */
   current?: SiteNavKey;
-  /** Right-hand slot. Defaults to the signed-out chip; #146 passes the guest chip here. */
+  /** Right-hand slot. Defaults to the two-state guest chip (#146). */
   action?: ReactNode;
 };
 
@@ -19,7 +19,7 @@ type Props = {
  * CSS hides the one that does not apply (display:none, so it leaves the a11y tree).
  */
 export function SiteHeader({current, action}: Props) {
-  const slot = action ?? <SignedOutChip />;
+  const slot = action ?? <GuestChip />;
   return (
     <header className="brand-header">
       <div className="brand-header__inner">

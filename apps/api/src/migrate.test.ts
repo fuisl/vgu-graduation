@@ -73,7 +73,7 @@ describe("runMigrations", () => {
     const applied = await query<{ count: string }>(
       "SELECT count(*) FROM drizzle.__drizzle_migrations",
     );
-    expect(Number(applied[0].count)).toBe(3);
+    expect(Number(applied[0].count)).toBe(4);
   });
 
   it("serializes concurrent runs", async (ctx) => {

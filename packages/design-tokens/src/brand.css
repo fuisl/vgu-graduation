@@ -1,0 +1,195 @@
+/*
+ * Brand theme (redesign #142, brief: docs/design/redesign-2026-10.md).
+ * Opt-in and scoped: nothing here applies until an element carries
+ * data-theme="brand". One fixed theme: no :root, no prefers-color-scheme.
+ * Reuses tokens.css for --space-*, --motion-*, --ease, --gutter, --content.
+ */
+[data-theme="brand"] {
+  /* Palette (contrast ratios: docs/design/tokens.md) */
+  --brand-blue: #1f4bb0;
+  --brand-blue-deep: #16378a;
+  --brand-blue-soft: #e8eefb;
+  --brand-white: #ffffff;
+  --brand-ink: #0b1a3a;
+  --brand-muted-on-blue: #b9c8ee;
+  --brand-muted-on-white: #5b6784;
+  --brand-line-on-blue: rgba(255, 255, 255, 0.18);
+  --brand-line-on-white: #d9e0f0;
+  --brand-accent: #69e8d4;
+  --brand-danger-on-white: #b42318;
+  --brand-danger-on-blue: #ffc2b8;
+  --brand-success-on-white: #0f7a3e;
+  --brand-success-on-blue: #8ef0b0;
+
+  /* Surface-following aliases. Default = white surface; blue sections override. */
+  --brand-fg: var(--brand-ink);
+  --brand-muted: var(--brand-muted-on-white);
+  --brand-line: var(--brand-line-on-white);
+  --brand-danger: var(--brand-danger-on-white);
+  --brand-success: var(--brand-success-on-white);
+
+  /* Type */
+  --font-sans: var(--font-inter-tight), Arial, Helvetica, sans-serif;
+  --brand-text-body: clamp(1rem, 0.96rem + 0.2vw, 1.125rem);
+  --brand-text-lead: clamp(1.125rem, 1rem + 0.6vw, 1.5rem);
+  --brand-text-h3: clamp(1.25rem, 1.1rem + 0.8vw, 1.75rem);
+  --brand-text-h2: clamp(1.75rem, 1.3rem + 2.2vw, 3rem);
+  --brand-text-h1: clamp(2.5rem, 1.6rem + 4.5vw, 5rem);
+  --brand-text-display: clamp(3rem, 1.5rem + 7.5vw, 8rem);
+  --brand-leading-body: 1.5;
+  --brand-leading-display: 1.02;
+  --brand-tracking-display: -0.03em;
+  --brand-tracking-label: 0.08em;
+  --brand-measure: 70ch;
+
+  /* Shape and rhythm */
+  --brand-radius-sm: 2px;
+  --brand-radius: 4px;
+  --brand-section-y: clamp(var(--space-8), 9vw, 8rem);
+  --brand-tap: 44px;
+
+  background: var(--brand-white);
+  color: var(--brand-fg);
+  font-family: var(--font-sans);
+  font-size: var(--brand-text-body);
+  line-height: var(--brand-leading-body);
+}
+
+/* Section ------------------------------------------------------------ */
+[data-theme="brand"] .brand-section {
+  padding-block: var(--brand-section-y);
+  color: var(--brand-fg);
+  background: var(--brand-surface);
+}
+[data-theme="brand"] .brand-section--white {
+  --brand-surface: var(--brand-white);
+}
+[data-theme="brand"] .brand-section--blue {
+  --brand-surface: var(--brand-blue);
+  --brand-fg: var(--brand-white);
+  --brand-muted: var(--brand-muted-on-blue);
+  --brand-line: var(--brand-line-on-blue);
+  --brand-danger: var(--brand-danger-on-blue);
+  --brand-success: var(--brand-success-on-blue);
+}
+
+/* Eyebrow ------------------------------------------------------------ */
+[data-theme="brand"] .brand-eyebrow {
+  margin: 0 0 var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--brand-tracking-label);
+  text-transform: uppercase;
+  color: var(--brand-muted);
+}
+
+/* Icon --------------------------------------------------------------- */
+[data-theme="brand"] .brand-arrow {
+  display: block;
+  width: 1em;
+  height: 1em;
+  shape-rendering: crispEdges;
+  transition: transform var(--motion-fast) var(--ease);
+}
+
+/* Cta ---------------------------------------------------------------- */
+[data-theme="brand"] .brand-cta {
+  display: inline-flex;
+  align-items: stretch;
+  min-height: var(--brand-tap);
+  padding: 0;
+  border: 0;
+  border-radius: var(--brand-radius);
+  font: inherit;
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease);
+}
+[data-theme="brand"] .brand-cta__label {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--space-4);
+}
+[data-theme="brand"] .brand-cta__tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--brand-tap);
+  margin: var(--space-1);
+  border-radius: var(--brand-radius-sm);
+  font-size: 1.125rem;
+}
+[data-theme="brand"] .brand-cta--on-blue {
+  background: var(--brand-white);
+  color: var(--brand-blue);
+}
+[data-theme="brand"] .brand-cta--on-blue .brand-cta__tile {
+  background: var(--brand-blue);
+  color: var(--brand-white);
+}
+[data-theme="brand"] .brand-cta--on-blue:hover {
+  background: var(--brand-blue-soft);
+}
+[data-theme="brand"] .brand-cta--on-white {
+  background: var(--brand-blue);
+  color: var(--brand-white);
+}
+[data-theme="brand"] .brand-cta--on-white .brand-cta__tile {
+  background: var(--brand-white);
+  color: var(--brand-blue);
+}
+[data-theme="brand"] .brand-cta--on-white:hover {
+  background: var(--brand-blue-deep);
+}
+[data-theme="brand"] .brand-cta:hover .brand-arrow {
+  transform: translate(1px, -1px);
+}
+[data-theme="brand"] .brand-cta:focus-visible {
+  outline: 2px solid var(--brand-accent);
+  outline-offset: 2px;
+}
+[data-theme="brand"] .brand-cta--on-white:focus-visible {
+  outline-color: var(--brand-blue);
+}
+[data-theme="brand"] .brand-cta:disabled,
+[data-theme="brand"] .brand-cta[aria-disabled="true"] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* PillGroup / PillItem ------------------------------------------------ */
+[data-theme="brand"] .brand-pills {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  padding: 4px;
+  border-radius: var(--brand-radius);
+  background: var(--brand-blue-deep);
+}
+[data-theme="brand"] .brand-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--brand-tap);
+  padding: 0 var(--space-4);
+  border-radius: var(--brand-radius-sm);
+  color: var(--brand-white);
+  font-weight: 500;
+  text-decoration: none;
+  transition:
+    background-color var(--motion-fast) var(--ease),
+    color var(--motion-fast) var(--ease);
+}
+[data-theme="brand"] .brand-pill:hover {
+  background: var(--brand-line-on-blue);
+}
+[data-theme="brand"] .brand-pill[aria-current="page"] {
+  background: var(--brand-white);
+  color: var(--brand-blue);
+}
+[data-theme="brand"] .brand-pill:focus-visible {
+  outline: 2px solid var(--brand-accent);
+  outline-offset: 2px;
+}

@@ -1,0 +1,62 @@
+/*
+ * Disposable camera (#149). The viewfinder is a dark photo surface (--brand-ink); everything on it
+ * reads as white. Status colours on it use the on-blue variants (they are tuned for dark surfaces).
+ * Shared styles live in ../memories.css.
+ */
+[data-theme="brand"] .cam-panel { width: 100%; }
+[data-theme="brand"] .cam-viewfinder {
+  --brand-danger: var(--brand-danger-on-blue);
+  position: relative; display: flex; align-items: center; justify-content: center;
+  width: 100%; aspect-ratio: 4 / 3; overflow: hidden;
+  border-radius: var(--brand-radius); background: var(--brand-ink); color: var(--brand-white);
+}
+[data-theme="brand"] .cam-video { width: 100%; height: 100%; object-fit: cover; }
+[data-theme="brand"] .cam-video.is-mirrored { transform: scaleX(-1); }
+[data-theme="brand"] .cam-message { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; padding: var(--space-5); text-align: center; color: var(--brand-danger); }
+[data-theme="brand"] .cam-overlay { position: absolute; top: var(--space-3); z-index: 10; }
+[data-theme="brand"] .cam-overlay--left { left: var(--space-3); }
+[data-theme="brand"] .cam-overlay--right { right: var(--space-3); }
+[data-theme="brand"] .cam-flip {
+  min-width: var(--brand-tap); min-height: var(--brand-tap); padding: 0 var(--space-4);
+  border: 1px solid var(--brand-line-on-blue); border-radius: var(--brand-radius);
+  background: color-mix(in srgb, var(--brand-ink) 60%, transparent); color: var(--brand-white);
+  font: inherit; font-size: var(--text-sm); font-weight: 500; cursor: pointer;
+}
+[data-theme="brand"] .cam-flip:hover { border-color: var(--brand-white); }
+[data-theme="brand"] .cam-flip:focus-visible,
+[data-theme="brand"] .cam-shutter-button:focus-visible { outline: 2px solid var(--brand-accent); outline-offset: 3px; }
+
+/* Shots counter: mechanical odometer */
+[data-theme="brand"] .cam-counter {
+  display: flex; justify-content: center; align-items: flex-start; height: 24px; min-width: 36px; padding: 0 var(--space-3); overflow: hidden;
+  border: 1px solid var(--brand-line-on-blue); border-radius: var(--brand-radius-sm);
+  background: color-mix(in srgb, var(--brand-ink) 70%, transparent); color: var(--brand-white);
+  font-family: var(--font-mono); font-size: var(--text-xs);
+}
+[data-theme="brand"] .cam-counter-track { display: flex; flex-direction: column; align-items: center; width: 100%; }
+[data-theme="brand"] .cam-counter-track.is-rolling { transform: translateY(-24px); transition: transform var(--motion-slow) var(--ease); }
+[data-theme="brand"] .cam-counter-num { height: 24px; line-height: 24px; font-weight: 700; }
+
+[data-theme="brand"] .cam-shutter { position: absolute; bottom: var(--space-4); left: 50%; z-index: 10; transform: translateX(-50%); }
+[data-theme="brand"] .cam-shutter-button {
+  display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; padding: 0;
+  border: 2px solid var(--brand-white); border-radius: 50%; background: transparent; cursor: pointer;
+  transition: transform var(--motion-fast) var(--ease), background-color var(--motion-fast) var(--ease);
+}
+[data-theme="brand"] .cam-shutter-button:hover:not(:disabled) { background: var(--brand-line-on-blue); }
+[data-theme="brand"] .cam-shutter-button:active:not(:disabled) { transform: scale(0.95); }
+[data-theme="brand"] .cam-shutter-button:disabled { border-color: var(--brand-muted-on-blue); cursor: not-allowed; }
+[data-theme="brand"] .cam-shutter-inner { width: 38px; height: 38px; border-radius: 50%; background: var(--brand-white); }
+[data-theme="brand"] .cam-shutter-button:disabled .cam-shutter-inner { background: var(--brand-muted-on-blue); }
+
+[data-theme="brand"] .cam-film-empty {
+  position: absolute; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-3); padding: var(--space-6);
+  background: color-mix(in srgb, var(--brand-ink) 92%, transparent); text-align: center;
+}
+[data-theme="brand"] .cam-film-empty__label { color: var(--brand-danger); }
+[data-theme="brand"] .cam-film-empty__text { margin: 0; color: var(--brand-muted-on-blue); }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="brand"] .cam-counter-track.is-rolling { transition: none; }
+  [data-theme="brand"] .cam-shutter-button { transition: none; }
+}

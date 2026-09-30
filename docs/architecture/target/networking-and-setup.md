@@ -33,7 +33,7 @@ Vercel-served hostnames are unaffected by ADR-009: Vercel still terminates its o
 ## 8.4 Cluster ingress
 
 - Traefik listens on the node's LAN address through ServiceLB on ports 80 and 443. From the internet, only the router's forwarded ports 80/443 reach it (ADR-009) — there is no `cloudflared` and no pod-network hop in front of it anymore.
-- Ingress resources use `ingressClassName: traefik`. Since ADR-009, the `api` Ingress *does* need a TLS section — a `Certificate` from the `letsencrypt-http01` `ClusterIssuer` (section 7.6), because Traefik itself now terminates TLS; there is no Cloudflare edge to do it instead. The same `ClusterIssuer` covers the LAN-path Ingress too.
+- Ingress resources use `ingressClassName: traefik`. Since ADR-009, the `api` Ingress *does* need a TLS section — a `Certificate` from the `letsencrypt-prod` `ClusterIssuer` (HTTP-01; `letsencrypt-staging` for testing) (section 7.6), because Traefik itself now terminates TLS; there is no Cloudflare edge to do it instead. The same `ClusterIssuer` covers the LAN-path Ingress too.
 - Client IP: with no proxy in front, Traefik sees the real client IP directly on the connection; there is no forwarded-header trust configuration to set up (ADR-009 removes the `cloudflared`-specific `trustedIPs` config that section 7.2's Traefik customization used to need). The API reads it from the connection, same as Traefik, for rate limiting and audit.
 - WebSockets pass through Traefik with no extra configuration.
 - Body size is enforced by the API rather than by Traefik buffering, so uploads stream instead of being spooled.

@@ -193,18 +193,20 @@ ClusterIssuer using the **HTTP-01** solver (ADR-009: DNS is not on Cloudflare, s
 ```yaml
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
-metadata: { name: letsencrypt-http01 }
+metadata: { name: letsencrypt-prod }   # a letsencrypt-staging twin points at the staging directory
 spec:
   acme:
     server: https://acme-v02.api.letsencrypt.org/directory
     email: YOUR_CONTACT_EMAIL_HERE
-    privateKeySecretRef: { name: letsencrypt-http01-account }
+    privateKeySecretRef: { name: letsencrypt-prod-account }
     solvers:
       - http01:
           ingress: { ingressClassName: traefik }
 ```
 
 **CloudNativePG operator, Barman Cloud plugin, and the database**
+
+> **As deployed (2026-09-30, #50):** the operator (chart 0.29.1, operator 1.30.1) and the `grad-db` Cluster run as below, except that **no backups are configured**. The Barman Cloud plugin, the `garage-backups` ObjectStore and the `grad-db-nightly` ScheduledBackup are not installed, and `grad-db` has no `plugins` entry, because there is no backup target yet (#126, closed as not planned). The Garage `grad-backups` bucket and the `grad/garage-backup-key` Secret already exist for when that changes. `grad-db` also sets `enablePDB: false` so the single node can be drained.
 
 ```yaml
 apiVersion: source.toolkit.fluxcd.io/v1
@@ -480,7 +482,7 @@ metadata:
   namespace: grad
   annotations:
     traefik.ingress.kubernetes.io/router.middlewares: grad-api-headers@kubernetescrd,grad-api-ratelimit@kubernetescrd,edge-fallback@kubernetescrd
-    cert-manager.io/cluster-issuer: letsencrypt-http01
+    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   ingressClassName: traefik
   tls:

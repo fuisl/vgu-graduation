@@ -83,14 +83,9 @@ The scene renders normally, then passes through a two-stage GPU character render
 
 `docs/design/reference/landing-desktop.png` and `landing-mobile.png` exist but predate this pass — the sculpture set, wordmark, and background layers have all changed since they were captured. Recapture both from a local production build before treating them as current.
 
-## Graduation ASCII chapter
+## Landing composition (#148)
 
-The hero is followed directly by a dark archive chapter with background art only, leaving the left side free for later editorial content. Two layers:
-
-- **Text field** — a full-bleed canvas of varied GRAD/VGU vocabulary (seeded, so it never repeats one phrase), drawn once to an offscreen layer at a very low alpha (about 11%) so it stays a quiet texture. Text never brightens or blinks. Instead, cells occasionally scramble through random letters and symbols in their own resting color, then return. The chance of scrambling is highest inside the cap and falls off exponentially with distance from it (about 15 cells of reach), so the wall is nearly still far from the cap. Scrambles are slow and sparse: ticks every 140ms, each cell holds a scramble for roughly 0.7–1.8s and swaps its glyph only occasionally. Redraw is capped near 7fps, pauses offscreen or in a hidden tab, and reduced motion shows the static wall.
-- **Cap** — `public/media/graduation-cap.png` is never shown. It is sampled at 3× into a per-cell mask (mean ink plus an edge term; the white page and pale watermark fall below a cutoff). Cells inside the mask draw the wall's own characters. For depth, the mask's smoothed level is treated as a height field lit from the upper left: rims facing the light turn icy, sides facing away fall to violet (the sculpture's shader gradient), and cells just down-right of the cap are dimmed as a drop shadow so it floats above the wall. A blue glow follows the mask. The cap is about 36% of the width, right of center and vertically centered; it centers lower on phones. No asciify pass is involved.
-
-The source image is a watermarked stock preview; swap in the licensed file at the same path before launch.
+`/` is a blue-and-white, event-first page inside `BrandTheme` (styles in `apps/web/app/landing.css`): blue hero (recoloured sculpture with its code backdrop, mono labels around it on wide screens, the `Graduation ’26` headline with `DecodeText` as the only decoded copy, event line, one "Your invitation" Cta), white "When and where" (from `getEvent`, map link, calendar Cta), blue gallery teaser (latest six thumb derivatives, empty and unavailable states), white wishes teaser (latest three, clamped), then the shared footer. The page is server-rendered and `force-dynamic`; each data section degrades on its own when the API is down. The earlier ASCII graduation chapter and its watermarked stock image were removed (owner decision, 2026-10-01).
 
 ## Guest badge prototype
 

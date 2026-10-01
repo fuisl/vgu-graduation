@@ -5,12 +5,17 @@ import { buildCalendarLinks } from "../../lib/calendar/links";
 import { formatEventWhen } from "../../lib/invite/format";
 import { SiteFooter } from "../site/SiteFooter";
 import { SiteHeader } from "../site/SiteHeader";
+import { CalendarEmailForm } from "./CalendarEmailForm";
+import { CampusFigure } from "./CampusFigure";
 import "./venue.css";
 
 export const metadata: Metadata = {
   title: "Venue and calendar · GRAD '26",
   description: "When and where the ceremony takes place, directions, and how to add it to your calendar.",
 };
+
+/** FIG_001 draws the Ceremony Hall; it only shows while the configured venue is that hall. */
+const DRAWN_VENUE = /ceremony hall/i;
 
 // PUBLIC_API_ORIGIN is read at request time; the event itself is cached by getEvent (300 s).
 export const dynamic = "force-dynamic";
@@ -45,88 +50,90 @@ export default async function VenuePage() {
 
   const event = result.data;
   const when = formatEventWhen(event);
+  // One line, no year: the page is about this year's ceremony. The clock time shows only once confirmed.
+  const day = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: event.timeZone })
+    .format(new Date(event.startsAt));
   const links = buildCalendarLinks(event);
+
+  const drawn = DRAWN_VENUE.test(event.venue.name);
 
   return (
     <BrandTheme>
       <SiteHeader current="venue" />
       <main className="venue-main">
         <Section tone="blue" aria-labelledby="venue-heading">
-          <BrandEyebrow>Venue and calendar</BrandEyebrow>
-          <h1 id="venue-heading" className="venue-title">{event.name}</h1>
-          <div className="venue-hero">
-            <section aria-labelledby="when-heading" className="venue-hero__item">
-              <h2 id="when-heading" className="venue-label">When</h2>
-              <p className="venue-text venue-text--lead">
-                <time dateTime={event.startsAt}>{when.date}</time>
-                <br />
-                {when.time}
-              </p>
-              {event.timeConfirmed ? null : (
-                <p className="venue-note">
-                  The date and time may still change. Subscribe to the calendar below to get updates automatically.
-                </p>
-              )}
-            </section>
+          {/* Desktop: everything on one screen, facts on the left and FIG_001 on the right. */}
+          <div className={drawn ? "venue-split" : "venue-split venue-split--solo"}>
+            <div className="venue-info">
+              <BrandEyebrow>Venue and calendar</BrandEyebrow>
+              <h1 id="venue-heading" className="venue-title">{event.name}</h1>
 
-            <section aria-labelledby="where-heading" className="venue-hero__item">
-              <h2 id="where-heading" className="venue-label">Where</h2>
-              <p className="venue-text venue-text--lead">
-                {event.venue.name}
-                <br />
-                {event.venue.address}
-              </p>
-              <div className="venue-hero__action">
-                <Cta tone="on-blue" variant="secondary" href={event.venue.mapUrl} external>Directions</Cta>
+              <div className="venue-facts">
+                <section aria-labelledby="when-heading" className="venue-fact">
+                  <h2 id="when-heading" className="venue-label">When</h2>
+                  <p className="venue-text venue-text--lead">
+                    <time dateTime={event.startsAt}>{day}</time>
+                    {event.timeConfirmed ? (
+                      <>
+                        <br />
+                        {when.time}
+                      </>
+                    ) : null}
+                  </p>
+                  {event.timeConfirmed ? null : (
+                    <p className="venue-note">The date and time may still change; this page always shows the latest.</p>
+                  )}
+                </section>
+
+                <section aria-labelledby="where-heading" className="venue-fact">
+                  <h2 id="where-heading" className="venue-label">Where</h2>
+                  <p className="venue-text venue-text--lead">
+                    {event.venue.name}
+                    <br />
+                    <span className="venue-text__sub">{event.venue.address}</span>
+                  </p>
+                  <div className="venue-fact__action">
+                    <Cta tone="on-blue" variant="secondary" href={event.venue.mapUrl} external>Directions</Cta>
+                  </div>
+                </section>
               </div>
-            </section>
-          </div>
-        </Section>
 
-        <Section tone="white" density="compact">
-          <div className="venue-body">
-            {event.arrivalInfo ? (
-              <section aria-labelledby="arrival-heading" className="venue-block">
-                <h2 id="arrival-heading" className="venue-label">Arrival</h2>
-                <p className="venue-pre">{event.arrivalInfo}</p>
-              </section>
-            ) : null}
+              {event.arrivalInfo ? (
+                <section aria-labelledby="arrival-heading" className="venue-fact">
+                  <h2 id="arrival-heading" className="venue-label">Arrival</h2>
+                  <p className="venue-text venue-pre">{event.arrivalInfo}</p>
+                </section>
+              ) : null}
 
-            {event.contact ? (
-              <section aria-labelledby="contact-heading" className="venue-block">
-                <h2 id="contact-heading" className="venue-label">Contact</h2>
-                <p>
-                  {event.contact.name}
-                  {event.contact.email ? (
-                    <>
-                      <br />
-                      <a className="venue-link venue-link--on-white" href={`mailto:${event.contact.email}`}>{event.contact.email}</a>
-                    </>
-                  ) : null}
-                  {event.contact.phone ? (
-                    <>
-                      <br />
-                      <a className="venue-link venue-link--on-white" href={`tel:${event.contact.phone.replace(/[^\d+]/g, "")}`}>{event.contact.phone}</a>
-                    </>
-                  ) : null}
-                </p>
-              </section>
-            ) : null}
+              {event.contact ? (
+                <section aria-labelledby="contact-heading" className="venue-fact">
+                  <h2 id="contact-heading" className="venue-label">Contact</h2>
+                  <p className="venue-text">
+                    {event.contact.name}
+                    {event.contact.email ? (
+                      <>
+                        {" · "}
+                        <a className="venue-link" href={`mailto:${event.contact.email}`}>{event.contact.email}</a>
+                      </>
+                    ) : null}
+                    {event.contact.phone ? (
+                      <>
+                        {" · "}
+                        <a className="venue-link" href={`tel:${event.contact.phone.replace(/[^\d+]/g, "")}`}>{event.contact.phone}</a>
+                      </>
+                    ) : null}
+                  </p>
+                </section>
+              ) : null}
 
-            <section aria-labelledby="calendar-heading" className="venue-block">
-              <h2 id="calendar-heading" className="venue-label">Add to your calendar</h2>
-              <p>No email needed. Subscribing keeps your calendar up to date if the date or venue changes.</p>
-              <div className="venue-actions">
-                <Cta tone="on-white" href={links.webcal}>Subscribe (Apple / Outlook)</Cta>
-                <Cta tone="on-white" variant="secondary" href={links.google}>Add to Google Calendar</Cta>
-                <Cta tone="on-white" variant="secondary" href={links.outlook}>Add to Outlook</Cta>
-                <Cta tone="on-white" variant="secondary" href={links.ics}>Download .ics</Cta>
+              <CalendarEmailForm icsHref={links.ics} />
+            </div>
+
+            {drawn ? (
+              <div className="venue-map">
+                <CampusFigure />
               </div>
-              <p className="venue-note">
-                Google Calendar refreshes subscribed calendars slowly (up to a day). The Google and Outlook buttons add a
-                one-time copy that will not update, so check this page for the latest details.
-              </p>
-            </section>
+            ) : null}
           </div>
         </Section>
       </main>

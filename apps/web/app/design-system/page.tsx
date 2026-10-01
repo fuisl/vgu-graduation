@@ -243,7 +243,7 @@ export default function DesignSystem() {
           <p className="brand-ds-note">
             <code>{'Section density="airy"'}</code> (default) pads about 6rem on desktop and 4rem on mobile.{" "}
             <code>{'density="compact"'}</code> pads about 3rem and 2rem, for forms, the invitation, RSVP and the gallery.
-            Content is capped at <code>--brand-content</code> (1200px); reading text at <code>--brand-measure</code> (70ch).
+            Content is capped at <code>--brand-content</code> (1600px); reading text at <code>--brand-measure</code> (70ch).
           </p>
         </Section>
         <Section tone="blue" density="compact" aria-labelledby="ds-compact">

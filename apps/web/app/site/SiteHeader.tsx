@@ -28,7 +28,11 @@ export function SiteHeader({current, action}: Props) {
       <meta name="theme-color" content={BRAND_THEME_COLOR} />
       <ThemeColorSync />
       <div className="brand-header__inner">
-        <Link className="brand-wordmark" href="/"><BrandLogo variant="compact" tone="on-blue" /></Link>
+        <Link className="brand-wordmark" href="/">
+          {/* CSS shows the one matching the band under the sticky header. */}
+          <BrandLogo variant="compact" tone="on-blue" className="brand-wordmark__on-blue" />
+          <BrandLogo variant="compact" tone="on-white" className="brand-wordmark__on-white" />
+        </Link>
         <div className="brand-header__nav">
           <PillGroup label="Main">
             {SITE_NAV.map((item) => (

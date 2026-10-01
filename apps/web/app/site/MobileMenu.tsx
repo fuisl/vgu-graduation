@@ -7,6 +7,24 @@ import {SITE_NAV, nextTrapIndex, type SiteNavKey} from "./nav";
 
 const FOCUSABLE = "a[href], button:not([disabled])";
 
+/** Primer Octicons `x-24` (MIT, https://primer.style/octicons/). Inherits the button colour. */
+function XIcon() {
+  return (
+    <svg className="brand-menu-button__icon" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true" focusable="false">
+      <path d="M5.72 5.72a.75.75 0 0 1 1.06 0L12 10.94l5.22-5.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L13.06 12l5.22 5.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L12 13.06l-5.22 5.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L10.94 12 5.72 6.78a.75.75 0 0 1 0-1.06Z" />
+    </svg>
+  );
+}
+
+/** Primer Octicons `three-bars-24` (MIT, https://primer.style/octicons/). Inherits the button colour. */
+function ThreeBarsIcon() {
+  return (
+    <svg className="brand-menu-button__icon" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true" focusable="false">
+      <path d="M3.75 5.25h16.5a.75.75 0 1 1 0 1.5H3.75a.75.75 0 0 1 0-1.5Zm0 6h16.5a.75.75 0 1 1 0 1.5H3.75a.75.75 0 0 1 0-1.5Zm0 6h16.5a.75.75 0 1 1 0 1.5H3.75a.75.75 0 0 1 0-1.5Z" />
+    </svg>
+  );
+}
+
 /** Mobile (<= 960px) menu button and full-screen blue sheet. */
 export function MobileMenu({current, action}: {current?: SiteNavKey; action: ReactNode}) {
   const [open, setOpen] = useState(false);
@@ -53,12 +71,13 @@ export function MobileMenu({current, action}: {current?: SiteNavKey; action: Rea
       <button
         ref={buttonRef}
         type="button"
-        className="brand-menu-button"
+        className="brand-menu-button brand-menu-button--icon"
+        aria-label="Menu"
         aria-expanded={open}
         aria-controls={sheetId}
         onClick={() => setOpen(true)}
       >
-        Menu
+        <ThreeBarsIcon />
       </button>
       <div
         ref={sheetRef}
@@ -72,7 +91,7 @@ export function MobileMenu({current, action}: {current?: SiteNavKey; action: Rea
       >
         <div className="brand-header__inner">
           <Link className="brand-wordmark" href="/"><BrandLogo variant="compact" tone="on-blue" /></Link>
-          <button ref={closeRef} type="button" className="brand-menu-button" onClick={close}>Close</button>
+          <button ref={closeRef} type="button" className="brand-menu-button brand-menu-button--icon" aria-label="Close menu" onClick={close}><XIcon /></button>
         </div>
         <nav className="brand-sheet__nav" aria-label="Main">
           {SITE_NAV.map((item) => (

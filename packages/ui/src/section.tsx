@@ -11,7 +11,7 @@ type Props = {
 };
 
 /**
- * Full-bleed band; content sits in `.brand-section-inner`, capped at --brand-content (1200px).
+ * Full-bleed band; content sits in `.brand-section-inner`, capped at --brand-content (1600px).
  * Text colours follow the tone. Does not use the shared Container, whose width is for non-brand pages.
  */
 export function Section({tone, density = "airy", children, narrow, id, "aria-labelledby": labelledBy}: Props) {

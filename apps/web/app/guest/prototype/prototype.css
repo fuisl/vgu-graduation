@@ -11,7 +11,7 @@
 }
 [data-theme="brand"] .guest-stage {
   position: relative;
-  min-height: max(690px, calc(100svh - 72px));
+  min-height: max(690px, 100svh);
   max-width: 1800px;
   margin: auto;
   isolation: isolate;
@@ -51,7 +51,7 @@
 }
 [data-theme="brand"] .guest-stage-footer span { margin: 0 var(--space-2); }
 @media (max-width: 700px) {
-  [data-theme="brand"] .guest-stage { min-height: max(750px, calc(100svh - 72px)); }
+  [data-theme="brand"] .guest-stage { min-height: max(750px, 100svh); }
   [data-theme="brand"] .guest-badge-fallback { grid-template-columns: 1fr; }
   [data-theme="brand"] .guest-badge-placeholder { grid-column: 1; }
   [data-theme="brand"] .guest-stage-footer { right: var(--gutter); left: var(--gutter); bottom: var(--space-4); width: auto; line-height: 1.5; }

@@ -32,19 +32,32 @@ describe("SiteHeader", () => {
   it("defaults the action to the signed-out chip linking to /invite", () => {
     const out = html(<SiteHeader />);
     expect(out).toContain('href="/invite"');
-    expect(out).toContain("Your invitation");
+    expect(out).toContain("Guest portal");
   });
 
   it("server-renders the guest chip signed out until /api/me answers", () => {
     const out = html(<SiteHeader />);
     expect(out).not.toContain("brand-guest-chip");
-    expect(out.match(/Your invitation/g)).toHaveLength(2);
+    expect(out.match(/Guest portal/g)).toHaveLength(2);
   });
 
   it("renders a custom action instead of the default", () => {
     const out = html(<SiteHeader action={<span>Linh</span>} />);
     expect(out).toContain("<span>Linh</span>");
-    expect(out).not.toContain("Your invitation");
+    expect(out).not.toContain("Guest portal");
+  });
+
+  it("renders the mobile menu button as a labelled three-bars icon", () => {
+    const button = html(<SiteHeader />).match(/<button[^>]*aria-controls[^>]*>.*?<\/button>/)?.[0] ?? "";
+    expect(button).toContain('aria-label="Menu"');
+    expect(button).toMatch(/<svg[^>]*aria-hidden="true"/);
+    expect(button).not.toMatch(/>Menu</);
+  });
+
+  it("renders the sheet's close button as a labelled x icon", () => {
+    const button = html(<SiteHeader />).match(/<button[^>]*aria-label="Close menu"[^>]*>.*?<\/button>/)?.[0] ?? "";
+    expect(button).toMatch(/<svg[^>]*aria-hidden="true"/);
+    expect(button).not.toMatch(/>Close</);
   });
 
   it("wires the mobile menu button to the hidden sheet", () => {

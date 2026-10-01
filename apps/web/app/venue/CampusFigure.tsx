@@ -43,14 +43,21 @@ const leaders = LABELS.map((label) => {
   const f = (v: number) => v.toFixed(1);
   let line: string;
   let head: string;
-  if (Math.abs(ay - ly) < 1) {
+  if (Math.abs(ay - ly) < 1 && !label.also) {
     const dir = Math.sign(ax - lx) || 1;
     line = `M${f(lx)} ${f(ly)}H${f(ax - 9 * dir)}`;
     head = `M${f(ax)} ${f(ay)}l${f(-9 * dir)} -4.5v9Z`;
   } else {
-    const dir = Math.sign(ay - ly);
-    line = `M${f(lx)} ${f(ly)}H${f(ax)}V${f(ay - 9 * dir)}`;
-    head = `M${f(ax)} ${f(ay)}l-4.5 ${f(-9 * dir)}h9Z`;
+    // One horizontal run from the label past every drop, then a vertical drop onto each anchor.
+    const drops = [label.anchor, ...(label.also ?? [])].map(project);
+    const far = drops.reduce((x, [dx]) => (Math.abs(dx - lx) > Math.abs(x - lx) ? dx : x), ax);
+    line = `M${f(lx)} ${f(ly)}H${f(far)}`;
+    head = "";
+    for (const [dx, dy] of drops) {
+      const dir = Math.sign(dy - ly);
+      line += `M${f(dx)} ${f(ly)}V${f(dy - 9 * dir)}`;
+      head += `M${f(dx)} ${f(dy)}l-4.5 ${f(-9 * dir)}h9Z`;
+    }
   }
   return { label, line, head, at: toPercent([lx, ly]) };
 });

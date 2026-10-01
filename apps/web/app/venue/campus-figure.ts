@@ -134,6 +134,7 @@ export const BUILDINGS: Building[] = [
     footprint: [[832, 580], [852, 573], [906, 576], [934, 598], [916, 622], [842, 622], [828, 604]],
     height: 26,
   },
+  { id: "administration", footprint: rect(612, 702, 786, 758), height: 22 },
   { id: "atrium", footprint: [[931, 614], [956, 578], [981, 614]], height: 44 },
   { id: "ceremony-hall", footprint: ellipse(1015, 602, 64, 24, 64), height: HALL_CENTER[2], highlight: true, smooth: true },
 ];
@@ -150,15 +151,15 @@ export const BRIDGES: Point[][] = [rect(700, 640, 722, 698), rect(941, 640, 963,
 export const ROADS: Point[][] = [
   rect(560, 815, 1250, 845),
   rect(986, 768, 1016, 815),
-  rect(792, 760, 920, 774),
+  rect(792, 782, 920, 794),
 ];
 
-/** Car park south of the river, west of the entrance: outline, and two rows of stalls either side of an aisle. */
-export const PARKING: Point[] = rect(612, 702, 786, 758);
-export const PARKING_STALLS: Point[][] = Array.from({ length: 16 }, (_, i) => {
-  const x = 620 + i * 10.6;
-  return [[[x, 704], [x, 724]], [[x, 736], [x, 756]]] as Point[][];
-}).flat();
+/** Outdoor car park just west of the entrance roundabout (the striped stalls on the campus map). */
+export const PARKING: Point[] = rect(846, 734, 892, 778);
+export const PARKING_STALLS: Point[][] = Array.from({ length: 7 }, (_, i) => {
+  const y = 739 + i * 5.8;
+  return [[849, y], [889, y]] as Point[];
+});
 /** Dashed road centre lines. */
 export const CENTRE_LINES: Point[][] = [[[560, 830], [1250, 830]]];
 
@@ -175,6 +176,8 @@ export type Label = {
   text: string;
   /** What the leader arrow points at. */
   anchor: Point3;
+  /** More places with the same name: the leader forks, one vertical drop per anchor (like ANODES in the reference). */
+  also?: Point3[];
   /** Where the label sits, relative to the anchor's projection. */
   offset: Point;
   align: "left" | "right";
@@ -188,7 +191,8 @@ export const LABELS: Label[] = [
   { text: "Entrance", anchor: [952, 735, 0], offset: [-43, 146], align: "right" },
   { text: "West Bridge", anchor: [963, 669, 0], offset: [64, 178], align: "left" },
   { text: "Ring Road 4", anchor: [660, 845, 0], offset: [-30, 80], align: "right", minor: true },
-  { text: "Parking", anchor: [699, 745, 0], offset: [-7, 189], align: "right" },
+  // Parking at the administration building and in the outdoor lot by the roundabout.
+  { text: "Parking", anchor: [699, 758, 11], also: [[869, 778, 0]], offset: [-18, 233], align: "right" },
 ];
 
 /** Labels written along a feature instead of on a leader. */

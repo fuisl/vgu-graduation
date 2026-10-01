@@ -178,16 +178,27 @@ export function CampusFigure() {
               {label.text}
             </span>
           ))}
-          {INLINE_LABELS.map((label) => (
-            <span
-              key={label.text}
-              className="campus-fig__label campus-fig__label--inline"
-              style={{ ...toPercent(project(label.at)), ["--angle" as string]: `${label.angle.toFixed(2)}deg`, ["--i" as string]: LABELS.length }}
-              aria-hidden="true"
-            >
-              {label.text}
-            </span>
-          ))}
+          {INLINE_LABELS.map((label) => {
+            const wide = toPercent(project(label.at));
+            const narrow = toPercent(project(label.atNarrow ?? label.at));
+            return (
+              <span
+                key={label.text}
+                className="campus-fig__label campus-fig__label--inline"
+                style={{
+                  ["--x" as string]: wide.left,
+                  ["--y" as string]: wide.top,
+                  ["--x-narrow" as string]: narrow.left,
+                  ["--y-narrow" as string]: narrow.top,
+                  ["--angle" as string]: `${label.angle.toFixed(2)}deg`,
+                  ["--i" as string]: LABELS.length,
+                }}
+                aria-hidden="true"
+              >
+                {label.text}
+              </span>
+            );
+          })}
         </div>
 
         <span className="campus-fig__meta campus-fig__meta--fig" aria-hidden="true">FIG_001</span>

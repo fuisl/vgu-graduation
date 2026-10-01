@@ -196,12 +196,21 @@ export const LABELS: Label[] = [
 ];
 
 /** Labels written along a feature instead of on a leader. */
-export type InlineLabel = { text: string; at: Point3; angle: number };
+export type InlineLabel = {
+  text: string;
+  at: Point3;
+  /** Position below 1200px wide, where the drawing is small and the label long relative to it. */
+  atNarrow?: Point3;
+  angle: number;
+};
 
 /** The river's on-screen slope: plan east-west lines run at this angle. */
 export const RIVER_ANGLE = (Math.atan2(Math.sin(ANGLE) * SQUASH, Math.cos(ANGLE)) * 180) / Math.PI;
 
-export const INLINE_LABELS: InlineLabel[] = [{ text: "Sunrise River", at: [786, 669, 0], angle: RIVER_ANGLE }];
+export const INLINE_LABELS: InlineLabel[] = [
+  // Wide screens: midway along the open water. Narrow: further west, clear of the Parking and West Bridge drops.
+  { text: "Sunrise River", at: [868, 669, 0], atNarrow: [786, 669, 0], angle: RIVER_ANGLE },
+];
 
 /* Frame ---------------------------------------------------------------------------------- */
 

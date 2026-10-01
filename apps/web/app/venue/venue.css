@@ -237,9 +237,17 @@
 [data-theme="brand"] .campus-fig__label--left { transform: translate(6px, -50%); }
 [data-theme="brand"] .campus-fig__label--right { transform: translate(calc(-100% - 6px), -50%); }
 [data-theme="brand"] .campus-fig__label--inline {
+  left: var(--x);
+  top: var(--y);
   padding: 1px 4px;
   background: var(--brand-blue);
   transform: translate(-50%, -50%) rotate(var(--angle));
+}
+@media (max-width: 1199px) {
+  [data-theme="brand"] .campus-fig__label--inline {
+    left: var(--x-narrow, var(--x));
+    top: var(--y-narrow, var(--y));
+  }
 }
 [data-theme="brand"] .campus-fig__label.is-highlight {
   padding: 4px 6px;

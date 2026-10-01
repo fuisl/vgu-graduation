@@ -73,7 +73,14 @@ describe("runMigrations", () => {
     const applied = await query<{ count: string }>(
       "SELECT count(*) FROM drizzle.__drizzle_migrations",
     );
-    expect(Number(applied[0].count)).toBe(4);
+    expect(Number(applied[0].count)).toBe(5);
+
+    // 0004 moves the untouched placeholder date to 20 November 2026 and bumps the calendar sequence once.
+    const [event] = await query<{ epoch: string; sequence: number }>(
+      "SELECT extract(epoch FROM starts_at)::bigint AS epoch, sequence FROM event_config WHERE id = 1",
+    );
+    expect(Number(event.epoch) * 1000).toBe(Date.parse("2026-11-20T09:00:00+07:00"));
+    expect(event.sequence).toBe(1);
   });
 
   it("serializes concurrent runs", async (ctx) => {

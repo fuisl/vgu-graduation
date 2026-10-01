@@ -4,7 +4,8 @@ Avoid generic glassmorphism, decorative neon glow, arbitrary gradients, excessiv
 
 Specific to the blue-and-white language:
 - **Accent never on white.** `--brand-accent` (`#69E8D4`) is 1.49:1 on white. Use it only on blue (focus ring, the current link in the mobile sheet, a live dot), and at most once per view.
-- **No second motif.** The ASCII sculpture is the only signature visual. Do not add aurora, twinkle fields, grid cells, particles, pointer parallax, glow text-shadows or a second decorative graphic. These were removed from the old navy landing.
+- **No second motif.** The ASCII sculpture is the only signature visual. Do not add aurora, twinkle fields, grid cells, particles, pointer parallax, glow text-shadows or a second decorative graphic. These were removed from the old navy landing. The one exception is an explanatory figure in the blueprint style (`figures.md`): it explains something on the page, is never decoration, and follows that spec exactly.
+- **No other illustration style.** Maps, cutaways and how-it-works drawings use the blueprint figure style in `figures.md` and nothing else: no flat vector scenes, no stock illustration, no photographic or 3D renders as diagrams.
 - **No hex in route CSS.** Route-local stylesheets use `--brand-*`, `--space-*`, `--motion-*` and `--font-*` tokens. Raw hex is acceptable only where a canvas or shader cannot read CSS variables, and then it mirrors named tokens in one commented map (the ASCII sculpture shader, `BadgeCanvas.tsx`).
 - **No second theme on brand surfaces.** No light/dark switch, no `prefers-color-scheme` rules inside `[data-theme="brand"]`.
 - **No opacity for disabled.** A disabled `Cta` is outlined and muted, not faded.

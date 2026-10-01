@@ -3,7 +3,7 @@
 Build a digital companion for the VGU graduation ceremony and a durable four-year memory archive.
 ## Read before changing code
 - Product: `docs/product/vision.md`, `docs/product/principles.md`
-- UI: `docs/design/philosophy.md`, `docs/design/llm-reference.md`, `docs/design/anti-patterns.md`
+- UI: `docs/design/philosophy.md`, `docs/design/llm-reference.md`, `docs/design/anti-patterns.md`; illustrative figures: `docs/design/figures.md` (strict)
 - Architecture: `docs/architecture/overview.md` and relevant ADRs
 - Workflow: `docs/development/workflow.md`
 ## Priorities

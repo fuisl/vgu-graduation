@@ -28,4 +28,6 @@ Before generating UI read `philosophy.md`, `tokens.md`, `components.md` and `ant
 
 3D is reserved for hero storytelling, the personalised badge and deliberate cohort visualisations. Experimental features must not compromise event-critical flows.
 
+Any explanatory illustration (a map, a cutaway, a how-it-works drawing) follows `figures.md` strictly: white line work on blue, dot-grid plate, one solid-white subject, mono labels on leaders. Copy FIG_001 on `/venue` and register the new figure number.
+
 If a new visual pattern is required (a new primitive, colour, motif or motion), do not invent it silently: reuse the nearest established pattern or request human review. Add new primitives to `@grad/ui` and `components.md`, and to the `/design-system` showcase.

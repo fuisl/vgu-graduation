@@ -43,6 +43,7 @@ export const navGroups: readonly NavGroup[] = [
           ["design/components", "Components"],
           ["design/responsive", "Responsive"],
           ["design/motion", "Motion"],
+          ["design/figures", "Illustrative figures"],
         ],
       },
       {

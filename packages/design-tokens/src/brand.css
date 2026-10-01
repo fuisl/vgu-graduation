@@ -131,6 +131,12 @@
   transition: transform var(--motion-fast) var(--ease);
 }
 
+/* The paper plane's pixels are finer than the arrow's 7x7 grid; a touch larger keeps their weight close. */
+[data-theme="brand"] .brand-arrow--plane {
+  width: 1.25em;
+  height: 1.25em;
+}
+
 /* Cta ---------------------------------------------------------------- */
 [data-theme="brand"] .brand-cta {
   display: inline-flex;

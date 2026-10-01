@@ -27,6 +27,7 @@ The call to action. `tone` is the surface it sits on: `"on-blue"` renders a whit
 - `variant="secondary"`: outlined (transparent fill, 1px border, text follows the surface), 44px minimum, no tile. For supporting actions such as "Back to gallery", "Close" and calendar options.
 - `href` renders an anchor, otherwise a button (`type`, `onClick`). `aria-label` names icon-only labels. `tabIndex` is passed through.
 - `external` (with `href`): `target="_blank" rel="noopener noreferrer"`, a visually hidden "(opens in a new tab)" and the arrow (also on secondary).
+- `icon`: replaces the arrow in the tile. The only other icon is `PaperPlanePixel`, for send actions (the venue page's "Send invite").
 - `disabled`: outlined and muted on both variants. A disabled link renders without `href` and with `aria-disabled="true"`.
 
 ### `PillGroup`, `PillItem`, `PillToggle`
@@ -38,6 +39,9 @@ The gallery filters, card size and layout, and the `/ascii-live` character set a
 
 ### `ArrowUpRightPixel`
 Pixel-style up-right arrow on a 7x7 grid, decorative (`aria-hidden`). Used by `Cta` and the signed-in guest chip; rarely needed directly.
+
+### `PaperPlanePixel`
+Pixel-style paper plane for send actions, decorative (`aria-hidden`): the "send" icon from [pixelarticons](https://pixelarticons.com) (MIT). Pass it to `Cta`'s `icon`. It is drawn 1.25em because its pixels are finer than the arrow's. Do not add other icons to `Cta` without design review.
 
 ## Site shell (`apps/web/app/site`)
 

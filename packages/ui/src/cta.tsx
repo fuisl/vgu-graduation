@@ -18,12 +18,14 @@ type Props = {
   type?: "button" | "submit";
   /** Outlined, muted and inert. A disabled link renders without href and with aria-disabled. */
   disabled?: boolean;
+  /** Replaces the arrow in the tile, e.g. `<PaperPlanePixel />` for a send action. Decorative. */
+  icon?: ReactNode;
   /** Accessible name when the visible label is an icon or glyph. */
   "aria-label"?: string;
   tabIndex?: number;
 };
 
-export function Cta({tone, children, variant = "primary", href, external = false, onClick, type = "button", disabled, "aria-label": ariaLabel, tabIndex}: Props) {
+export function Cta({tone, children, variant = "primary", icon, href, external = false, onClick, type = "button", disabled, "aria-label": ariaLabel, tabIndex}: Props) {
   const className = `brand-cta brand-cta--${tone}${variant === "secondary" ? " brand-cta--secondary" : ""}`;
   const isExternal = external && Boolean(href) && !disabled;
   const showArrow = variant === "primary" || isExternal;
@@ -31,7 +33,7 @@ export function Cta({tone, children, variant = "primary", href, external = false
     <>
       <span className="brand-cta__label">{children}</span>
       {isExternal ? <span className="brand-sr-only"> (opens in a new tab)</span> : null}
-      {showArrow ? <span className="brand-cta__tile"><ArrowUpRightPixel /></span> : null}
+      {showArrow ? <span className="brand-cta__tile">{icon ?? <ArrowUpRightPixel />}</span> : null}
     </>
   );
   if (href && disabled) {

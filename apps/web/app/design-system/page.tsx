@@ -1,6 +1,6 @@
 import type {Metadata} from "next";
 import type {ReactNode} from "react";
-import {ArrowUpRightPixel, BrandEyebrow, BrandTheme, Cta, PillGroup, PillItem, PillToggle, Section} from "@grad/ui";
+import {ArrowUpRightPixel, BrandEyebrow, BrandTheme, Cta, PaperPlanePixel, PillGroup, PillItem, PillToggle, Section} from "@grad/ui";
 import {BrandLogo} from "../logo/BrandLogo";
 import {SiteFooter} from "../site/SiteFooter";
 import {SignedInChip} from "../site/GuestChip";
@@ -210,6 +210,7 @@ export default function DesignSystem() {
           <Tone label="BrandLogo compact, on-blue (header mark)"><span className="brand-ds-logo brand-ds-logo--compact"><BrandLogo variant="compact" tone="on-blue" /></span></Tone>
           <Tone label="BrandEyebrow"><BrandEyebrow ellipsis>Venue and time</BrandEyebrow></Tone>
           <Tone label="ArrowUpRightPixel"><span className="brand-ds-arrow"><ArrowUpRightPixel /></span></Tone>
+          <Tone label="Cta with icon (PaperPlanePixel, send actions)"><Cta tone="on-blue" icon={<PaperPlanePixel />}>Send invite</Cta></Tone>
           <p className="brand-ds-note">This band is itself a <code>{'Section tone="blue"'}</code>: full bleed, content in Container.</p>
         </Section>
 

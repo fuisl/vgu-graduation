@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandEyebrow, Section } from "@grad/ui";
 import type { EventConfig } from "@grad/contract";
 import type { ApiResult } from "../../../lib/api/result";
 import { EventDetails } from "./EventDetails";
@@ -26,19 +27,33 @@ export function InviteNotice({ kind, event }: { kind: NoticeKind; event: ApiResu
   const contact = event.status === "ok" ? event.data.contact : null;
   return (
     <>
-      <section aria-labelledby="notice-heading" role={kind === "error" ? "alert" : undefined}>
-        <h1 id="notice-heading">{title}</h1>
-        <p>{body}</p>
-        {kind === "error" ? <Link href="/invite" prefetch={false}>Try again</Link> : null}
-        {kind !== "error" && contact ? (
-          <p>
-            Organizer: {contact.name}
-            {contact.email ? <> · <a href={`mailto:${contact.email}`}>{contact.email}</a></> : null}
-            {contact.phone ? <> · {contact.phone}</> : null}
-          </p>
-        ) : null}
-      </section>
-      <EventDetails event={event} />
+      <Section tone="blue" aria-labelledby="notice-heading">
+        <div role={kind === "error" ? "alert" : undefined}>
+          <BrandEyebrow>Your invitation</BrandEyebrow>
+          <h1 id="notice-heading" className="invite-title">{title}</h1>
+          <p className="invite-lead">{body}</p>
+          {kind === "error" ? (
+            <p className="invite-lead">
+              <Link className="invite-link invite-link--on-blue" href="/invite" prefetch={false}>Try again</Link>
+            </p>
+          ) : null}
+          {kind !== "error" && contact ? (
+            <p className="invite-lead">
+              Organizer: {contact.name}
+              {contact.email ? (
+                <>
+                  {" "}
+                  · <a className="invite-link invite-link--on-blue" href={`mailto:${contact.email}`}>{contact.email}</a>
+                </>
+              ) : null}
+              {contact.phone ? <> · {contact.phone}</> : null}
+            </p>
+          ) : null}
+        </div>
+      </Section>
+      <Section tone="white" density="compact" narrow>
+        <EventDetails event={event} />
+      </Section>
     </>
   );
 }

@@ -1,0 +1,23 @@
+/* 404 on the brand theme (#155). Brand tokens only. */
+[data-theme="brand"] .notfound {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--space-4);
+  min-height: 50svh;
+}
+[data-theme="brand"] .notfound-title {
+  margin: 0;
+  font-size: var(--brand-text-display);
+  font-weight: 500;
+  line-height: var(--brand-leading-display);
+  letter-spacing: var(--brand-tracking-display);
+  overflow-wrap: anywhere;
+}
+[data-theme="brand"] .notfound-text {
+  margin: 0 0 var(--space-3);
+  max-width: var(--brand-measure);
+  font-size: var(--brand-text-lead);
+  color: var(--brand-muted);
+}

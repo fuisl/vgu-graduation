@@ -1,14 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import "./decode-text.css";
 
-type NoiseFamily = "ascii" | "block" | "braille";
+type NoiseFamily = "ascii";
 type NoiseGlyph = { character: string; family: NoiseFamily };
 
+/*
+ * Only glyphs Geist Mono actually contains. Block and Braille characters used to
+ * be here: they fall back to another font whose ink is far larger than the
+ * letter box, spilled above and below the headline, and some browsers didn't
+ * repaint that overflow, leaving dotted residue after the decode.
+ */
 const NOISE: Record<NoiseFamily, string> = {
   ascii: "#%&@*+=:./\\<>[]",
-  block: "░▒▓█▚▞▙▟▀▄▘▝▖▗",
-  braille: "⠁⠃⠇⡇⣇⣧⣷⣿",
 };
 const FAMILIES = Object.keys(NOISE) as NoiseFamily[];
 

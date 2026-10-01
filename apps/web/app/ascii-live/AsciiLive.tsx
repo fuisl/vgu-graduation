@@ -1,7 +1,10 @@
 "use client";
 
-import Link from "next/link";
+import { BrandEyebrow, BrandTheme, Cta, PillGroup, PillToggle, Section } from "@grad/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { SiteFooter } from "../site/SiteFooter";
+import { SiteHeader } from "../site/SiteHeader";
+import "./ascii-live.css";
 import { GpuAscii, gpuSupported, measureLevels, resolveCharset, type CharsetId } from "./asciify-runtime.js";
 
 type LiveSettings = {
@@ -39,6 +42,7 @@ function cameraError(cause: unknown) {
 export function AsciiLive() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const settingsRef = useRef(INITIAL_SETTINGS);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -121,6 +125,8 @@ export function AsciiLive() {
       return;
     }
 
+    // White ink on the blue stage, read from the brand token so it never drifts.
+    const ink = (stageRef.current && getComputedStyle(stageRef.current).getPropertyValue("--brand-white").trim()) || "#ffffff";
     let frame = 0;
     let frameCount = 0;
     let fpsStarted = performance.now();
@@ -146,7 +152,7 @@ export function AsciiLive() {
         charset: resolveCharset(current.charset, ".:-=+*#%@", "off"),
         color: current.color,
         key: null,
-        ink: "#a9c2ff",
+        ink,
         scale: Math.min(2, window.devicePixelRatio || 1),
         mirror: current.mirror,
         levels,
@@ -177,88 +183,97 @@ export function AsciiLive() {
     if (stream) void startCamera(nextCameraId);
   };
 
-  return <main className="ascii-live">
-    <header className="ascii-live-header">
-      <Link className="ascii-live-back" href="/" aria-label="Back to the GRAD '26 landing page">← GRAD ’26</Link>
-      <div>
-        <p className="ascii-live-kicker">Experimental / on-device</p>
-        <h1>ASCII LIVE</h1>
-      </div>
-      <p className="ascii-live-privacy">Your camera stays in this browser. No frames are uploaded or saved.</p>
-    </header>
+  const startButton = (tone: "on-blue" | "on-white") =>
+    <Cta tone={tone} onClick={() => void startCamera()} disabled={starting}>{starting ? "Starting…" : "Start camera"}</Cta>;
 
-    {engineMissing && <section className="ascii-live-workspace" aria-label="ASCII engine unavailable">
-      <div className="ascii-live-stage">
-        <div className="ascii-live-empty">
-          <span aria-hidden="true">.:+*#@</span>
-          <h2>Not available in this build</h2>
-          <p>The ASCIIGen engine is a private, optional dependency. It isn&apos;t installed here, so this page can&apos;t render the camera effect — the rest of the app is unaffected.</p>
+  return <BrandTheme>
+    <SiteHeader />
+    <main className="ascii-live">
+      <Section tone="blue" density="compact">
+        <div className="ascii-live-header">
+          <div>
+            <BrandEyebrow>Experimental / on-device</BrandEyebrow>
+            <h1>ASCII Live</h1>
+          </div>
+          <p className="ascii-live-privacy">Your camera stays in this browser. No frames are uploaded or saved.</p>
         </div>
-      </div>
-    </section>}
+      </Section>
 
-    {!engineMissing && <section className="ascii-live-workspace" aria-label="Live ASCII camera studio">
-      <div className="ascii-live-stage">
-        <video ref={videoRef} muted playsInline aria-hidden="true" />
-        <canvas ref={canvasRef} aria-label="Live camera rendered as ASCII art" />
-        {!stream && <div className="ascii-live-empty">
-          <span aria-hidden="true">.:+*#@</span>
-          <h2>Camera is off</h2>
-          <p>Permission is requested only after you press start.</p>
-          <button type="button" onClick={() => void startCamera()} disabled={starting}>
-            {starting ? "Starting…" : "Start camera"}
-          </button>
-        </div>}
-        {stream && <div className="ascii-live-readout" aria-live="polite">{grid.columns} × {grid.rows} / {fps} FPS</div>}
-      </div>
-
-      <aside className="ascii-live-controls" aria-label="ASCII controls">
-        <div className="ascii-live-control-heading">
-          <span>01</span><h2>Capture</h2>
-        </div>
-        {cameras.length > 1 && <label>
-          Camera
-          <select value={cameraId} onChange={(event) => changeCamera(event.target.value)}>
-            <option value="">Default camera</option>
-            {cameras.map((camera, index) => <option key={camera.deviceId} value={camera.deviceId}>{camera.label || `Camera ${index + 1}`}</option>)}
-          </select>
-        </label>}
-        <label className="ascii-live-check">
-          <input type="checkbox" checked={settings.mirror} onChange={(event) => setSettings((value) => ({ ...value, mirror: event.target.checked }))} />
-          Mirror preview
-        </label>
-
-        <div className="ascii-live-control-heading">
-          <span>02</span><h2>Character set</h2>
-        </div>
-        <div className="ascii-live-options" role="group" aria-label="Character set">
-          {CHARSETS.map((option) => <button key={option.id} type="button" aria-pressed={settings.charset === option.id} onClick={() => setSettings((value) => ({ ...value, charset: option.id }))}>{option.label}</button>)}
-        </div>
-
-        <div className="ascii-live-control-heading">
-          <span>03</span><h2>Image</h2>
-        </div>
-        <label>
-          <span>Columns <output>{settings.columns}</output></span>
-          <input type="range" min="48" max="160" step="8" value={settings.columns} onChange={(event) => setSettings((value) => ({ ...value, columns: Number(event.target.value) }))} />
-        </label>
-        <label>
-          <span>Background cut <output>{settings.threshold}</output></span>
-          <input type="range" min="0" max="128" step="4" value={settings.threshold} onChange={(event) => setSettings((value) => ({ ...value, threshold: Number(event.target.value) }))} />
-        </label>
-        <label className="ascii-live-check">
-          <input type="checkbox" checked={settings.color} onChange={(event) => setSettings((value) => ({ ...value, color: event.target.checked }))} />
-          Source color
-        </label>
-
-        <div className="ascii-live-actions">
-          {stream
-            ? <button type="button" onClick={stopCamera}>Stop camera</button>
-            : <button type="button" onClick={() => void startCamera()} disabled={starting}>{starting ? "Starting…" : "Start camera"}</button>}
-        </div>
+      <Section tone="white" density="compact">
         {error && <p className="ascii-live-error" role="alert">{error}</p>}
-        <p className="ascii-live-engine">Rendered locally with the pinned ASCIIGen WebGL2 engine.</p>
-      </aside>
-    </section>}
-  </main>;
+
+        {engineMissing && <div className="ascii-live-workspace ascii-live-workspace--single" role="region" aria-label="ASCII engine unavailable">
+          <div className="ascii-live-stage">
+            <div className="ascii-live-empty">
+              <span aria-hidden="true">.:+*#@</span>
+              <h2>Not available in this build</h2>
+              <p>The ASCIIGen engine is a private, optional dependency. It isn&apos;t installed here, so this page can&apos;t render the camera effect. The rest of the app is unaffected.</p>
+            </div>
+          </div>
+        </div>}
+
+        {!engineMissing && <div className="ascii-live-workspace" role="region" aria-label="Live ASCII camera studio">
+          <div className="ascii-live-stage" ref={stageRef}>
+            <video ref={videoRef} muted playsInline aria-hidden="true" />
+            <canvas ref={canvasRef} aria-label="Live camera rendered as ASCII art" />
+            {!stream && <div className="ascii-live-empty">
+              <span aria-hidden="true">.:+*#@</span>
+              <h2>Camera is off</h2>
+              <p>Permission is requested only after you press start.</p>
+              {startButton("on-blue")}
+            </div>}
+            {stream && <div className="ascii-live-readout" aria-live="polite">{grid.columns} × {grid.rows} / {fps} FPS</div>}
+          </div>
+
+          <aside className="ascii-live-controls" aria-label="ASCII controls">
+            <div className="ascii-live-control-heading">
+              <span>01</span><h2>Capture</h2>
+            </div>
+            {cameras.length > 1 && <label>
+              Camera
+              <select value={cameraId} onChange={(event) => changeCamera(event.target.value)}>
+                <option value="">Default camera</option>
+                {cameras.map((camera, index) => <option key={camera.deviceId} value={camera.deviceId}>{camera.label || `Camera ${index + 1}`}</option>)}
+              </select>
+            </label>}
+            <label className="ascii-live-check">
+              <input type="checkbox" checked={settings.mirror} onChange={(event) => setSettings((value) => ({ ...value, mirror: event.target.checked }))} />
+              Mirror preview
+            </label>
+
+            <div className="ascii-live-control-heading">
+              <span>02</span><h2>Character set</h2>
+            </div>
+            <PillGroup as="toggle" label="Character set" tone="on-white">
+              {CHARSETS.map((option) => <PillToggle key={option.id} pressed={settings.charset === option.id} onClick={() => setSettings((value) => ({ ...value, charset: option.id }))}>{option.label}</PillToggle>)}
+            </PillGroup>
+
+            <div className="ascii-live-control-heading">
+              <span>03</span><h2>Image</h2>
+            </div>
+            <label>
+              <span>Columns <output>{settings.columns}</output></span>
+              <input type="range" min="48" max="160" step="8" value={settings.columns} onChange={(event) => setSettings((value) => ({ ...value, columns: Number(event.target.value) }))} />
+            </label>
+            <label>
+              <span>Background cut <output>{settings.threshold}</output></span>
+              <input type="range" min="0" max="128" step="4" value={settings.threshold} onChange={(event) => setSettings((value) => ({ ...value, threshold: Number(event.target.value) }))} />
+            </label>
+            <label className="ascii-live-check">
+              <input type="checkbox" checked={settings.color} onChange={(event) => setSettings((value) => ({ ...value, color: event.target.checked }))} />
+              Source color
+            </label>
+
+            <div className="ascii-live-actions">
+              {stream
+                ? <Cta tone="on-white" onClick={stopCamera}>Stop camera</Cta>
+                : startButton("on-white")}
+            </div>
+            <p className="ascii-live-engine">Rendered locally with the pinned ASCIIGen WebGL2 engine.</p>
+          </aside>
+        </div>}
+      </Section>
+    </main>
+    <SiteFooter />
+  </BrandTheme>;
 }

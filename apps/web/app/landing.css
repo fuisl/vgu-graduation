@@ -1,0 +1,197 @@
+/* Landing (#148). Route-local, brand tokens only. Sculpture and decode internals live beside their components. */
+/* Hero fills the viewport, including the 72px it runs up behind the overlaid header; the sculpture takes the leftover height. */
+[data-theme="brand"] .home > .brand-section:first-child {
+  /* Less padding under the hero text than a normal band, so it sits near the bottom edge. */
+  padding-bottom: clamp(var(--space-5), 3vw, var(--space-7));
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100svh;
+}
+[data-theme="brand"] .home > .brand-section:first-child > .brand-section-inner {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+[data-theme="brand"] .home-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: 1 1 auto;
+  min-height: 280px;
+  container-type: inline-size;
+}
+/* Never taller than wide: the camera's FOV is vertical, so a portrait canvas would crop the sculpture's sides. */
+[data-theme="brand"] .home-visual {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-height: 100cqw;
+}
+[data-theme="brand"] .home-visual .sculpture {
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+}
+/* Title, then place, month and countdown stacked under it, all left-aligned. */
+[data-theme="brand"] .home-hero-foot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+  margin-top: var(--space-6);
+}
+[data-theme="brand"] .home-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  /* The "G" carries ~0.04em of left side bearing; pull it back so its ink lines up with the mono text below. */
+  margin-left: -0.025em;
+  font-size: clamp(2.25rem, 1rem + 4.5vw, 5rem);
+  font-weight: 500;
+  line-height: var(--brand-leading-display);
+  letter-spacing: var(--brand-tracking-display);
+}
+/* Under the title: a 2x2 mono block, column-major (campus/city, then date/countdown). */
+[data-theme="brand"] .home-hero-meta {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: auto auto;
+  justify-content: start;
+  column-gap: clamp(var(--space-5), 5vw, var(--space-8));
+  row-gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: clamp(var(--text-xs), 0.55rem + 0.5vw, 1rem);
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+[data-theme="brand"] .home-hero-meta__cell {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+/* "VGU Campus" links to /venue; the pixel arrow is sized to the capitals beside it. */
+[data-theme="brand"] .home-hero-meta__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  color: inherit;
+  text-decoration: none;
+}
+[data-theme="brand"] .home-hero-meta__link .brand-arrow {
+  width: 0.72em;
+  height: 0.72em;
+}
+[data-theme="brand"] .home-hero-meta__link:hover .brand-arrow { transform: translate(1px, -1px); }
+[data-theme="brand"] .home-hero-meta__link:hover { text-decoration: underline; text-underline-offset: 0.25em; }
+[data-theme="brand"] .home-hero-meta__link:focus-visible {
+  outline: 2px solid var(--brand-accent);
+  outline-offset: 4px;
+}
+[data-theme="brand"] .home-h2 {
+  margin: var(--space-3) 0 var(--space-6);
+  font-family: var(--font-sans);
+  font-size: var(--brand-text-h2);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: var(--brand-tracking-display);
+}
+[data-theme="brand"] .home-when {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-6);
+  align-items: start;
+}
+[data-theme="brand"] .home-fact p { margin: 0; }
+[data-theme="brand"] .home-fact__action { margin-top: var(--space-3); }
+[data-theme="brand"] .home-fact .brand-eyebrow { margin-bottom: var(--space-2); }
+[data-theme="brand"] .home-fact__main { font-size: var(--brand-text-h3); font-weight: 500; line-height: 1.2; }
+[data-theme="brand"] .home-fact__sub { margin-top: var(--space-2); color: var(--brand-muted); }
+[data-theme="brand"] .home-note {
+  margin-top: var(--space-3);
+  max-width: var(--brand-measure);
+  color: var(--brand-muted);
+  font-size: var(--text-sm, 0.875rem);
+}
+[data-theme="brand"] .home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4) var(--space-6);
+  margin-top: var(--space-6);
+}
+[data-theme="brand"] .home-when .home-actions {
+  margin-top: 0;
+  flex-direction: column;
+  align-items: flex-start;
+}
+[data-theme="brand"] .home-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--brand-tap);
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+}
+[data-theme="brand"] .brand-section--white .home-link { color: var(--brand-blue); }
+[data-theme="brand"] .home-link:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+[data-theme="brand"] .home-state {
+  margin: 0;
+  max-width: var(--brand-measure);
+  color: var(--brand-muted);
+}
+[data-theme="brand"] .home-photos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+[data-theme="brand"] .home-photos img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: var(--brand-radius);
+  background: var(--brand-blue-deep);
+}
+[data-theme="brand"] .home-wishes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+[data-theme="brand"] .home-wish {
+  padding: var(--space-5);
+  border-radius: var(--brand-radius);
+  background: var(--brand-blue-soft);
+}
+[data-theme="brand"] .home-wish__body {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  line-clamp: 5;
+  overflow-wrap: anywhere;
+}
+[data-theme="brand"] .home-wish__author {
+  margin: var(--space-4) 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm, 0.875rem);
+  letter-spacing: var(--brand-tracking-label);
+  text-transform: uppercase;
+  color: var(--brand-muted);
+  overflow-wrap: anywhere;
+}
+@media (max-width: 960px) {
+  [data-theme="brand"] .home-when,
+  [data-theme="brand"] .home-wishes { grid-template-columns: 1fr; }
+  [data-theme="brand"] .home-photos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  [data-theme="brand"] .home-visual { max-height: none; }
+  [data-theme="brand"] .home-stage { min-height: 160px; }
+}
+[data-theme="brand"] .home { overflow-x: clip; }

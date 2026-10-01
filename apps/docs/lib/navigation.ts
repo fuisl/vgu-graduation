@@ -39,10 +39,11 @@ export const navGroups: readonly NavGroup[] = [
       {
         title: "Interface",
         items: [
-          ["design/landing", "Landing teaser"],
+          ["design/landing", "Landing and sculpture"],
           ["design/components", "Components"],
           ["design/responsive", "Responsive"],
           ["design/motion", "Motion"],
+          ["design/figures", "Illustrative figures"],
         ],
       },
       {

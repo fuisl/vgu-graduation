@@ -4,7 +4,7 @@ Open items:
 
 1. **Venue node machine.** Decided 2026-09-27: a second node runs at the venue, bootstrapped from `clusters/venue` with a rehearsed data handoff. Which machine it is remains open; it depends on hardware inventory (#81). Default posture, decided 2026-09-27: the homelab laptop stays home and the venue connects back to it remotely; the laptop can travel as a fallback if a remote link isn't viable, but that isn't the plan. Affects sections 4.6, 7.5, 8.7.
 2. **Translation scope.** Deferred until after M1: languages, model size and latency budget. The homelab GPU has 6 GB of VRAM, so plan for small or int8 models. Affects GPU sizing in 7.8.
-3. **Ceremony date and time.** Not yet confirmed (#83). Working placeholder: November 2026, time to be confirmed, time zone Asia/Ho_Chi_Minh (UTC+7). Build against the placeholder and replace it in the event configuration once the official time is announced; nothing else should hard-code it. The venue is Ceremony Hall at VGU. Map link updated 2026-09-27: <https://maps.app.goo.gl/meCAgQyakBbWh8LDA> (supersedes the earlier link recorded in #83).
+3. **Ceremony date and time.** Not yet confirmed (#83). Working estimate, recorded 2026-10-01: 20 November 2026, which becomes the final date unless it changes (migration `0004_event_date_estimate` moves the earlier 14 November placeholder); time to be confirmed, time zone Asia/Ho_Chi_Minh (UTC+7). Build against the placeholder and replace it in the event configuration once the official time is announced; nothing else should hard-code it. The venue is Ceremony Hall at VGU. Map link updated 2026-09-27: <https://maps.app.goo.gl/meCAgQyakBbWh8LDA> (supersedes the earlier link recorded in #83).
 
 Recorded as ADRs in `adr/README.md` (all accepted 2026-09-27):
 
@@ -49,5 +49,5 @@ Decided 2026-09-29:
 - Graduates, the inviters, are added by admins one at a time through the admin UI; there is no import (#32, #42).
 - Each invitation has a roll of 36 photo shots, like film (#58, #62). The API enforces the cap and the camera shows the shots left. A shot is spent once uploaded; hiding or removing a photo doesn't give it back.
 - The ceremony date and time are still unconfirmed (#83). Everything builds against the placeholder with `timeConfirmed: false` in the event configuration; nothing else may hard-code them.
-- A light theme to complement the documented dark theme is wanted later, once there is substantial web UI to test it on (#10). A more minimal landing layout (#5) is researched by fuisl and reviewed before any change.
+- Guest-facing pages use one fixed blue-and-white theme, with no light/dark switch (redesign #142, `docs/design/redesign-2026-10.md`). A light theme (#10) and a more minimal landing layout (#5) are superseded by it.
 - CI: the API image is built and pushed only when something merges to `main`, and pull-request CI runs only the packages a change affects (#103, #104, #105). Local development and the cluster both run Garage v2.4.1 (#49 vendored the chart).

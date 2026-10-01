@@ -1,6 +1,27 @@
 # Redesign brief: blue and white (October 2026)
 
-Status: **Decided, not yet implemented.** Decisions below were made by the project owner on 2026-10-01. Exact values marked *proposed* are finalised in the tokens sub-issue and then moved into the regular design docs (`philosophy.md`, `tokens.md`, `landing.md`, `components.md`, `motion.md`, `anti-patterns.md`, `llm-reference.md`, `moodboard.md`), which this brief supersedes where they disagree. Tracking epic: see "Work breakdown".
+Status: **Implemented on `refactor/blue-white-redesign`; merged to main with #155.** This page is kept as the decision record. The permanent docs (`philosophy.md`, `tokens.md`, `components.md`, `landing.md`, `motion.md`, `anti-patterns.md`, `llm-reference.md`, `moodboard.md`, `responsive.md`) describe the language as shipped and supersede this brief where they disagree; the code is authoritative for exact values. Decisions were made by the project owner on 2026-10-01. Values marked *proposed* below were finalised in #143 and #153 (see `tokens.md`). Tracking epic: see "Work breakdown".
+
+## What shipped
+
+All on the integration branch `refactor/blue-white-redesign` (epic #142):
+
+- #156 and #158 this brief and its handbook navigation entry
+- #159 brand tokens, Inter Tight and the `packages/ui` primitives (#143, #144)
+- #157 sculpture and code backdrop recoloured, blur fixed (#147, #6)
+- #161 Fuisloy pixel logo and favicon replace the ASCII VGU logo
+- #160 `/design-system` rebuilt as the blue-and-white showcase (#153)
+- #162 site header, mobile menu sheet and footer (#145)
+- #163 owner sign-off applied: content width, pill tone, density, footer band, disabled `Cta`
+- #164 invitation, demo invitation, venue and pass (#150)
+- #165 landing page (#148)
+- #166 gallery, wishes and polaroid (#149)
+- #167 two-state guest chip with animated blobatar (#146)
+- #168 `/ascii-live` (#151)
+- #169 `/guest/prototype` badge (#152)
+- #171 consolidation: shared `Cta` and pill primitives, dead code removed (#155)
+
+Outcomes of the open questions: the landing is event-first (hero, when and where, gallery teaser, wishes teaser, footer) and the ASCII graduation chapter was dropped; `DecodeText` stayed on the hero headline only; the footer is a deep-blue band; the invitation is a blue greeting band plus a compact white band that also holds the pass.
 
 ## Why
 
@@ -76,6 +97,23 @@ mobile:   ▐ Fuisloy                                                     [ Menu
 - The signed-in state reads the guest's name through the web BFF (the invitation cookie is `HttpOnly`, so the browser can't read it). The blobatar seed is a stable, non-secret value such as the guest id, never the token.
 - The blobatar comes from `blobatar` and `@blobatar/react` (MIT, no dependencies, about 4 KB).
 
+## Sign-off decisions (2026-10-01)
+
+Owner sign-off on #153, applied in the "design-system sign-off fixes" PR:
+
+| Topic | Decision |
+| --- | --- |
+| Content width | 1200px maximum inside brand sections (`--brand-content`). Bands stay full-bleed; reading text stays at 70ch. |
+| Pills on white | `PillGroup tone="on-white"`: `--brand-blue-soft` container, blue text, active item solid `--brand-blue` with white text. The deep-blue container stays for blue surfaces. |
+| Density | `Section density="airy"` (default, about 6rem desktop, 4rem mobile) and `"compact"` (about 3rem, 2rem) for forms, the invitation, RSVP and the gallery. |
+| Logo | Compact "F" mark only in the header (desktop, mobile and the mobile sheet). The full wordmark appears only in the footer. |
+| Footer | Deep-blue band (`Section tone="blue-deep"`) with the full logo (on-blue), the four links, "VGU graduation · Class of 2026", and a "Grad '26" label. The credits link is a `TODO(owner)` until a credits destination exists. |
+| Mobile menu | Keep the text "Menu" pill. |
+| Disabled `Cta` | Outlined: transparent fill, hairline border, muted label. Replaces `opacity: .6`. |
+| Small fixes | `aria-disabled` (and no `href`) on a disabled `Cta` link; `BrandEyebrow` has no built-in bottom margin; `blue-deep` tone on `Section`. |
+
+This resolves open question 4 (footer: blue-deep, with the content above).
+
 ## Open questions (decide during implementation, with the owner)
 
 1. Landing structure below the hero: which sections (event facts, venue, gallery teaser, wishes teaser, credits) and in what order.
@@ -102,7 +140,7 @@ Epic **#142**. Sub-issues, in dependency order (GitHub records the "blocked by" 
 | #152 | `/guest/prototype` badge | #145, #143 |
 | #153 | `/design-system` showcase (owner sign-off gate) | #144 |
 | #154 | Rewrite the design docs | #143, #144 |
-| #155 | Integration branch `redesign/blue-white`, QA and single release | all of the above |
+| #155 | Integration branch `refactor/blue-white-redesign`, QA and single release | all of the above |
 
 Parallel tracks once #143 and #144 land: the header and chip; the sculpture and landing; the memories and guest pages; the experimental pages; the docs.
 

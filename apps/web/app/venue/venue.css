@@ -1,0 +1,310 @@
+/* Venue and calendar page (#150). Brand tokens only; no hex, gradients, blur or shadows. */
+[data-theme="brand"] .venue-main {
+  min-height: 100svh;
+  background: var(--brand-white);
+}
+[data-theme="brand"] .venue-title {
+  margin: var(--space-4) 0 0;
+  font-size: var(--brand-text-h1);
+  font-weight: 500;
+  line-height: var(--brand-leading-display);
+  letter-spacing: var(--brand-tracking-display);
+  overflow-wrap: anywhere;
+}
+/* One screen on desktop: facts and the email box on the left, FIG_001 on the right. */
+[data-theme="brand"] .venue-split {
+  display: grid;
+  gap: var(--space-7);
+}
+[data-theme="brand"] .venue-info {
+  display: grid;
+  gap: var(--space-5);
+  align-content: start;
+  justify-items: start;
+}
+[data-theme="brand"] .venue-info .venue-title { margin: calc(var(--space-3) * -1) 0 0; }
+[data-theme="brand"] .venue-facts {
+  display: grid;
+  gap: var(--space-5);
+  width: 100%;
+}
+[data-theme="brand"] .venue-fact {
+  width: 100%;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--brand-line);
+}
+[data-theme="brand"] .venue-fact__action { margin-top: var(--space-3); }
+[data-theme="brand"] .venue-text__sub { color: var(--brand-muted); font-size: var(--brand-text-body); }
+[data-theme="brand"] .venue-map { min-width: 0; }
+/* Phones: the map leads, so it is the first thing on screen. Visual order only; the heading stays first in the DOM. */
+@media (max-width: 960px) {
+  [data-theme="brand"] .venue-map { order: -1; }
+}
+[data-theme="brand"] .venue-map .campus-fig { margin: 0; }
+@media (min-width: 961px) {
+  [data-theme="brand"] .venue-main > .brand-section:first-child {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 100svh;
+    padding-block: var(--space-6);
+  }
+  [data-theme="brand"] .venue-split {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    align-items: center;
+    gap: var(--space-7);
+  }
+  [data-theme="brand"] .venue-split--solo { grid-template-columns: minmax(0, 1fr); }
+  [data-theme="brand"] .venue-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  [data-theme="brand"] .venue-info .venue-title { font-size: clamp(2rem, 1rem + 2.2vw, 3.25rem); }
+}
+
+/* Calendar invite by email (front end only until the invite email exists). */
+[data-theme="brand"] .venue-email {
+  display: grid;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: 34rem;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--brand-line);
+}
+[data-theme="brand"] .venue-email .venue-label { margin: 0; }
+[data-theme="brand"] .venue-email__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+[data-theme="brand"] .venue-email__input {
+  flex: 1 1 14rem;
+  min-width: 0;
+  min-height: var(--brand-tap);
+  padding: 0 var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--brand-white) 55%, transparent);
+  border-radius: var(--brand-radius);
+  background: transparent;
+  color: var(--brand-white);
+  font: inherit;
+}
+[data-theme="brand"] .venue-email__input::placeholder { color: var(--brand-muted); }
+[data-theme="brand"] .venue-email__input:focus-visible {
+  outline: 2px solid var(--brand-accent);
+  outline-offset: 2px;
+}
+[data-theme="brand"] .venue-email__input[aria-invalid="true"] { border-color: var(--brand-danger); }
+[data-theme="brand"] .venue-email__status {
+  min-height: 1.5em;
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--brand-muted);
+}
+[data-theme="brand"] .venue-email:has([aria-invalid="true"]) .venue-email__status { color: var(--brand-danger); }
+[data-theme="brand"] .venue-email__fallback {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--brand-muted);
+}
+[data-theme="brand"] .venue-email__fallback .venue-link { padding-block: 0; }
+[data-theme="brand"] .venue-label {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  letter-spacing: var(--brand-tracking-label);
+  text-transform: uppercase;
+  color: var(--brand-muted);
+}
+[data-theme="brand"] .venue-text {
+  margin: 0;
+  max-width: var(--brand-measure);
+}
+[data-theme="brand"] .venue-text--lead {
+  font-size: var(--brand-text-lead);
+}
+[data-theme="brand"] .venue-note {
+  margin: var(--space-2) 0 0;
+  max-width: var(--brand-measure);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  /* Quieter by size, not by fading: --brand-muted is the faintest that keeps 4.5:1 on blue. */
+  color: var(--brand-muted);
+}
+[data-theme="brand"] .venue-link {
+  display: inline-block;
+  padding-block: var(--space-2);
+  color: var(--brand-white);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+[data-theme="brand"] .venue-link--on-white {
+  color: var(--brand-blue);
+}
+[data-theme="brand"] .venue-link:hover {
+  text-decoration-thickness: 2px;
+}
+[data-theme="brand"] .venue-link:focus-visible {
+  outline: 2px solid var(--brand-accent);
+  outline-offset: 2px;
+}
+[data-theme="brand"] .venue-link--on-white:focus-visible {
+  outline-color: var(--brand-blue);
+}
+
+[data-theme="brand"] .venue-block {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+[data-theme="brand"] .venue-block > p {
+  margin: 0;
+  max-width: var(--brand-measure);
+}
+[data-theme="brand"] .venue-pre {
+  white-space: pre-line;
+}
+
+/* FIG_001 campus blueprint (CampusFigure). White line work on the hero blue, after the
+   technical figures of makingsoftware.com: dot grid (an SVG pattern, not a gradient), dotted
+   frame, single-weight non-scaling strokes, one solid highlight, mono labels on leaders. */
+[data-theme="brand"] .campus-fig {
+  position: relative;
+  margin: var(--space-7) 0 0;
+  padding: var(--space-6) var(--space-7);
+  border: 1px dotted color-mix(in srgb, var(--brand-white) 40%, transparent);
+  isolation: isolate;
+}
+[data-theme="brand"] .campus-fig__dots {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  fill: color-mix(in srgb, var(--brand-white) 22%, transparent);
+}
+[data-theme="brand"] .campus-fig__stage {
+  position: relative;
+  width: 100%;
+  /* Never taller than about two thirds of the screen. */
+  max-width: min(1100px, calc(68svh * var(--fig-ratio, 1.6)));
+  margin-inline: auto;
+}
+[data-theme="brand"] .campus-fig__drawing {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke: var(--brand-white);
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+[data-theme="brand"] .campus-fig__drawing path,
+[data-theme="brand"] .campus-fig__drawing rect {
+  vector-effect: non-scaling-stroke;
+  stroke-width: 1.25px;
+}
+[data-theme="brand"] .campus-fig__ground { stroke: color-mix(in srgb, var(--brand-white) 55%, transparent); }
+[data-theme="brand"] .campus-fig__dash { stroke-dasharray: 5 6; }
+[data-theme="brand"] .campus-fig__water rect { stroke: none; }
+[data-theme="brand"] .campus-fig__water pattern path,
+[data-theme="brand"] #fig001-water path { stroke: color-mix(in srgb, var(--brand-white) 60%, transparent); stroke-width: 1px; }
+[data-theme="brand"] .campus-fig__bridges path { fill: var(--brand-blue); }
+[data-theme="brand"] .campus-fig__route {
+  stroke-dasharray: 2 5;
+  stroke-width: 2px !important;
+}
+[data-theme="brand"] .campus-fig__wall { fill: color-mix(in srgb, var(--brand-white) 14%, var(--brand-blue)); }
+[data-theme="brand"] .campus-fig__top { fill: color-mix(in srgb, var(--brand-white) 5%, var(--brand-blue)); }
+/* Curved walls: facets fill edge to edge (stroke in the fill colour hides seams); one silhouette outlines them. */
+[data-theme="brand"] .campus-fig__wall.is-facet { stroke: color-mix(in srgb, var(--brand-white) 62%, var(--brand-blue)); }
+[data-theme="brand"] .campus-fig__silhouette { fill: none; }
+[data-theme="brand"] .campus-fig__block.is-highlight .campus-fig__wall { fill: color-mix(in srgb, var(--brand-white) 62%, var(--brand-blue)); }
+[data-theme="brand"] .campus-fig__block.is-highlight .campus-fig__top { fill: var(--brand-white); }
+[data-theme="brand"] .campus-fig__leaders path { stroke-width: 1px; }
+[data-theme="brand"] .campus-fig__leaders .campus-fig__head {
+  fill: var(--brand-white);
+  stroke: none;
+}
+[data-theme="brand"] .campus-fig__label {
+  position: absolute;
+  font-family: var(--font-mono);
+  font-size: clamp(10px, 0.5rem + 0.35vw, 13px);
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--brand-white);
+}
+[data-theme="brand"] .campus-fig__label--left { transform: translate(6px, -50%); }
+[data-theme="brand"] .campus-fig__label--right { transform: translate(calc(-100% - 6px), -50%); }
+[data-theme="brand"] .campus-fig__label--inline {
+  left: var(--x);
+  top: var(--y);
+  padding: 1px 4px;
+  background: var(--brand-blue);
+  transform: translate(-50%, -50%) rotate(var(--angle));
+}
+@media (max-width: 1199px) {
+  [data-theme="brand"] .campus-fig__label--inline {
+    left: var(--x-narrow, var(--x));
+    top: var(--y-narrow, var(--y));
+  }
+}
+[data-theme="brand"] .campus-fig__label.is-highlight {
+  padding: 4px 6px;
+  background: var(--brand-white);
+  color: var(--brand-blue);
+}
+[data-theme="brand"] .campus-fig__meta {
+  position: absolute;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--brand-muted);
+  writing-mode: vertical-rl;
+  white-space: nowrap;
+}
+[data-theme="brand"] .campus-fig__meta--fig { top: var(--space-4); left: var(--space-3); }
+[data-theme="brand"] .campus-fig__meta--title { top: var(--space-4); right: var(--space-3); }
+[data-theme="brand"] .campus-fig__meta--year { bottom: var(--space-4); right: var(--space-3); }
+/* Motion (figures.md): walkers on the route, the river's current, and a one-time label reveal. */
+[data-theme="brand"] .campus-fig__walker { fill: var(--brand-white); stroke: none; }
+[data-theme="brand"] .campus-fig__current { fill: color-mix(in srgb, var(--brand-white) 75%, transparent); stroke: none; }
+[data-theme="brand"] .campus-fig-reveal .campus-fig__label {
+  clip-path: inset(0 0 0 0);
+  transition: clip-path 520ms var(--ease), opacity 520ms var(--ease);
+  transition-delay: calc(240ms + var(--i, 0) * 140ms);
+}
+[data-theme="brand"] .campus-fig-reveal .campus-fig__leader {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 480ms var(--ease);
+  transition-delay: calc(var(--i, 0) * 140ms);
+}
+[data-theme="brand"] .campus-fig-reveal .campus-fig__head {
+  transition: opacity 200ms var(--ease);
+  transition-delay: calc(400ms + var(--i, 0) * 140ms);
+}
+[data-theme="brand"] .campus-fig-reveal[data-reveal="pending"] .campus-fig__label {
+  clip-path: inset(0 100% 0 0);
+  opacity: 0;
+  transition: none;
+}
+[data-theme="brand"] .campus-fig-reveal[data-reveal="pending"] .campus-fig__leader {
+  stroke-dashoffset: 1;
+  transition: none;
+}
+[data-theme="brand"] .campus-fig-reveal[data-reveal="pending"] .campus-fig__head {
+  opacity: 0;
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="brand"] .campus-fig__motion { display: none; }
+  [data-theme="brand"] .campus-fig-reveal .campus-fig__label,
+  [data-theme="brand"] .campus-fig-reveal .campus-fig__leader,
+  [data-theme="brand"] .campus-fig-reveal .campus-fig__head { transition: none; }
+}
+@media (max-width: 640px) {
+  [data-theme="brand"] .campus-fig { padding: var(--space-6) var(--space-5); }
+  [data-theme="brand"] .campus-fig .is-minor,
+  [data-theme="brand"] .campus-fig__meta--title { display: none; }
+}

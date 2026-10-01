@@ -1,0 +1,41 @@
+/*
+ * Shared styles for /gallery, /wishes and /polaroid (#149, blue-and-white redesign #142).
+ * Brand tokens only (--brand-*, --space-*, --motion-*, --font-mono); no hex, gradients,
+ * blur, glows or shadows. Status colours use the surface-following --brand-danger/--brand-success.
+ * Focus rings: blue on white, accent on blue (same rule as the shared Cta and pills).
+ */
+
+/* Hero (blue band) ---------------------------------------------------- */
+[data-theme="brand"] .mem-hero { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-4); }
+[data-theme="brand"] .mem-title { margin: 0; max-width: 20ch; font-size: var(--brand-text-h1); font-weight: 500; line-height: 1.05; letter-spacing: var(--brand-tracking-display); overflow-wrap: anywhere; }
+[data-theme="brand"] .mem-lead { margin: 0; max-width: var(--brand-measure); font-size: var(--brand-text-lead); line-height: 1.35; color: var(--brand-muted); }
+
+[data-theme="brand"] .mem-group-label { margin-right: var(--space-2); }
+
+/* Panels, fields, labels ---------------------------------------------- */
+[data-theme="brand"] .mem-panel { display: flex; flex-direction: column; gap: var(--space-5); padding: var(--space-5); border: 1px solid var(--brand-line); border-radius: var(--brand-radius); background: var(--brand-white); }
+[data-theme="brand"] .mem-panel--center { align-items: flex-start; }
+[data-theme="brand"] .mem-heading { margin: 0; font-size: var(--brand-text-h3); font-weight: 500; line-height: 1.2; letter-spacing: -0.02em; }
+[data-theme="brand"] .mem-field { display: flex; flex-direction: column; gap: var(--space-2); width: 100%; }
+[data-theme="brand"] .mem-label { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: var(--brand-tracking-label); text-transform: uppercase; color: var(--brand-muted); }
+[data-theme="brand"] .mem-input,
+[data-theme="brand"] .mem-textarea { width: 100%; padding: var(--space-3) var(--space-4); border: 1px solid var(--brand-line); border-radius: var(--brand-radius); background: var(--brand-white); color: var(--brand-fg); font: inherit; transition: border-color var(--motion-fast) var(--ease); }
+[data-theme="brand"] .mem-input { min-height: var(--brand-tap); }
+[data-theme="brand"] .mem-input::placeholder,
+[data-theme="brand"] .mem-textarea::placeholder { color: var(--brand-muted); }
+[data-theme="brand"] .mem-input:focus-visible,
+[data-theme="brand"] .mem-textarea:focus-visible { outline: 2px solid var(--brand-blue); outline-offset: 1px; border-color: var(--brand-blue); }
+[data-theme="brand"] .mem-textarea { min-height: 9rem; resize: vertical; }
+[data-theme="brand"] .mem-help { margin: 0; max-width: var(--brand-measure); font-size: var(--text-sm); line-height: 1.5; color: var(--brand-muted); }
+
+/* Status lines */
+[data-theme="brand"] .mem-status { margin: 0; font-size: var(--text-sm); color: var(--brand-muted); }
+[data-theme="brand"] .mem-status--center { text-align: center; }
+[data-theme="brand"] .mem-status--error { color: var(--brand-danger); }
+[data-theme="brand"] .mem-status--success { color: var(--brand-success); }
+[data-theme="brand"] .mem-status--notice { padding: var(--space-3) var(--space-4); border: 1px solid var(--brand-line); border-radius: var(--brand-radius); background: var(--brand-blue-soft); color: var(--brand-ink); }
+
+/* Polaroid frame: a content metaphor. White frame on a soft-blue surface. */
+[data-theme="brand"] .mem-polaroid { display: flex; justify-content: center; padding: var(--space-4); background: var(--brand-blue-soft); }
+[data-theme="brand"] .mem-polaroid-frame { width: 100%; padding: var(--space-3) var(--space-3) var(--space-7); border: 1px solid var(--brand-line); border-radius: var(--brand-radius-sm); background: var(--brand-white); }
+[data-theme="brand"] .mem-polaroid-img { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; background: var(--brand-ink); }

@@ -147,6 +147,7 @@ Reuse `project`, `extrude`, `ellipse`, `rect`, `toPath` and `toPercent` from `ca
 - [ ] One stroke weight; no gradients, shadows, blur, perspective or colour other than the brand tokens above.
 - [ ] Curved objects have a single silhouette and no facet seams.
 - [ ] Leaders are horizontal then vertical with at most one bend, no label overlaps line work, and there are 3 to 6 labels.
+- [ ] Measured in a browser from 360 to 2560 wide: no two labels touch, and no leader passes through any label, including inline labels. Inline labels grow relative to the drawing on phones, so check them there.
 - [ ] It looks right at 360, 390 and 1440 wide, and is no taller than about two thirds of the screen.
 - [ ] It has a hidden figcaption with a plain-language description, and every graphic is `aria-hidden`.
 - [ ] Motion is limited to meaningful ambient dots and the one-time label reveal, and reduced motion shows a still, fully labelled figure.

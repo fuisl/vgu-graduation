@@ -188,11 +188,11 @@ export type Label = {
 
 export const LABELS: Label[] = [
   { text: "Ceremony Hall", anchor: HALL_CENTER, offset: [-108, -218], align: "right", highlight: true },
-  { text: "Entrance", anchor: [952, 735, 0], offset: [-43, 146], align: "right" },
+  { text: "Entrance", anchor: [952, 735, 0], offset: [-43, 186], align: "right" },
   { text: "West Bridge", anchor: [963, 669, 0], offset: [64, 178], align: "left" },
   { text: "Ring Road 4", anchor: [660, 845, 0], offset: [-30, 80], align: "right", minor: true },
   // Parking at the administration building and in the outdoor lot by the roundabout.
-  { text: "Parking", anchor: [699, 758, 11], also: [[869, 778, 0]], offset: [-18, 233], align: "right" },
+  { text: "Parking", anchor: [640, 758, 11], also: [[869, 778, 0]], offset: [-18, 193], align: "right" },
 ];
 
 /** Labels written along a feature instead of on a leader. */
@@ -201,7 +201,7 @@ export type InlineLabel = { text: string; at: Point3; angle: number };
 /** The river's on-screen slope: plan east-west lines run at this angle. */
 export const RIVER_ANGLE = (Math.atan2(Math.sin(ANGLE) * SQUASH, Math.cos(ANGLE)) * 180) / Math.PI;
 
-export const INLINE_LABELS: InlineLabel[] = [{ text: "Sunrise River", at: [868, 669, 0], angle: RIVER_ANGLE }];
+export const INLINE_LABELS: InlineLabel[] = [{ text: "Sunrise River", at: [786, 669, 0], angle: RIVER_ANGLE }];
 
 /* Frame ---------------------------------------------------------------------------------- */
 

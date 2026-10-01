@@ -155,7 +155,7 @@ export function CampusFigure() {
 
             <g className="campus-fig__leaders">
               {leaders.map(({ label, line, head }, i) => (
-                <g key={label.text} className={label.minor ? "is-minor" : undefined} style={{ ["--i" as string]: i }}>
+                <g key={label.text} data-label={label.text} className={label.minor ? "is-minor" : undefined} style={{ ["--i" as string]: i }}>
                   <path className="campus-fig__leader" d={line} pathLength={1} />
                   <path className="campus-fig__head" d={head} />
                 </g>

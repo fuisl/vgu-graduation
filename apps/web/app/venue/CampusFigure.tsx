@@ -1,5 +1,7 @@
 import {
   INLINE_LABELS,
+  PARKING,
+  PARKING_STALLS,
   RIVER_FLOW,
   BRIDGES,
   BUILDINGS,
@@ -95,6 +97,8 @@ export function CampusFigure() {
             <g className="campus-fig__ground">
               {ROADS.map((road, i) => <path key={i} d={toPath(flat(road))} />)}
               {CENTRE_LINES.map((line, i) => <path key={i} className="campus-fig__dash" d={toPath(flat(line), false)} />)}
+              <path d={toPath(flat(PARKING))} />
+              {PARKING_STALLS.map((stall, i) => <path key={i} d={toPath(flat(stall), false)} />)}
               <path className="campus-fig__dash" d={toPath(flat(LAWN))} />
               {ROUNDABOUT.map((ring, i) => <path key={i} d={toPath(flat(ring))} />)}
             </g>

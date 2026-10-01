@@ -36,6 +36,10 @@
 [data-theme="brand"] .venue-fact__action { margin-top: var(--space-3); }
 [data-theme="brand"] .venue-text__sub { color: var(--brand-muted); font-size: var(--brand-text-body); }
 [data-theme="brand"] .venue-map { min-width: 0; }
+/* Phones: the map leads, so it is the first thing on screen. Visual order only; the heading stays first in the DOM. */
+@media (max-width: 960px) {
+  [data-theme="brand"] .venue-map { order: -1; }
+}
 [data-theme="brand"] .venue-map .campus-fig { margin: 0; }
 @media (min-width: 961px) {
   [data-theme="brand"] .venue-main > .brand-section:first-child {

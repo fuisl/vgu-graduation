@@ -136,7 +136,6 @@ export const BUILDINGS: Building[] = [
   },
   { id: "atrium", footprint: [[931, 614], [956, 578], [981, 614]], height: 44 },
   { id: "ceremony-hall", footprint: ellipse(1015, 602, 64, 24, 64), height: HALL_CENTER[2], highlight: true, smooth: true },
-  { id: "administration", footprint: rect(612, 702, 786, 758), height: 22 },
 ];
 
 /** Sunrise River: the main channel and its bend south past the West Bridge. */
@@ -153,6 +152,13 @@ export const ROADS: Point[][] = [
   rect(986, 768, 1016, 815),
   rect(792, 760, 920, 774),
 ];
+
+/** Car park south of the river, west of the entrance: outline, and two rows of stalls either side of an aisle. */
+export const PARKING: Point[] = rect(612, 702, 786, 758);
+export const PARKING_STALLS: Point[][] = Array.from({ length: 16 }, (_, i) => {
+  const x = 620 + i * 10.6;
+  return [[[x, 704], [x, 724]], [[x, 736], [x, 756]]] as Point[][];
+}).flat();
 /** Dashed road centre lines. */
 export const CENTRE_LINES: Point[][] = [[[560, 830], [1250, 830]]];
 
@@ -182,6 +188,7 @@ export const LABELS: Label[] = [
   { text: "Entrance", anchor: [952, 735, 0], offset: [-43, 146], align: "right" },
   { text: "West Bridge", anchor: [963, 669, 0], offset: [64, 178], align: "left" },
   { text: "Ring Road 4", anchor: [660, 845, 0], offset: [-30, 80], align: "right", minor: true },
+  { text: "Parking", anchor: [699, 745, 0], offset: [-7, 189], align: "right" },
 ];
 
 /** Labels written along a feature instead of on a leader. */

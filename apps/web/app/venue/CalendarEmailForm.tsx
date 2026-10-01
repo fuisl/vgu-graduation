@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState, type FormEvent } from "react";
-import { Cta } from "@grad/ui";
+import { Cta, PaperPlanePixel } from "@grad/ui";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -43,7 +43,7 @@ export function CalendarEmailForm({ icsHref }: { icsHref: string }) {
           aria-invalid={status.kind === "invalid"}
           required
         />
-        <Cta tone="on-blue" type="submit">Send invite</Cta>
+        <Cta tone="on-blue" type="submit" icon={<PaperPlanePixel />}>Send invite</Cta>
       </div>
       <p id={`${id}-status`} className="venue-email__status" role="status">
         {status.kind === "invalid" ? "Enter an email address like name@example.com." : null}

@@ -198,10 +198,12 @@ function AsciiPass({ onFirstFrame }: { onFirstFrame: () => void }) {
 function CameraRig() {
   const { camera, size } = useThree();
   useEffect(() => {
-    camera.position.set(0, size.width < 500 ? 2 : 1.75, size.width < 500 ? 4.8 : 4.1);
+    // The FOV is vertical, so a portrait canvas (the phone hero) would crop the sides; back off by 1/aspect.
+    const back = Math.max(1, size.height / Math.max(1, size.width));
+    camera.position.set(0, (size.width < 500 ? 2 : 1.75) * back, (size.width < 500 ? 4.8 : 4.1) * back);
     camera.lookAt(0, 0, 0);
     camera.updateProjectionMatrix();
-  }, [camera, size.width]);
+  }, [camera, size.width, size.height]);
   return null;
 }
 

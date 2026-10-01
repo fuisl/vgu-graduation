@@ -2,13 +2,14 @@
 /* eslint-disable @next/next/no-img-element */
 
 import type { Metadata } from "next";
-import { BrandEyebrow, BrandTheme, Cta, Section } from "@grad/ui";
+import { ArrowUpRightPixel, BrandEyebrow, BrandTheme, Cta, Section } from "@grad/ui";
 import { getEvent } from "../lib/api/event";
 import { getGallery } from "../lib/api/gallery";
 import { mediaDerivativeUrl } from "../lib/api/browser-origin";
 import { getWishes } from "../lib/api/wishes";
 import { buildCalendarLinks } from "../lib/calendar/links";
 import { formatEventWhen } from "../lib/invite/format";
+import { Countdown } from "./landing-countdown/Countdown";
 import { DecodeText } from "./landing-title/DecodeText";
 import { Sculpture } from "./sculpture/Sculpture";
 import { SiteFooter } from "./site/SiteFooter";
@@ -23,6 +24,8 @@ export const metadata: Metadata = {
 // API origins are read at request time; every helper below caches its own call.
 export const dynamic = "force-dynamic";
 
+/** Campus and city under the hero. The ceremony hall itself comes from GET /event. */
+const HERO_PLACE = ["VGU Campus", "Ho Chi Minh City"] as const;
 const TEASER_PHOTOS = 6;
 const TEASER_WISHES = 3;
 
@@ -31,6 +34,9 @@ export default async function Home() {
   const event = eventResult.status === "ok" ? eventResult.data : null;
   const when = event ? formatEventWhen(event) : null;
   const links = event ? buildCalendarLinks(event) : null;
+  const day = event
+    ? new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", timeZone: event.timeZone }).format(new Date(event.startsAt))
+    : null;
   const photos = galleryResult.status === "ok" ? galleryResult.data.items.slice(0, TEASER_PHOTOS) : null;
   const wishes = wishesResult.status === "ok" ? wishesResult.data.items.slice(0, TEASER_WISHES) : null;
 
@@ -48,15 +54,21 @@ export default async function Home() {
             <h1 id="home-title" className="home-title" aria-label="Graduation ’26">
               <DecodeText text="Graduation ’26" delay={80} duration={900} ariaHidden />
             </h1>
-            <div className="home-hero-side">
-              {event && when ? (
-                <p className="home-event-line">
-                  <time dateTime={event.startsAt}>{when.date}</time>
-                  <br />
-                  {event.venue.name}
-                </p>
+            {/* Two columns read top to bottom: place (campus, city), then date and countdown. */}
+            <div className="home-hero-meta">
+              <p className="home-hero-meta__cell">
+                <a className="home-hero-meta__link" href="/venue">
+                  {HERO_PLACE[0]}
+                  <ArrowUpRightPixel />
+                </a>
+              </p>
+              <p className="home-hero-meta__cell">{HERO_PLACE[1]}</p>
+              {event && day ? (
+                <>
+                  <p className="home-hero-meta__cell"><time dateTime={event.startsAt}>{day}</time></p>
+                  <Countdown target={event.startsAt} />
+                </>
               ) : null}
-              <Cta tone="on-blue" href="/invite">Your invitation</Cta>
             </div>
           </div>
         </Section>

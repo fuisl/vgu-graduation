@@ -7,7 +7,9 @@ const LINKS = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/graduates", label: "Graduates" },
   { href: "/admin/invitations", label: "Invitations" },
+  { href: "/admin/guide", label: "Guide-book" },
   { href: "/admin/rsvps", label: "RSVPs" },
+  { href: "/admin/accessibility", label: "Access needs" },
   { href: "/admin/event", label: "Event" },
 ] as const;
 

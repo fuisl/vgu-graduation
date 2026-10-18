@@ -41,6 +41,8 @@ When only a full name is known, it is split by `splitPersonName` (`packages/cont
 
 Middle names are not stored separately; `name` keeps the full form. The two surname lists live in `names.ts` and the migration and must stay in sync.
 
+In the admin (`/admin/graduates`, `/admin/invitations`), the create forms prefill given and family name live from the full name with `splitPersonName`; the admin can overwrite them, and a submitted given name is sent explicitly, so it is stored as reviewed (without JS the fields stay empty and the API's unreviewed split applies). Unreviewed rows carry a "Check name" badge and a "Names to check" filter (`?names=review`); "Looks right" sends `{ nameReviewed: true }`. Each graduate and invitation has an edit page (`/admin/graduates/{id}`, `/admin/invitations/{id}`) whose PATCH carries only the fields that changed; a change to any of the three name fields sends all three, so the API never re-splits a reviewed name, and saving an unreviewed name unchanged confirms it.
+
 ## Accessibility needs (#176)
 
 A guest may add structured needs to their RSVP: `wheelchair`, `stepFreeAccess`, hearing (`captions` for captions or live translation, `seatNearSpeakers`), vision (`largePrint`, `visionAssistance`), seating (`seatNearFront`, `aisleSeat`), `companion` (a companion or assistant who sits with them) and a free-text `note` of at most 500 characters. They live in `rsvp_accessibility`, one row per RSVP and only while something is set: sending all flags false and no note deletes the row, and deleting the RSVP cascades.
@@ -50,6 +52,7 @@ This is health-adjacent personal data, so:
 - **Who reads it.** The guest themselves through `GET /rsvp` and the `PUT /rsvp` response (both `no-store`), and admins through `GET /admin/rsvp/accessibility` (with counts over attending guests on active invitations). It is deliberately not part of `GET /invitations/me`, which the web layer caches, nor of `GET /admin/rsvp` or `GET /admin/invitations`.
 - **Writes.** `PUT /rsvp` with `accessibility` omitted keeps what is stored, so an RSVP form that doesn't show the section can't wipe it; `null` clears it.
 - **Logs and audit.** Never logged (the logger also redacts any `accessibility` field) and never put in audit metadata.
+- **Admin view.** `/admin/accessibility` ("Access needs") shows the counts grouped for the venue staff (mobility, hearing, vision, seating and companions), the attending guests with their needs, party size and note, and, collapsed, those who declined. It renders per request (`Cache-Control: no-store`), keeps nothing in the URL, carries a "sensitive, delete after the event" notice, and prints without the admin chrome for the venue team.
 - **Retention.** Covered by the guest-data decision in `docs/product/principles.md` §8 (the organizing team owns it; deletion on request is a manual admin action), with one narrowing decided 2026-10-19: these needs only matter for the ceremony, so they are not part of the four-year archive. The team deletes them after the event (`DELETE FROM rsvp_accessibility;`, in the event runbook), or per guest on request. A guest can clear their own at any time by sending `accessibility: null`.
 
 ## Curated public gallery (#75)
@@ -75,5 +78,7 @@ This is health-adjacent personal data, so:
 `guide_items` is the catalogue: `title`, `category` (`photo-spot`, `food-drink`, `explore`, `relax`, `practical`), a short `description`, an optional https `map_url`, an optional `time_hint`, `sort_order` and `active`. Migration `0005` seeds ten draft items for the Ben Cat campus, each marked `TODO(owner)` in the SQL for review; their descriptions are generic on purpose.
 
 `invitation_guide_items` holds the items the graduates picked for one invitation. `GET /invitations/me/guide` returns the picked items that are still active (`tailored: true`), or every active item when there are none (`tailored: false`), with `Cache-Control: private, max-age=300`. Admins manage the catalogue with `GET`/`POST /admin/guide/items` and `PATCH`/`DELETE /admin/guide/items/{id}`, and the picks with `GET`/`PUT /admin/invitations/{id}/guide` (an empty list means the defaults). Deactivating an item hides it everywhere but keeps the picks; deleting it removes them. Every write is audited (`guide.item.create`, `guide.item.update`, `guide.item.delete`, `invitation.guide.set`).
+
+In the admin, `/admin/guide` lists the catalogue in sort order with add, edit (sort order is a number field: lower comes first), one-tap show/hide and delete behind a confirm step. Each invitation's page (`/admin/invitations/{id}`) has the picks as select-item cards, each marked when the guest sees it now; "Use the defaults" sends an empty list. A guest's open guide follows a change within its five-minute cache.
 
 Never put sensitive data in public slugs, analytics, client logs or URLs beyond the necessary invitation credential.

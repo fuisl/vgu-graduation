@@ -1,18 +1,27 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createGraduate,
+  createGuideItem,
   createInvitation,
   decideAdminAccount,
+  deleteGuideItem,
+  getAccessibilityNeeds,
   getAdminMe,
   getEventUncached,
+  getInvitationGuide,
   listGraduates,
+  listGuideItems,
   listInvitations,
   listAdminAccounts,
   listRsvps,
+  putInvitationGuide,
   requestAdminAccess,
   revokeInvitation,
   rotateInvitation,
   updateEvent,
+  updateGraduate,
+  updateGuideItem,
+  updateInvitation,
 } from "./admin";
 
 const ADMIN_TOKEN = "admin.jwt.value";
@@ -214,5 +223,133 @@ describe("admin BFF: admin access (#119)", () => {
     await decideAdminAccount(ADMIN_TOKEN, "newgrad", "approve");
     expect(spy.mock.calls[1][0]).toMatch(/\/admin\/accounts\/newgrad\/approve$/);
     expect(spy.mock.calls[1][1].method).toBe("POST");
+  });
+});
+
+describe("admin BFF: names, guide-book and accessibility (#170, #140, #176)", () => {
+  const ITEM_ID = "3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e72";
+  const item = {
+    id: ITEM_ID,
+    title: "Main gate sign",
+    category: "photo-spot",
+    description: "",
+    mapUrl: null,
+    timeHint: null,
+    sortOrder: 10,
+    active: true,
+    createdAt: "2026-10-01T08:00:00.000Z",
+    updatedAt: "2026-10-01T08:00:00.000Z",
+  };
+  const row = {
+    id: ID,
+    guest: { ...guest, givenName: "Jane", familyName: "Doe", nameReviewed: true },
+    status: "active",
+    maxPlusOnes: 2,
+    inviters: [],
+    rsvp: null,
+    createdAt: "2026-09-29T10:00:00.000Z",
+  };
+
+  it("PATCHes a graduate and an invitation by id with only the given fields", async () => {
+    let spy = mockFetch({ json: async () => ({ ...graduate, givenName: "An", familyName: "Nguyen", nameReviewed: true }) });
+    expect((await updateGraduate(ADMIN_TOKEN, GRAD_ID, { nameReviewed: true })).status).toBe("ok");
+    expect(spy.mock.calls[0][0]).toMatch(new RegExp(`/admin/graduates/${GRAD_ID}$`));
+    expect(lastInit(spy).method).toBe("PATCH");
+    expect(JSON.parse(String(lastInit(spy).body))).toEqual({ nameReviewed: true });
+
+    spy = mockFetch({ json: async () => row });
+    expect(await updateInvitation(ADMIN_TOKEN, ID, { maxPlusOnes: 2 })).toEqual({ status: "ok", data: row });
+    expect(spy.mock.calls[0][0]).toMatch(new RegExp(`/admin/invitations/${ID}$`));
+    expect(lastInit(spy).method).toBe("PATCH");
+  });
+
+  it("surfaces the 409 for plus-ones below the confirmed count", async () => {
+    mockFetch({ ok: false, status: 409, json: async () => ({ error: "Conflict", message: "The guest already confirmed 2 plus-ones" }) });
+    expect(await updateInvitation(ADMIN_TOKEN, ID, { maxPlusOnes: 1 })).toMatchObject({
+      status: "error",
+      httpStatus: 409,
+      message: "The guest already confirmed 2 plus-ones",
+    });
+  });
+
+  it("lists, creates and edits guide items", async () => {
+    let spy = mockFetch({ json: async () => ({ items: [item] }) });
+    expect(await listGuideItems(ADMIN_TOKEN)).toEqual({ status: "ok", data: { items: [item] } });
+    expect(spy.mock.calls[0][0]).toMatch(/\/admin\/guide\/items$/);
+
+    spy = mockFetch({ status: 201, json: async () => item });
+    await createGuideItem(ADMIN_TOKEN, {
+      title: "Main gate sign",
+      category: "photo-spot",
+      description: "",
+      mapUrl: null,
+      timeHint: null,
+      sortOrder: 10,
+      active: true,
+    });
+    expect(lastInit(spy).method).toBe("POST");
+
+    spy = mockFetch({ json: async () => ({ ...item, active: false }) });
+    await updateGuideItem(ADMIN_TOKEN, ITEM_ID, { active: false });
+    expect(spy.mock.calls[0][0]).toMatch(new RegExp(`/admin/guide/items/${ITEM_ID}$`));
+    expect(lastInit(spy).method).toBe("PATCH");
+  });
+
+  it("treats the 204 of a guide item DELETE as empty and a 404 as an error", async () => {
+    let spy = mockFetch({ status: 204, json: async () => { throw new Error("no body"); } });
+    expect(await deleteGuideItem(ADMIN_TOKEN, ITEM_ID)).toEqual({ status: "empty" });
+    expect(lastInit(spy).method).toBe("DELETE");
+    expect(lastInit(spy).headers["Content-Type"]).toBeUndefined();
+
+    spy = mockFetch({ ok: false, status: 404, json: async () => ({ error: "Not Found", message: "Guide item not found" }) });
+    expect(await deleteGuideItem(ADMIN_TOKEN, ITEM_ID)).toMatchObject({ status: "error", httpStatus: 404 });
+  });
+
+  it("reads and replaces an invitation's guide picks", async () => {
+    const picks = { invitationId: ID, selectedItemIds: [ITEM_ID], effective: { tailored: true, items: [item] } };
+    let spy = mockFetch({ json: async () => picks });
+    expect((await getInvitationGuide(ADMIN_TOKEN, ID)).status).toBe("ok");
+    expect(spy.mock.calls[0][0]).toMatch(new RegExp(`/admin/invitations/${ID}/guide$`));
+
+    spy = mockFetch({ json: async () => picks });
+    await putInvitationGuide(ADMIN_TOKEN, ID, [ITEM_ID]);
+    expect(lastInit(spy).method).toBe("PUT");
+    expect(JSON.parse(String(lastInit(spy).body))).toEqual({ itemIds: [ITEM_ID] });
+  });
+
+  it("reads accessibility needs uncached, with the token only in the header", async () => {
+    const needs = {
+      wheelchair: true,
+      stepFreeAccess: false,
+      captions: false,
+      seatNearSpeakers: false,
+      largePrint: false,
+      visionAssistance: false,
+      seatNearFront: false,
+      aisleSeat: true,
+      companion: false,
+      note: null,
+    };
+    const counts = Object.fromEntries(Object.keys(needs).filter((key) => key !== "note").map((key) => [key, 0]));
+    const body = {
+      summary: { guests: 1, withNote: 0, needs: { ...counts, wheelchair: 1, aisleSeat: 1 } },
+      items: [
+        {
+          invitationId: ID,
+          guestName: "Jane Doe",
+          attending: true,
+          plusOnesCount: 1,
+          accessibility: needs,
+          updatedAt: "2026-10-02T08:00:00.000Z",
+        },
+      ],
+    };
+    const spy = mockFetch({ json: async () => body });
+
+    expect(await getAccessibilityNeeds(ADMIN_TOKEN)).toEqual({ status: "ok", data: body });
+    const [url, init] = spy.mock.calls[0];
+    expect(url).toMatch(/\/admin\/rsvp\/accessibility$/);
+    expect(url).not.toContain(ADMIN_TOKEN);
+    expect(init.cache).toBe("no-store");
   });
 });

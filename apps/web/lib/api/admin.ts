@@ -1,7 +1,11 @@
 import {
+  adminAccessibilityResponseSchema,
   adminAccessSchema,
   adminAccountSchema,
   adminAccountsResponseSchema,
+  adminGuideItemSchema,
+  adminGuideItemsResponseSchema,
+  adminInvitationGuideResponseSchema,
   adminInvitationsResponseSchema,
   adminMediaResponseSchema,
   adminPrintJobsResponseSchema,
@@ -20,10 +24,16 @@ import {
   rotateInvitationResponseSchema,
   setMediaPublicResponseSchema,
   setWishPublicResponseSchema,
+  updateInvitationResponseSchema,
   type AdminAccess,
+  type AdminAccessibilityResponse,
   type AdminAccount,
   type AdminAccountDecision,
   type AdminAccountsResponse,
+  type AdminGuideItem,
+  type AdminGuideItemsResponse,
+  type AdminInvitationGuideResponse,
+  type AdminInvitationRow,
   type AdminInvitationsResponse,
   type AdminMediaQuery,
   type AdminMediaResponse,
@@ -33,6 +43,7 @@ import {
   type AdminWishesQuery,
   type AdminWishesResponse,
   type CreateGraduateRequest,
+  type CreateGuideItemRequest,
   type CreateInvitationRequest,
   type CreateInvitationResponse,
   type CreatePrintJobRequest,
@@ -50,6 +61,9 @@ import {
   type SetMediaPublicResponse,
   type SetWishPublicResponse,
   type UpdateEventRequest,
+  type UpdateGraduateRequest,
+  type UpdateGuideItemRequest,
+  type UpdateInvitationRequest,
 } from "@grad/contract";
 import { apiFetch } from "./client";
 import { type ApiResult, empty, errorResult, ok } from "./result";
@@ -69,10 +83,10 @@ interface SafeParser<T> {
 }
 
 interface AdminRequest<T> {
-  method?: "GET" | "POST" | "PUT";
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   schema: SafeParser<T>;
-  /** Statuses that mean "nothing there" rather than an error (e.g. 404 on GET /event). */
+  /** Statuses that mean "nothing there" rather than an error (e.g. 404 on GET /event, 204 on a DELETE). */
   emptyOn?: number[];
 }
 
@@ -127,6 +141,15 @@ export function createGraduate(token: string, input: CreateGraduateRequest): Pro
   return adminRequest(token, "/admin/graduates", { method: "POST", body: input, schema: graduateSchema });
 }
 
+/** PATCH /admin/graduates/:id: names or email; 404 unknown, 409 email taken. */
+export function updateGraduate(token: string, id: string, input: UpdateGraduateRequest): Promise<ApiResult<Graduate>> {
+  return adminRequest(token, `/admin/graduates/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: input,
+    schema: graduateSchema,
+  });
+}
+
 /** GET /admin/invitations: newest first; never contains tokens. */
 export function listInvitations(token: string): Promise<ApiResult<AdminInvitationsResponse>> {
   return adminRequest(token, "/admin/invitations", { schema: adminInvitationsResponseSchema });
@@ -141,6 +164,19 @@ export function createInvitation(
     method: "POST",
     body: input,
     schema: createInvitationResponseSchema,
+  });
+}
+
+/** PATCH /admin/invitations/:id: guest names, contact and maxPlusOnes; 404 unknown, 409 below the confirmed plus-ones. */
+export function updateInvitation(
+  token: string,
+  id: string,
+  input: UpdateInvitationRequest
+): Promise<ApiResult<AdminInvitationRow>> {
+  return adminRequest(token, `/admin/invitations/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: input,
+    schema: updateInvitationResponseSchema,
   });
 }
 
@@ -163,6 +199,66 @@ export function revokeInvitation(token: string, id: string): Promise<ApiResult<R
 /** GET /admin/rsvp: every invitation with its answer (null until the guest responds). */
 export function listRsvps(token: string): Promise<ApiResult<AdminRsvpListResponse>> {
   return adminRequest(token, "/admin/rsvp", { schema: adminRsvpListResponseSchema });
+}
+
+/**
+ * GET /admin/rsvp/accessibility (#176): stated needs and the event counts.
+ * Sensitive: rendered for admins only, never logged, never cached.
+ */
+export function getAccessibilityNeeds(token: string): Promise<ApiResult<AdminAccessibilityResponse>> {
+  return adminRequest(token, "/admin/rsvp/accessibility", { schema: adminAccessibilityResponseSchema });
+}
+
+/** GET /admin/guide/items (#140): the whole catalogue in sortOrder, inactive items included. */
+export function listGuideItems(token: string): Promise<ApiResult<AdminGuideItemsResponse>> {
+  return adminRequest(token, "/admin/guide/items", { schema: adminGuideItemsResponseSchema });
+}
+
+/** POST /admin/guide/items: 201 with the item. */
+export function createGuideItem(token: string, input: CreateGuideItemRequest): Promise<ApiResult<AdminGuideItem>> {
+  return adminRequest(token, "/admin/guide/items", { method: "POST", body: input, schema: adminGuideItemSchema });
+}
+
+/** PATCH /admin/guide/items/:id: edit, deactivate or reorder; 404 unknown. */
+export function updateGuideItem(
+  token: string,
+  id: string,
+  input: UpdateGuideItemRequest
+): Promise<ApiResult<AdminGuideItem>> {
+  return adminRequest(token, `/admin/guide/items/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: input,
+    schema: adminGuideItemSchema,
+  });
+}
+
+/** DELETE /admin/guide/items/:id: 204 is `empty`; also removes every pick of the item. */
+export function deleteGuideItem(token: string, id: string): Promise<ApiResult<never>> {
+  return adminRequest(token, `/admin/guide/items/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    schema: { safeParse: () => ({ success: false }) },
+    emptyOn: [204],
+  });
+}
+
+/** GET /admin/invitations/:id/guide: the picks and what the guest sees now; 404 unknown invitation. */
+export function getInvitationGuide(token: string, id: string): Promise<ApiResult<AdminInvitationGuideResponse>> {
+  return adminRequest(token, `/admin/invitations/${encodeURIComponent(id)}/guide`, {
+    schema: adminInvitationGuideResponseSchema,
+  });
+}
+
+/** PUT /admin/invitations/:id/guide: replaces the picks; an empty list goes back to the defaults. */
+export function putInvitationGuide(
+  token: string,
+  id: string,
+  itemIds: string[]
+): Promise<ApiResult<AdminInvitationGuideResponse>> {
+  return adminRequest(token, `/admin/invitations/${encodeURIComponent(id)}/guide`, {
+    method: "PUT",
+    body: { itemIds },
+    schema: adminInvitationGuideResponseSchema,
+  });
 }
 
 /**

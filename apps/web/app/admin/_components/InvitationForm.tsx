@@ -1,17 +1,24 @@
 "use client";
 
 import type { Graduate } from "@grad/contract";
-import { useActionState, useState } from "react";
+import Link from "next/link";
+import { useActionState, useEffect, useState } from "react";
 import { IDLE, type InvitationFormState } from "../../../lib/admin/action-state";
 import { createInvitationAction } from "../actions";
 import { Field, FormMessage, valueOf } from "./Field";
 import { InviteLinkNotice } from "./InviteLinkNotice";
+import { NameFields } from "./NameFields";
 import { SubmitButton } from "./SubmitButton";
 
 export function InvitationForm({ graduates }: { graduates: Pick<Graduate, "id" | "name" | "email">[] }) {
   const [state, formAction] = useActionState<InvitationFormState, FormData>(createInvitationAction, IDLE);
   // Hiding the link is local-only; the action state object identifies which result was dismissed.
   const [dismissed, setDismissed] = useState<InvitationFormState | null>(null);
+  // The name fields are controlled, so React's post-action form reset does not clear them: remount instead.
+  const [resets, setResets] = useState(0);
+  useEffect(() => {
+    if (state.status === "created") setResets((count) => count + 1);
+  }, [state]);
   const errors = state.status === "error" ? state.errors : {};
   const values = state.status === "error" ? state.values : undefined;
   const selected = new Set([values?.inviterUserIds ?? []].flat());
@@ -26,17 +33,24 @@ export function InvitationForm({ graduates }: { graduates: Pick<Graduate, "id" |
           onDismiss={() => setDismissed(state)}
         />
       ) : null}
+      {state.status === "created" ? (
+        <p>
+          Next, after copying the link:{" "}
+          <Link href={`/admin/invitations/${state.invitationId}`} prefetch={false}>
+            pick guide-book places for {state.guestName}
+          </Link>{" "}
+          (optional; guests see the defaults otherwise).
+        </p>
+      ) : null}
       <form action={formAction} className="admin-form" noValidate aria-labelledby="create-invitation-heading">
         <h2 id="create-invitation-heading">Create an invitation</h2>
         {state.status === "error" && state.message ? <FormMessage kind="error">{state.message}</FormMessage> : null}
-        <Field
-          id="invitation-guest-name"
-          name="guestName"
-          label="Guest name"
-          required
-          autoComplete="off"
-          defaultValue={valueOf(values, "guestName")}
-          error={errors.guestName}
+        <NameFields
+          key={resets}
+          idPrefix="invitation-guest"
+          names={{ full: "guestName", given: "guestGivenName", family: "guestFamilyName" }}
+          fullLabel="Guest name"
+          errors={errors}
         />
         <Field
           id="invitation-guest-email"

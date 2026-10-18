@@ -13,17 +13,45 @@ interface FieldProps {
   autoComplete?: string;
   min?: number;
   max?: number;
+  maxLength?: number;
+  /** Controlled value, with `onValueChange`; otherwise the field is uncontrolled via `defaultValue`. */
+  value?: string;
+  onValueChange?: (value: string) => void;
 }
 
 /** Labelled input with its hint and error wired up through aria-describedby. */
-export function Field({ id, name, label, type = "text", defaultValue, error, hint, required, autoComplete, min, max }: FieldProps) {
+export function Field({
+  id,
+  name,
+  label,
+  type = "text",
+  defaultValue,
+  error,
+  hint,
+  required,
+  autoComplete,
+  min,
+  max,
+  maxLength,
+  value,
+  onValueChange,
+}: FieldProps) {
   const hintId = hint ? `${id}-hint` : undefined;
   const errorId = error ? `${id}-error` : undefined;
   const describedBy = [hintId, errorId].filter(Boolean).join(" ") || undefined;
+  const controlled =
+    value === undefined
+      ? { defaultValue }
+      : {
+          value,
+          onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+            onValueChange?.(event.target.value),
+        };
   const common = {
     id,
     name,
-    defaultValue,
+    ...controlled,
+    maxLength,
     required,
     autoComplete,
     className: "admin-input",

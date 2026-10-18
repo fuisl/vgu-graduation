@@ -6,6 +6,7 @@ import {
   type CreateWishResponse,
   type WishesResponse,
 } from "@grad/contract";
+import { WEB_CACHE_TAGS } from "./cache-tags";
 import { apiFetch } from "./client";
 import { type ApiResult, errorResult, ok } from "./result";
 
@@ -26,7 +27,7 @@ export async function getWishes(): Promise<ApiResult<WishesResponse>> {
   let response: Response;
   try {
     response = await apiFetch("/wishes?limit=100", {
-      cache: { mode: "revalidate", seconds: 30, tags: ["wishes"] },
+      cache: { mode: "revalidate", seconds: 30, tags: [WEB_CACHE_TAGS.wishes] },
     });
   } catch {
     return errorResult("network", "Could not reach the API");

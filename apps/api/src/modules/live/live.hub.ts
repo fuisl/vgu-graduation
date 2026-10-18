@@ -17,9 +17,10 @@ export interface LiveHubOptions {
 }
 
 /**
- * Fan-out for one server-to-client channel (`WS /live/display` today,
- * `WS /live/translation` later). Clients only listen; anything they send is
- * ignored. Single replica: every connected socket lives in this process.
+ * Fan-out for one server-to-client channel (`WS /live/display`, and
+ * `WS /live/translation` once per caption language). Clients only listen;
+ * anything they send is ignored. Single replica: every connected socket lives
+ * in this process.
  */
 export class LiveHub<M> {
   private readonly sockets = new Map<WebSocket, { alive: boolean }>();

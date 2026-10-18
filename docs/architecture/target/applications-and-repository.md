@@ -35,7 +35,7 @@ One Node 22 process built with a small HTTP framework that supports WebSockets n
 | pass | Signed pass payload for QR | `GET /pass` |
 | media | Upload originals, list gallery, serve derivatives, moderation | `POST /media`, `GET /gallery`, `GET /media/{id}/{variant}`, `POST /admin/media/{id}/moderate` |
 | wishes | Submit and list wishes with moderation | `POST /wishes`, `GET /wishes`, `GET /admin/wishes`, `POST /admin/wishes/{id}/moderate` |
-| live | WebSocket fan-out for translation and display | `WS /live/translation`, `WS /live/display`, `GET /live/display/feed` |
+| live | WebSocket fan-out for translation and display | `WS /live/translation`, `GET /live/translation/segments`, `WS /live/display`, `GET /live/display/feed` |
 | translation | Ingest segments from the GPU service; authenticate venue audio and proxy it to the GPU service | `POST /internal/translation/segments`, `WS /live/ingest` |
 | print | Print job queue | `POST /print/jobs`, `GET /internal/print/jobs/next`, `POST /internal/print/jobs/{id}/done` |
 | admin | Cross-cutting admin queries | `GET /admin/overview` |
@@ -59,12 +59,14 @@ Configuration is environment-only:
 | `S3_BUCKET_ORIGINALS`, `S3_BUCKET_DERIVATIVES` | ConfigMap |
 | `PUBLIC_ORIGIN`, `API_ORIGIN`, `COOKIE_DOMAIN` | ConfigMap |
 | `SERVICE_TOKEN_TRANSLATION`, `SERVICE_TOKEN_PRINTER` | SOPS-encrypted Secret `api-service-tokens` |
+| `SERVICE_TOKEN_INGEST` (capture client, optional) | SOPS-encrypted Secret `api-service-tokens` |
+| `TRANSLATION_INGEST_URL`, `LIVE_TRANSLATION_MAX_CLIENTS` (optional) | ConfigMap |
 | `ADMIN_SESSION_SECRET` | SOPS-encrypted Secret, shared with the web app on Vercel |
 | `LOG_LEVEL` | ConfigMap |
 
 ## 4.4 apps/translation (k3s, GPU)
 
-Python service. It exposes one WebSocket ingest endpoint for audio, reachable only from the API over the cluster network, and pushes finished segments to the API with its service token. It has no Ingress and no public hostname. It never touches the database or storage and can be absent without the API noticing. A small capture client running on the AV laptop at the mixer connects to `WS /live/ingest` on the API with a service token, and the API proxies the audio to the translation service (decided 2026-09-27). Where the GPU machine physically sits on ceremony day is an open item (section 11).
+Python service. It exposes one WebSocket ingest endpoint for audio, reachable only from the API over the cluster network, and pushes finished segments to the API with its service token. It has no Ingress and no public hostname. It never touches the database or storage and can be absent without the API noticing. A small capture client running on the AV laptop at the mixer connects to `WS /live/ingest` on the API with a service token, and the API proxies the audio to the translation service (decided 2026-09-27). The audio is raw PCM, 16 kHz mono s16le, in binary WebSocket frames, with optional JSON control messages; the full protocol is in `packages/contract/src/translation.ts` and `use-cases.md` §6.2. Where the GPU machine physically sits on ceremony day is an open item (section 11).
 
 ## 4.5 packages/contract (new)
 

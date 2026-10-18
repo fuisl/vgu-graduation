@@ -29,6 +29,7 @@ async function main() {
     pollIntervalMs: config.pollIntervalMs,
     backoff: new Backoff(1_000, config.backoffMaxMs),
     journalRetentionMs: config.journalRetentionMs,
+    leaseMarginMs: config.leaseMarginMs,
   });
   await daemon.init();
 

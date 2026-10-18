@@ -1,12 +1,9 @@
 import {
   completePrintJobRequestSchema,
   nextPrintJobResponseSchema,
+  type ClaimedPrintJob,
   type CompletePrintJobRequest,
-  type PrintJob,
 } from "@grad/contract";
-
-/** Variant the daemon prints: the large "display" derivative (`GET /media/{id}/display`). */
-export const PRINT_VARIANT = "display";
 
 /**
  * An HTTP or network failure talking to the API. `retryable` is true for network
@@ -26,13 +23,17 @@ export class ApiError extends Error {
 }
 
 export interface PrintApi {
-  /** The oldest queued job, which the API marks `printing`, or null when the queue is empty. */
-  next(): Promise<PrintJob | null>;
-  /** The photo's display derivative. 404 (hidden, removed, not processed) is a permanent ApiError. */
-  fetchDerivative(photoPublicId: string): Promise<Buffer>;
+  /** Claims the oldest queued job under a lease (the API marks it `printing`), or null when the queue is empty. */
+  next(): Promise<ClaimedPrintJob | null>;
   /**
-   * Reports a job's outcome. Resolves `settled` when the API accepted it, or
-   * already had it (404/409: reported before a crash, or the job is gone).
+   * The job's image from its `imageUrl` (the public `display` derivative). Sent
+   * without the service token. 4xx (hidden, removed, not processed) is a permanent ApiError.
+   */
+  fetchImage(imageUrl: string): Promise<Buffer>;
+  /**
+   * Reports a job's outcome. `accepted`: recorded, or the same result repeated
+   * (the API answers 200 to both). `settled`: nothing more to do, the API
+   * already finished the job differently (409) or does not know it (404).
    */
   complete(jobId: string, body: CompletePrintJobRequest): Promise<"accepted" | "settled">;
 }
@@ -49,11 +50,15 @@ export function createHttpApi(options: {
 }): PrintApi {
   const doFetch = options.fetchImpl ?? fetch;
 
-  async function call(what: string, path: string, init: RequestInit & { auth?: boolean } = {}): Promise<Response> {
+  async function call(
+    what: string,
+    path: string,
+    { auth, absolute, ...init }: RequestInit & { auth?: boolean; absolute?: boolean } = {},
+  ): Promise<Response> {
     const headers = new Headers(init.headers);
-    if (init.auth !== false) headers.set("authorization", `Bearer ${options.serviceToken}`);
+    if (auth !== false) headers.set("authorization", `Bearer ${options.serviceToken}`);
     try {
-      return await doFetch(`${options.apiUrl}${path}`, {
+      return await doFetch(absolute ? path : `${options.apiUrl}${path}`, {
         ...init,
         headers,
         signal: AbortSignal.timeout(options.timeoutMs),
@@ -79,10 +84,17 @@ export function createHttpApi(options: {
       return parsed.data.job;
     },
 
-    async fetchDerivative(photoPublicId) {
-      const what = `GET /media/{id}/${PRINT_VARIANT}`;
+    async fetchImage(imageUrl) {
+      const what = "GET job image";
+      let url: URL;
+      try {
+        url = new URL(imageUrl);
+      } catch {
+        throw new ApiError(`${what}: not a URL`, null, false);
+      }
+      if (url.protocol !== "https:" && url.protocol !== "http:") throw new ApiError(`${what}: not http(s)`, null, false);
       // Public endpoint: no credential, so the service token never leaves for it.
-      const res = await call(what, `/media/${encodeURIComponent(photoPublicId)}/${PRINT_VARIANT}`, { auth: false });
+      const res = await call(what, url.toString(), { auth: false, absolute: true });
       if (!res.ok) fail(what, res);
       return Buffer.from(await res.arrayBuffer());
     },

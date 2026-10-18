@@ -1,6 +1,6 @@
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { PrintJob } from "@grad/contract";
+import type { ClaimedPrintJob } from "@grad/contract";
 import { ApiError, type PrintApi } from "./api.js";
 import { Backoff } from "./backoff.js";
 import { Journal, type JournalEntry } from "./journal.js";
@@ -22,7 +22,10 @@ export interface DaemonOptions {
   pollIntervalMs: number;
   backoff: Backoff;
   journalRetentionMs: number;
+  /** Minimum lease left to start printing a claimed job (see config LEASE_MARGIN_MS). */
+  leaseMarginMs: number;
   sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
+  now?: () => number;
 }
 
 function abortableSleep(ms: number, signal?: AbortSignal): Promise<void> {
@@ -47,20 +50,29 @@ function abortableSleep(ms: number, signal?: AbortSignal): Promise<void> {
  * - a job CUPS accepted is reported `done` again, never reprinted;
  * - a job that may or may not have reached CUPS is reported `failed` with
  *   AMBIGUOUS_ERROR, never reprinted;
- * - a job the API hands out again (a lost report) gets its recorded outcome
- *   re-sent instead of a second print.
+ * - a job the API hands out again (a lost report or a lease that ran out after
+ *   printing) gets its recorded outcome re-sent instead of a second print.
+ *
+ * Leases: the API holds a claimed job for PRINT_LEASE_SECONDS, then re-queues it
+ * (and any daemon may claim it again). So a job is only sent to the printer while
+ * at least `leaseMarginMs` of its lease is left; otherwise it is dropped from the
+ * journal unprinted and unreported, and printed when the API hands it out again
+ * with a fresh lease. A report is always sent, even late: the API still accepts
+ * it for a re-queued job, and that is what stops a second print.
  * Printing is therefore at most once per job id per STATE_DIR; reporting is at
- * least once, and the API treats a repeated report as settled (404/409).
+ * least once (a repeated identical report is a 200; 404/409 count as settled).
  */
 export class PrintDaemon {
   private readonly logger: Logger;
   private readonly sleep: (ms: number, signal?: AbortSignal) => Promise<void>;
   private readonly spoolDir: string;
+  private readonly now: () => number;
   private lastPrune = 0;
 
   constructor(private readonly options: DaemonOptions) {
     this.logger = options.logger ?? silentLogger;
     this.sleep = options.sleep ?? abortableSleep;
+    this.now = options.now ?? Date.now;
     this.spoolDir = path.join(options.stateDir, "spool");
   }
 
@@ -88,7 +100,7 @@ export class PrintDaemon {
       return "worked";
     }
 
-    this.logger.info("job received", { jobId: job.id, copies: job.copies });
+    this.logger.info("job received", { jobId: job.id, copies: job.copies, attempt: job.attempt });
     await this.settle(await journal.put(this.fromJob(job)));
     return "worked";
   }
@@ -119,8 +131,22 @@ export class PrintDaemon {
     this.logger.info("printer daemon stopped");
   }
 
-  private fromJob(job: PrintJob): Omit<JournalEntry, "updatedAt"> {
-    return { id: job.id, photoPublicId: job.photoPublicId, copies: job.copies, phase: "received" };
+  private fromJob(job: ClaimedPrintJob): Omit<JournalEntry, "updatedAt"> {
+    return {
+      id: job.id,
+      photoPublicId: job.photoPublicId,
+      copies: job.copies,
+      imageUrl: job.imageUrl,
+      attempt: job.attempt,
+      leaseExpiresAt: job.leaseExpiresAt,
+      phase: "received",
+    };
+  }
+
+  /** True while enough of the claim's lease is left to print and report safely. */
+  private leaseHolds(entry: JournalEntry): boolean {
+    const expires = Date.parse(entry.leaseExpiresAt);
+    return Number.isFinite(expires) && expires - this.now() >= this.options.leaseMarginMs;
   }
 
   private async settle(entry: JournalEntry): Promise<void> {
@@ -140,11 +166,22 @@ export class PrintDaemon {
     }
   }
 
+  /** Forgets a claim whose lease ran out before printing: nothing printed, nothing reported. */
+  private async abandon(entry: JournalEntry): Promise<void> {
+    this.logger.warn("lease ran out before printing; leaving the job to the API's re-queue", {
+      jobId: entry.id,
+      attempt: entry.attempt,
+    });
+    await this.options.journal.remove(entry.id);
+    await rm(path.join(this.spoolDir, `${entry.id}.jpg`), { force: true });
+  }
+
   private async print(entry: JournalEntry): Promise<void> {
     const { api, journal, printer } = this.options;
+    if (!this.leaseHolds(entry)) return this.abandon(entry);
     let image: Buffer;
     try {
-      image = await api.fetchDerivative(entry.photoPublicId);
+      image = await api.fetchImage(entry.imageUrl);
     } catch (err) {
       if (err instanceof ApiError && !err.retryable) {
         // Hidden, removed or never processed: a permanent answer, nothing to print.
@@ -156,6 +193,8 @@ export class PrintDaemon {
 
     const file = path.join(this.spoolDir, `${entry.id}.jpg`);
     await writeFile(file, image);
+    // The download may have taken a while (retries); check the lease again right before CUPS.
+    if (!this.leaseHolds(entry)) return this.abandon(entry);
     const submitting = await journal.put({ ...entry, phase: "submitting" });
     try {
       await printer.print({ jobId: entry.id, file, copies: entry.copies });
@@ -179,7 +218,8 @@ export class PrintDaemon {
         : ({ result: "failed", error: (entry.error ?? "Print failed").slice(0, 500) } as const);
     try {
       const answer = await api.complete(entry.id, body);
-      this.logger.info("job reported", { jobId: entry.id, outcome, answer });
+      const late = Date.parse(entry.leaseExpiresAt) < this.now();
+      this.logger.info("job reported", { jobId: entry.id, outcome, answer, late });
     } catch (err) {
       // A request the API rejects as malformed will never succeed: record it and
       // move on rather than wedge the queue. Anything else is retried with backoff.

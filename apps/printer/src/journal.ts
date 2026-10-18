@@ -17,6 +17,10 @@ export interface JournalEntry {
   id: string;
   photoPublicId: string;
   copies: number;
+  /** From the claim: where to fetch the image, and until when the API holds the job for us. */
+  imageUrl: string;
+  attempt: number;
+  leaseExpiresAt: string;
   phase: JournalPhase;
   /** Outcome already sent to the API (set with phase `reported`). */
   outcome?: "done" | "failed";
@@ -81,6 +85,11 @@ export class Journal {
     return (await this.list())
       .filter((e) => e.phase !== "reported")
       .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt));
+  }
+
+  /** Forgets a job entirely (a claim abandoned before anything was printed). */
+  async remove(id: string): Promise<void> {
+    await rm(this.file(id), { force: true });
   }
 
   /** Deletes reported entries older than `retentionMs`. */

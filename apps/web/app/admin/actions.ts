@@ -75,7 +75,12 @@ export async function createInvitationAction(
   if (result.status !== "ok") return { status: "error", message: failureMessage(result), errors: {}, values };
 
   revalidateAdmin();
-  return { status: "created", guestName: result.data.guest.name, inviteUrl: result.data.inviteUrl };
+  return {
+    status: "created",
+    invitationId: result.data.invitationId,
+    guestName: result.data.guest.name,
+    inviteUrl: result.data.inviteUrl,
+  };
 }
 
 function invitationId(form: FormData): string | null {

@@ -92,7 +92,8 @@ const LINES = [
   ["en", "Please welcome the president of the university to the stage.", "Xin mời hiệu trưởng nhà trường lên sân khấu.", "Bitte begrüßen Sie den Präsidenten der Universität auf der Bühne."],
   ["vi", "Xin cảm ơn các thầy cô đã đồng hành cùng chúng em.", "Thank you to the teachers who walked this road with us.", "Danke an die Lehrkräfte, die diesen Weg mit uns gegangen sind."],
 ];
-const SESSION = "mock-session-1";
+// A fresh session per run, like a new ceremony segment after the service restarts.
+const SESSION = `mock-session-${Date.now().toString(36)}`;
 const segments = []; // index = sequence
 const changedAt = []; // index = sequence, ms
 let sequence = 0;

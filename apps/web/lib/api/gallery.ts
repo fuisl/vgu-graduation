@@ -1,4 +1,5 @@
 import { galleryResponseSchema, type GalleryResponse } from "@grad/contract";
+import { WEB_CACHE_TAGS } from "./cache-tags";
 import { apiFetch } from "./client";
 import { type ApiResult, errorResult, ok } from "./result";
 
@@ -7,7 +8,7 @@ export async function getGallery(): Promise<ApiResult<GalleryResponse>> {
   let response: Response;
   try {
     response = await apiFetch("/gallery?limit=100", {
-      cache: { mode: "revalidate", seconds: 60, tags: ["gallery"] },
+      cache: { mode: "revalidate", seconds: 60, tags: [WEB_CACHE_TAGS.gallery] },
     });
   } catch {
     return errorResult("network", "Could not reach the API");

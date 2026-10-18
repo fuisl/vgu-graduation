@@ -4,6 +4,8 @@ import WebSocket, { type RawData } from "ws";
 
 /** Largest JSON control message relayed either way. */
 const MAX_TEXT_BYTES = 4 * 1024;
+/** Largest frame accepted from the translation service; it only sends small JSON, larger text is not relayed. */
+const MAX_UPSTREAM_PAYLOAD = 64 * 1024;
 
 /** Close code sent to a capture client when a newer one takes over. */
 export const CLOSE_REPLACED = 4001;
@@ -198,7 +200,7 @@ export class IngestProxy {
 
     const headers: Record<string, string> = {};
     if (this.options.upstreamToken) headers.authorization = `Bearer ${this.options.upstreamToken}`;
-    const upstream = new WebSocket(url, { headers, handshakeTimeout: this.connectTimeoutMs, maxPayload: MAX_TEXT_BYTES });
+    const upstream = new WebSocket(url, { headers, handshakeTimeout: this.connectTimeoutMs, maxPayload: MAX_UPSTREAM_PAYLOAD });
     this.upstream = upstream;
     this.upstreamOpen = false;
     this.upstreamAlive = true;
@@ -216,7 +218,8 @@ export class IngestProxy {
       if (this.upstream !== upstream || isBinary) return;
       // Relay the service's JSON (e.g. readiness) to the capture client.
       const capture = this.capture;
-      if (capture?.readyState === WebSocket.OPEN) capture.send(data.toString());
+      const text = data.toString();
+      if (capture?.readyState === WebSocket.OPEN && Buffer.byteLength(text) <= MAX_TEXT_BYTES) capture.send(text);
     });
     upstream.on("pong", () => {
       if (this.upstream === upstream) this.upstreamAlive = true;

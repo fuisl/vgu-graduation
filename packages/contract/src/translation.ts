@@ -117,9 +117,9 @@ export type LiveTranslationSegmentsResponse = z.infer<typeof liveTranslationSegm
  *     token, not the translation service's). Never a token in the URL.
  *   - Binary frames: raw PCM, 16 kHz, mono, signed 16-bit little-endian
  *     (s16le), no header or container. Send 20-200 ms per frame (640-6400
- *     bytes); a frame must be a whole number of samples (even length) and at
- *     most `INGEST_MAX_FRAME_BYTES`, or it is dropped. Frames are relayed
- *     verbatim and in order.
+ *     bytes). A frame of odd length (a split sample) is dropped; one larger
+ *     than `INGEST_MAX_FRAME_BYTES` closes the socket with 1009. Frames are
+ *     relayed verbatim and in order.
  *   - Text frames: optional JSON control messages (`ingestControlMessageSchema`),
  *     at most 4 KiB, relayed verbatim. Any JSON object with a string `type` is
  *     relayed, so the two ends can add messages without an API change; anything

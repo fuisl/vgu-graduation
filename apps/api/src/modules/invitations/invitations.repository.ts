@@ -1,4 +1,4 @@
-import type { CreateInvitationRequest } from "@grad/contract";
+import type { CreateInvitationRequest, UpdateInvitationRequest } from "@grad/contract";
 import type { AdminInvitationRow } from "@grad/contract";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { recordAudit } from "../../audit/audit.js";
@@ -10,6 +10,16 @@ import {
   rsvp,
   users,
 } from "../../db/schema.js";
+import { namesForCreate, namesForUpdate } from "./person-name.js";
+
+export interface StoredGuest {
+  id: string;
+  name: string;
+  givenName: string;
+  familyName: string | null;
+  email: string | null;
+  phone: string | null;
+}
 
 export interface StoredInvitation {
   id: string;
@@ -18,7 +28,7 @@ export interface StoredInvitation {
   status: "active" | "revoked";
   validFrom: Date | null;
   validUntil: Date | null;
-  guest: { id: string; name: string; email: string | null; phone: string | null };
+  guest: StoredGuest;
   inviters: { id: string; name: string; email: string }[];
   rsvp: {
     id: string;
@@ -32,7 +42,7 @@ export interface StoredInvitation {
 
 export interface CreatedInvitation {
   invitationId: string;
-  guest: { id: string; name: string; email: string | null; phone: string | null };
+  guest: StoredGuest;
   inviterUserIds: string[];
   maxPlusOnes: number;
 }
@@ -45,10 +55,27 @@ export class UnknownInviterError extends Error {
   }
 }
 
+/** Thrown when `maxPlusOnes` would drop below the plus-ones the guest already confirmed. */
+export class PlusOnesConflictError extends Error {
+  constructor(readonly plusOnesCount: number) {
+    super("maxPlusOnes is below the plus-ones already in the RSVP");
+    this.name = "PlusOnesConflictError";
+  }
+}
+
 export interface RevokedInvitation {
   id: string;
   revokedAt: Date;
 }
+
+const guestColumns = {
+  id: guests.id,
+  name: guests.name,
+  givenName: guests.givenName,
+  familyName: guests.familyName,
+  email: guests.email,
+  phone: guests.phone,
+};
 
 export class InvitationsRepository {
   async createInvitation(
@@ -63,8 +90,13 @@ export class InvitationsRepository {
 
       const [guest] = await tx
         .insert(guests)
-        .values({ name: dto.guestName, email: dto.guestEmail ?? null, phone: dto.guestPhone ?? null })
-        .returning({ id: guests.id, name: guests.name, email: guests.email, phone: guests.phone });
+        .values({
+          name: dto.guestName,
+          ...namesForCreate(dto.guestName, dto.guestGivenName, dto.guestFamilyName),
+          email: dto.guestEmail ?? null,
+          phone: dto.guestPhone ?? null,
+        })
+        .returning(guestColumns);
 
       const maxPlusOnes = dto.maxPlusOnes ?? 0;
       const [invitation] = await tx
@@ -103,7 +135,7 @@ export class InvitationsRepository {
         status: invitations.status,
         validFrom: invitations.validFrom,
         validUntil: invitations.validUntil,
-        guest: { id: guests.id, name: guests.name, email: guests.email, phone: guests.phone },
+        guest: guestColumns,
         rsvp: {
           id: rsvp.id,
           attending: rsvp.attending,
@@ -177,15 +209,69 @@ export class InvitationsRepository {
     });
   }
 
-  /** Every invitation, newest first, with inviters and RSVP. Never selects the token hash. */
-  async listForAdmin(): Promise<AdminInvitationRow[]> {
+  /**
+   * Edits the guest and invitation behind `invitationId` (PATCH /admin/invitations/{id}).
+   * Returns null for an unknown id. Audited with the changed field names only:
+   * names, emails and phone numbers are PII.
+   */
+  async update(invitationId: string, dto: UpdateInvitationRequest, actor: string): Promise<AdminInvitationRow | null> {
+    const found = await db.transaction(async (tx) => {
+      const [current] = await tx
+        .select({ guestId: invitations.guestId, plusOnesCount: rsvp.plusOnesCount })
+        .from(invitations)
+        .leftJoin(rsvp, eq(rsvp.invitationId, invitations.id))
+        .where(eq(invitations.id, invitationId))
+        .for("update", { of: invitations });
+      if (!current) return false;
+
+      const guestSet: Partial<typeof guests.$inferInsert> = namesForUpdate({
+        name: dto.guestName,
+        givenName: dto.guestGivenName,
+        familyName: dto.guestFamilyName,
+        nameReviewed: dto.nameReviewed,
+      });
+      if (dto.guestEmail !== undefined) guestSet.email = dto.guestEmail;
+      if (dto.guestPhone !== undefined) guestSet.phone = dto.guestPhone;
+
+      if (dto.maxPlusOnes !== undefined) {
+        if (current.plusOnesCount !== null && current.plusOnesCount > dto.maxPlusOnes) {
+          throw new PlusOnesConflictError(current.plusOnesCount);
+        }
+        await tx
+          .update(invitations)
+          .set({ maxPlusOnes: dto.maxPlusOnes, updatedAt: new Date() })
+          .where(eq(invitations.id, invitationId));
+      }
+      if (Object.keys(guestSet).length > 0) {
+        await tx
+          .update(guests)
+          .set({ ...guestSet, updatedAt: new Date() })
+          .where(eq(guests.id, current.guestId));
+      }
+
+      await recordAudit(tx, {
+        actor,
+        action: "invitation.update",
+        targetType: "invitation",
+        targetId: invitationId,
+        metadata: { fields: Object.keys(dto).sort() },
+      });
+      return true;
+    });
+    if (!found) return null;
+    const [row] = await this.listForAdmin(invitationId);
+    return row ?? null;
+  }
+
+  /** Every invitation (or one), newest first, with inviters and RSVP. Never selects the token hash. */
+  async listForAdmin(onlyId?: string): Promise<AdminInvitationRow[]> {
     const rows = await db
       .select({
         id: invitations.id,
         status: invitations.status,
         maxPlusOnes: invitations.maxPlusOnes,
         createdAt: invitations.createdAt,
-        guest: { id: guests.id, name: guests.name, email: guests.email, phone: guests.phone },
+        guest: { ...guestColumns, nameReviewed: guests.nameReviewed },
         rsvp: {
           id: rsvp.id,
           attending: rsvp.attending,
@@ -198,6 +284,7 @@ export class InvitationsRepository {
       .from(invitations)
       .innerJoin(guests, eq(guests.id, invitations.guestId))
       .leftJoin(rsvp, eq(rsvp.invitationId, invitations.id))
+      .where(onlyId ? eq(invitations.id, onlyId) : undefined)
       .orderBy(desc(invitations.createdAt), desc(invitations.id));
 
     const inviterRows = await db
@@ -209,6 +296,7 @@ export class InvitationsRepository {
       })
       .from(invitationInviters)
       .innerJoin(users, eq(users.id, invitationInviters.userId))
+      .where(onlyId ? eq(invitationInviters.invitationId, onlyId) : undefined)
       .orderBy(users.name);
 
     const byInvitation = new Map<string, { id: string; name: string; email: string }[]>();
@@ -227,5 +315,11 @@ export class InvitationsRepository {
       inviters: byInvitation.get(row.id) ?? [],
       rsvp: row.rsvp?.id ? { ...row.rsvp, updatedAt: row.rsvp.updatedAt.toISOString() } : null,
     }));
+  }
+
+  /** Whether an invitation with this id exists (any status). */
+  async exists(invitationId: string): Promise<boolean> {
+    const [row] = await db.select({ id: invitations.id }).from(invitations).where(eq(invitations.id, invitationId));
+    return Boolean(row);
   }
 }

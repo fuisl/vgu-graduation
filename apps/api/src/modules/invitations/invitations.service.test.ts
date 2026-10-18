@@ -14,7 +14,7 @@ function stored(overrides: Partial<StoredInvitation> = {}): StoredInvitation {
     status: "active",
     validFrom: null,
     validUntil: null,
-    guest: { id: "3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e70", name: "Jane", email: null, phone: null },
+    guest: { id: "3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e70", name: "Jane", givenName: "Jane", familyName: null, email: null, phone: null },
     inviters: [],
     rsvp: null,
     ...overrides,

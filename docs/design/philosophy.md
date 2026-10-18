@@ -6,7 +6,7 @@ GRAD '26 combines engineering precision with the emotional weight of graduation.
 Precise, quiet, technical, editorial, warm without becoming sentimental. Event-first: the date, the venue and the invitation come before anything decorative.
 
 ## Two languages
-- **Brand (guest-facing):** the blue-and-white theme. It covers `/`, `/gallery`, `/wishes`, `/polaroid`, `/invite`, `/invite/demo`, `/venue`, the pass, `/display`, `/live`, `/ascii-live`, `/guest/prototype`, `/design-system` and the 404 page. See `tokens.md`.
+- **Brand (guest-facing):** the blue-and-white theme. It covers `/`, `/gallery`, `/wishes`, `/polaroid`, `/invite`, `/invite/demo`, `/venue`, the pass, `/me`, `/guide`, `/accessibility`, `/display`, `/live`, `/ascii-live`, `/guest/prototype`, `/design-system` and the 404 page. See `tokens.md`.
 - **Neutral (admin and docs):** the original neutral light/dark tokens in `tokens.css`. `/admin/*` and `apps/docs` never opt in to the brand theme and are deliberately quieter. Do not carry brand blue into them.
 
 ## References

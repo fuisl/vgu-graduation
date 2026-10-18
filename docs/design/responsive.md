@@ -12,3 +12,4 @@ Design mobile-first. Avoid device-specific layouts when fluid CSS is sufficient.
 - Do not hide essential event information behind hover interactions.
 - 3D/graphics must have a lightweight fallback and respect reduced motion. The sculpture uses a smaller ASCII cell (6x8px) on phones and ships a static ASCII motif when the canvas is unavailable.
 - Wrap long toggle groups (`PillGroup as="toggle"` wraps on narrow screens) instead of scrolling horizontally. No page-level horizontal scroll at 390px.
+- **Text size (#176).** Guests can raise the root font size to 118.75% or 137.5% (`TextSizeControl`, `components.md`). Size type and spacing in rem (the brand tokens already are) so they follow; keep `nowrap` rows short or let them stack, and check new pages at 360px with "Largest".

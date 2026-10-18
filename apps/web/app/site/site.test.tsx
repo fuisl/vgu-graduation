@@ -29,9 +29,9 @@ describe("SiteHeader", () => {
     expect(links).toEqual([["/", "Home"], ["/venue", "Venue"], ["/gallery", "Gallery"], ["/wishes", "Wishes"]]);
   });
 
-  it("defaults the action to the signed-out chip linking to /invite", () => {
+  it("defaults the action to the signed-out chip linking to the guest profile", () => {
     const out = html(<SiteHeader />);
-    expect(out).toContain('href="/invite"');
+    expect(out).toContain('href="/me"');
     expect(out).toContain("Guest portal");
   });
 

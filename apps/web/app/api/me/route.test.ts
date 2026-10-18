@@ -5,7 +5,14 @@ import { GET } from "./route";
 const TOKEN = "secret-invitation-token-123";
 const invitation = {
   id: "3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e6f",
-  guest: { id: "3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e70", name: "  Linh Tran ", email: "linh@example.com", phone: "+84123" },
+  guest: {
+    id: "3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e70",
+    name: "Linh Tran",
+    givenName: "Linh",
+    familyName: "Tran",
+    email: "linh@example.com",
+    phone: "+84123",
+  },
   maxPlusOnes: 1,
   status: "active",
   validFrom: null,
@@ -40,12 +47,12 @@ describe("GET /api/me", () => {
     expect(spy).not.toHaveBeenCalled();
   });
 
-  it("returns only firstName and avatarSeed for a valid invitation", async () => {
+  it("returns only givenName and avatarSeed for a valid invitation", async () => {
     vi.stubEnv("API_ORIGIN", "http://api.example.test");
     const spy = stubApi(200, invitation);
     const response = await GET(request(true));
     const text = await response.text();
-    expect(JSON.parse(text)).toEqual({ signedIn: true, firstName: "Tran", avatarSeed: invitation.guest.id });
+    expect(JSON.parse(text)).toEqual({ signedIn: true, givenName: "Linh", avatarSeed: invitation.guest.id });
     expect(text).not.toContain(TOKEN);
     expect(text).not.toContain("linh@example.com");
     expect(response.headers.get("Cache-Control")).toBe("private, no-store");
@@ -56,14 +63,20 @@ describe("GET /api/me", () => {
   });
 
   it.each([
-    ["Nguyen Van An", "An"],
-    ["  Linh   Tran ", "Tran"],
-    ["Madonna", "Madonna"],
-  ])("uses the last whitespace-separated word of %j (#170)", async (name, expected) => {
+    [{ name: "Nguyễn Văn An", givenName: "An", familyName: "Nguyễn" }, "An"],
+    [{ name: "John Smith", givenName: "John", familyName: "Smith" }, "John"],
+    [{ name: "Madonna", givenName: "Madonna", familyName: null }, "Madonna"],
+  ])("uses the guest's givenName for %j (#170)", async (names, expected) => {
     vi.stubEnv("API_ORIGIN", "http://api.example.test");
-    stubApi(200, { ...invitation, guest: { ...invitation.guest, name } });
+    stubApi(200, { ...invitation, guest: { ...invitation.guest, ...names } });
     const response = await GET(request(true));
-    expect((await response.json()).firstName).toBe(expected);
+    expect((await response.json()).givenName).toBe(expected);
+  });
+
+  it("falls back to the shared name rules when the API omits givenName", async () => {
+    const { givenName: _given, familyName: _family, ...older } = invitation.guest;
+    stubApi(200, { ...invitation, guest: { ...older, name: "John Smith" } });
+    expect((await (await GET(request(true))).json()).givenName).toBe("John");
   });
 
   it.each([401, 404, 410, 500])("is signed out when the API answers %i", async (status) => {

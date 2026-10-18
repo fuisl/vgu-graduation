@@ -41,7 +41,7 @@ describe("/", () => {
     expect(out).toContain("Photos are temporarily unavailable");
     expect(out).toContain("Wishes are temporarily unavailable");
     expect(out.match(/<h1/g)).toHaveLength(1);
-    expect(out).toContain('href="/invite"');
+    expect(out).toContain('href="/me"');
   });
 
   it("shows event, empty gallery and populated wishes", async () => {

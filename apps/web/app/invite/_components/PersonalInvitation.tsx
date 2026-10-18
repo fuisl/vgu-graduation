@@ -1,8 +1,9 @@
 import type { EventConfig, Invitation } from "@grad/contract";
-import { BrandEyebrow, Section } from "@grad/ui";
+import { BrandEyebrow, Cta, Section } from "@grad/ui";
 import type { ApiResult } from "../../../lib/api/result";
 import { summarizeRsvp } from "../../../lib/invite/format";
 import { Suspense } from "react";
+import type { SavedNeeds } from "../../../lib/invite/accessibility";
 import { EventDetails } from "./EventDetails";
 import { PassBadge, PassBadgeSkeleton } from "./PassBadge";
 import { RsvpForm } from "./RsvpForm";
@@ -12,7 +13,15 @@ import { RsvpForm } from "./RsvpForm";
  * holding event details and the pass (left) and RSVP status and form (right).
  * The pass stays a card-like object inside the white section.
  */
-export function PersonalInvitation({ invitation, event }: { invitation: Invitation; event: ApiResult<EventConfig> }) {
+export function PersonalInvitation({
+  invitation,
+  event,
+  savedNeeds,
+}: {
+  invitation: Invitation;
+  event: ApiResult<EventConfig>;
+  savedNeeds: SavedNeeds;
+}) {
   const inviters = invitation.inviters.map((inviter) => inviter.name);
   return (
     <>
@@ -35,7 +44,7 @@ export function PersonalInvitation({ invitation, event }: { invitation: Invitati
               <p>{summarizeRsvp(invitation.rsvp)}</p>
             </section>
             <section aria-labelledby="rsvp-form-heading" className="invite-body">
-              <RsvpForm invitation={invitation} />
+              <RsvpForm invitation={invitation} savedNeeds={savedNeeds} />
             </section>
           </div>
           <div className="invite-stack">
@@ -43,6 +52,11 @@ export function PersonalInvitation({ invitation, event }: { invitation: Invitati
             <Suspense fallback={<PassBadgeSkeleton />}>
               <PassBadge guestName={invitation.guest.name} event={event} />
             </Suspense>
+            <section aria-labelledby="guide-link-heading" className="invite-body">
+              <h2 id="guide-link-heading" className="invite-heading">While you are on campus</h2>
+              <p>Places to see and things to do around campus while the graduates are busy.</p>
+              <Cta tone="on-white" variant="secondary" href="/guide">Open the guide-book</Cta>
+            </section>
           </div>
         </div>
       </Section>

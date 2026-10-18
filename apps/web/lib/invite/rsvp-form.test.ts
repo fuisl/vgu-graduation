@@ -35,6 +35,62 @@ describe("parseRsvpForm", () => {
   it("rejects over-long text", () => {
     expect(parseRsvpForm(form({ attending: "yes", notes: "a".repeat(1001) }), 0).ok).toBe(false);
   });
+
+  it("omits accessibility when the section was not changed, so stored needs are kept (#176)", () => {
+    const parsed = parseRsvpForm(form({ attending: "yes", "a11y-wheelchair": "on", accessibilityNote: "x" }), 0);
+    expect(parsed.ok && "accessibility" in parsed.request).toBe(false);
+  });
+
+  it("sends every need once the section was changed", () => {
+    const parsed = parseRsvpForm(
+      form({
+        attending: "yes",
+        accessibilityTouched: "1",
+        "a11y-wheelchair": "on",
+        "a11y-aisleSeat": "on",
+        accessibilityNote: "  Arriving by taxi ",
+      }),
+      0
+    );
+    expect(parsed).toMatchObject({
+      ok: true,
+      request: {
+        accessibility: {
+          wheelchair: true,
+          stepFreeAccess: false,
+          captions: false,
+          seatNearSpeakers: false,
+          largePrint: false,
+          visionAssistance: false,
+          seatNearFront: false,
+          aisleSeat: true,
+          companion: false,
+          note: "Arriving by taxi",
+        },
+      },
+    });
+  });
+
+  it("sends all-false needs when a guest clears the section (the API stores that as none)", () => {
+    const parsed = parseRsvpForm(form({ attending: "no", accessibilityTouched: "1", accessibilityNote: "  " }), 0);
+    expect(parsed.ok && parsed.request.accessibility).toEqual({
+      wheelchair: false,
+      stepFreeAccess: false,
+      captions: false,
+      seatNearSpeakers: false,
+      largePrint: false,
+      visionAssistance: false,
+      seatNearFront: false,
+      aisleSeat: false,
+      companion: false,
+      note: null,
+    });
+  });
+
+  it("rejects an accessibility note over 500 characters", () => {
+    const parsed = parseRsvpForm(form({ attending: "yes", accessibilityTouched: "1", accessibilityNote: "a".repeat(501) }), 0);
+    expect(parsed).toMatchObject({ ok: false, state: { kind: "invalid" } });
+  });
 });
 
 describe("mapRsvpResult", () => {

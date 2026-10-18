@@ -121,8 +121,10 @@ export type LiveTranslationSegmentsResponse = z.infer<typeof liveTranslationSegm
  *     most `INGEST_MAX_FRAME_BYTES`, or it is dropped. Frames are relayed
  *     verbatim and in order.
  *   - Text frames: optional JSON control messages (`ingestControlMessageSchema`),
- *     relayed verbatim. The API remembers the last `start` and replays it to the
- *     translation service after every upstream (re)connect, before any audio.
+ *     at most 4 KiB, relayed verbatim. Any JSON object with a string `type` is
+ *     relayed, so the two ends can add messages without an API change; anything
+ *     else is ignored. The API remembers the last valid `start` and replays it
+ *     to the translation service after every upstream (re)connect, before any audio.
  *
  * API -> capture client
  *   - `ingestStatusMessageSchema` on connect and whenever the upstream changes.

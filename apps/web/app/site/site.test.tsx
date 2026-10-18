@@ -83,6 +83,10 @@ describe("SiteFooter", () => {
   it("links the credits to the about page", () => {
     expect(html(<SiteFooter />)).toMatch(/<a class="brand-footer__about" href="\/about">Credits<\/a>/);
   });
+
+  it("links the accessibility page (#176)", () => {
+    expect(html(<SiteFooter />)).toMatch(/<a class="brand-footer__about" href="\/accessibility">Accessibility<\/a>/);
+  });
 });
 
 describe("nextTrapIndex", () => {

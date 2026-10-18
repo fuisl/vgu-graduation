@@ -1,10 +1,10 @@
 import {
-  CACHE_TAGS,
   publicGalleryResponseSchema,
   publicWishesResponseSchema,
   type GalleryItem,
   type Wish,
 } from "@grad/contract";
+import { WEB_CACHE_TAGS } from "./cache-tags";
 import { apiFetch } from "./client";
 import { type ApiResult, errorResult, ok } from "./result";
 
@@ -68,10 +68,10 @@ async function getPublicListing<T>(
 
 /** GET /gallery/public: curated photos, newest first, on the 60-second gallery cadence. */
 export function getPublicGallery(): Promise<ApiResult<PublicListing<GalleryItem>>> {
-  return getPublicListing("/gallery/public", publicGalleryResponseSchema, 60, CACHE_TAGS.publicGallery);
+  return getPublicListing("/gallery/public", publicGalleryResponseSchema, 60, WEB_CACHE_TAGS.publicGallery);
 }
 
 /** GET /wishes/public: curated wishes, newest first, on the 30-second wishes cadence. */
 export function getPublicWishes(): Promise<ApiResult<PublicListing<Wish>>> {
-  return getPublicListing("/wishes/public", publicWishesResponseSchema, 30, CACHE_TAGS.publicWishes);
+  return getPublicListing("/wishes/public", publicWishesResponseSchema, 30, WEB_CACHE_TAGS.publicWishes);
 }

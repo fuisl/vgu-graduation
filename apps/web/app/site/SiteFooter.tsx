@@ -15,6 +15,8 @@ export function SiteFooter() {
               {SITE_NAV.map((item) => (
                 <li key={item.key}><a href={item.href}>{item.label}</a></li>
               ))}
+              {/* The curated archive (#75, #76): footer only, so the header keeps its four links. */}
+              <li><a href="/memories">Memories</a></li>
             </ul>
           </nav>
         </div>

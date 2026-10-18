@@ -55,6 +55,7 @@ describe("/", () => {
     expect(out).toContain("VGU Campus");
     expect(out).toContain("webcal");
     expect(out).toContain("First photos appear on ceremony day.");
+    expect(out).toContain('href="/memories"');
     expect(out).toContain("Congrats!");
     expect(out).toContain("Jane");
   });

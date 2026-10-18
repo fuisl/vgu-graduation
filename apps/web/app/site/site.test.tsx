@@ -83,6 +83,11 @@ describe("SiteFooter", () => {
   it("links the credits to the about page", () => {
     expect(html(<SiteFooter />)).toMatch(/<a class="brand-footer__about" href="\/about">Credits<\/a>/);
   });
+
+  it("links the curated archive from the footer only", () => {
+    expect(html(<SiteFooter />)).toContain('<a href="/memories">Memories</a>');
+    expect(html(<SiteHeader />)).not.toContain('href="/memories"');
+  });
 });
 
 describe("nextTrapIndex", () => {

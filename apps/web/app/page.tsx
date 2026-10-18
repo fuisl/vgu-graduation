@@ -131,6 +131,7 @@ export default async function Home() {
           )}
           <div className="home-actions">
             <Cta tone="on-blue" href="/gallery">Open gallery</Cta>
+            <a className="home-link" href="/memories">Curated archive and timeline</a>
           </div>
         </Section>
 

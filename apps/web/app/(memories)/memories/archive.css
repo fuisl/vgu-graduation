@@ -1,0 +1,31 @@
+/*
+ * /memories (#75), the curated archive, and the parts /memories/timeline shares with it.
+ * Brand tokens only; every rule scoped to [data-theme="brand"]. Hero classes come from ../memories.css.
+ */
+
+[data-theme="brand"] .arc-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-5); }
+[data-theme="brand"] .arc-h2 { margin: var(--space-3) 0 var(--space-6); font-size: var(--brand-text-h2); font-weight: 500; line-height: 1.1; letter-spacing: var(--brand-tracking-display); }
+[data-theme="brand"] .arc-count { font-family: var(--font-mono); font-size: var(--text-sm); letter-spacing: var(--brand-tracking-label); color: var(--brand-muted); vertical-align: super; }
+[data-theme="brand"] .arc-state { margin: 0 0 var(--space-5); max-width: var(--brand-measure); color: var(--brand-muted); }
+[data-theme="brand"] .arc-state--note { margin-top: var(--space-5); font-size: var(--text-sm); }
+[data-theme="brand"] .arc-link { color: inherit; text-decoration: underline; text-underline-offset: 0.25em; }
+[data-theme="brand"] .brand-section--white .arc-link { color: var(--brand-blue); }
+[data-theme="brand"] .arc-link--tap { display: inline-flex; align-items: center; min-height: var(--brand-tap); }
+[data-theme="brand"] .arc-link:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+
+/* Photo grid: square thumbs, like the landing teaser. Two columns on a phone, four on desktop. */
+[data-theme="brand"] .arc-photos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+[data-theme="brand"] .arc-photo { display: block; border-radius: var(--brand-radius); }
+[data-theme="brand"] .arc-photo img { display: block; width: 100%; height: auto; aspect-ratio: 1 / 1; object-fit: cover; border-radius: var(--brand-radius); background: var(--brand-blue-soft); }
+[data-theme="brand"] .arc-photo:focus-visible { outline: 2px solid var(--brand-blue); outline-offset: 2px; }
+
+/* Wishes on blue: type and hairlines, no cards. Long lists skip rendering off-screen. */
+[data-theme="brand"] .arc-wishes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--space-7); margin: 0; padding: 0; list-style: none; }
+[data-theme="brand"] .arc-wish { padding: var(--space-5) 0; border-top: 1px solid var(--brand-line); content-visibility: auto; contain-intrinsic-size: auto 10rem; }
+[data-theme="brand"] .arc-wish__body { margin: 0; font-size: var(--brand-text-lead); line-height: 1.4; overflow-wrap: anywhere; white-space: pre-line; }
+[data-theme="brand"] .arc-wish__author { margin: var(--space-3) 0 0; font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: var(--brand-tracking-label); text-transform: uppercase; color: var(--brand-muted); overflow-wrap: anywhere; }
+
+@media (max-width: 960px) {
+  [data-theme="brand"] .arc-photos { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
+  [data-theme="brand"] .arc-wishes { grid-template-columns: 1fr; }
+}

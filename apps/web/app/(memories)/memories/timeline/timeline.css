@@ -1,0 +1,56 @@
+/*
+ * /memories/timeline (#76): a vertical, mobile-first timeline of curated photos and wishes.
+ * Brand tokens only; every rule scoped to [data-theme="brand"]. No motion.
+ * Layout decisions awaiting owner review are listed in docs/design/components.md ("Curated archive and timeline").
+ */
+
+/* Chapter index: 44px rows on a phone; a sticky column beside the timeline on desktop. */
+[data-theme="brand"] .tl-index ol { display: grid; margin: 0 0 var(--space-6); padding: 0; list-style: none; border-bottom: 1px solid var(--brand-line); }
+[data-theme="brand"] .tl-index li { border-top: 1px solid var(--brand-line); }
+[data-theme="brand"] .tl-index a { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: var(--brand-tap); padding: var(--space-2) 0; color: var(--brand-blue); text-decoration: none; }
+[data-theme="brand"] .tl-index a:hover .tl-index__title { text-decoration: underline; text-underline-offset: 0.25em; }
+[data-theme="brand"] .tl-index a:focus-visible { outline: 2px solid var(--brand-blue); outline-offset: 2px; }
+[data-theme="brand"] .tl-index__title { font-weight: 500; }
+[data-theme="brand"] .tl-index__range { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: var(--brand-tracking-label); text-transform: uppercase; color: var(--brand-muted); }
+
+/* Chapters render only near the viewport; the intrinsic size keeps the scrollbar honest. */
+[data-theme="brand"] .tl-chapter { padding-top: var(--space-6); scroll-margin-top: var(--space-5); content-visibility: auto; contain-intrinsic-size: auto 60rem; }
+[data-theme="brand"] .tl-chapter + .tl-chapter { margin-top: var(--space-6); border-top: 1px solid var(--brand-line); }
+[data-theme="brand"] .tl-chapter__head { margin-bottom: var(--space-5); }
+[data-theme="brand"] .tl-chapter__title { margin: var(--space-2) 0 var(--space-1); font-size: var(--brand-text-h3); font-weight: 500; line-height: 1.2; letter-spacing: -0.02em; }
+[data-theme="brand"] .tl-chapter__summary { margin: 0; font-size: var(--text-sm); color: var(--brand-muted); }
+
+/* The rail: one hairline, a small square blue marker per entry, the time in mono above the content. */
+[data-theme="brand"] .tl-entries { margin: 0; padding: 0 0 0 var(--space-5); list-style: none; border-left: 1px solid var(--brand-line); }
+[data-theme="brand"] .tl-entry { position: relative; padding-bottom: var(--space-6); }
+[data-theme="brand"] .tl-entry:last-child { padding-bottom: var(--space-2); }
+[data-theme="brand"] .tl-entry::before { content: ""; position: absolute; top: 0.3rem; left: calc(-1 * var(--space-5) - 4px); width: 7px; height: 7px; border-radius: var(--brand-radius-sm); background: var(--brand-blue); }
+[data-theme="brand"] .tl-time { display: block; margin-bottom: var(--space-2); font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: var(--brand-tracking-label); color: var(--brand-blue); }
+
+/* Photos: a burst is a small square grid; a lone photo keeps its own aspect ratio. */
+[data-theme="brand"] .tl-photos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+[data-theme="brand"] .tl-photos--single { grid-template-columns: minmax(0, 35rem); }
+[data-theme="brand"] .tl-photo { display: block; border-radius: var(--brand-radius); }
+[data-theme="brand"] .tl-photo img { display: block; width: 100%; height: auto; border-radius: var(--brand-radius); background: var(--brand-blue-soft); }
+[data-theme="brand"] .tl-photos:not(.tl-photos--single) .tl-photo img { aspect-ratio: 1 / 1; object-fit: cover; }
+[data-theme="brand"] .tl-photo:focus-visible { outline: 2px solid var(--brand-blue); outline-offset: 2px; }
+
+/* Wishes: the landing's soft-blue quote panel. */
+[data-theme="brand"] .tl-wish { margin: 0; max-width: var(--brand-measure); padding: var(--space-5); border-radius: var(--brand-radius); background: var(--brand-blue-soft); color: var(--brand-ink); }
+[data-theme="brand"] .tl-wish__body { margin: 0; line-height: 1.5; overflow-wrap: anywhere; white-space: pre-line; }
+[data-theme="brand"] .tl-wish__author { margin-top: var(--space-3); font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: var(--brand-tracking-label); text-transform: uppercase; color: var(--brand-muted); overflow-wrap: anywhere; }
+
+[data-theme="brand"] .tl-empty { display: flex; flex-direction: column; align-items: flex-start; }
+
+@media (min-width: 961px) {
+  [data-theme="brand"] .tl-layout { display: grid; grid-template-columns: 15rem minmax(0, 46rem); gap: var(--space-8); align-items: start; }
+  [data-theme="brand"] .tl-index { position: sticky; top: var(--space-5); }
+  [data-theme="brand"] .tl-index ol { margin-bottom: 0; }
+  [data-theme="brand"] .tl-chapter:first-child { padding-top: 0; }
+}
+
+@media (max-width: 960px) {
+  [data-theme="brand"] .tl-photos:not(.tl-photos--single) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  [data-theme="brand"] .tl-entries { padding-left: var(--space-4); }
+  [data-theme="brand"] .tl-entry::before { left: calc(-1 * var(--space-4) - 4px); }
+}

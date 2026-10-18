@@ -15,7 +15,10 @@ export default function GalleryPage() {
           <div className="mem-hero">
             <BrandEyebrow ellipsis>Archive / All memories</BrandEyebrow>
             <h1 id="gallery-title" className="mem-title">Digital Locket.</h1>
-            <Cta tone="on-blue" variant="secondary" href="/polaroid">Take a disposable photo</Cta>
+            <div className="gal-hero-actions">
+              <Cta tone="on-blue" variant="secondary" href="/polaroid">Take a disposable photo</Cta>
+              <Cta tone="on-blue" variant="secondary" href="/memories">Curated archive and timeline</Cta>
+            </div>
           </div>
         </Section>
         <Section tone="white" density="compact">

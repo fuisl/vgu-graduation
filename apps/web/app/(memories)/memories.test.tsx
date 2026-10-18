@@ -14,6 +14,10 @@ describe("memories pages", () => {
     }
   });
 
+  it("gallery links to the curated archive", () => {
+    expect(html(<GalleryPage />)).toContain('href="/memories"');
+  });
+
   it("polaroid is not a nav item and keeps the camera form", () => {
     const out = html(<PolaroidPage />);
     expect(out).not.toContain("aria-current");

@@ -158,6 +158,15 @@ export const INGEST_AUDIO_FORMAT = { sampleRate: 16_000, channels: 1, encoding: 
  * stream; every field is optional and defaults to `INGEST_AUDIO_FORMAT` and
  * automatic language detection. `stop` marks a deliberate end (the speaker is
  * done), so the service can flush its last segment.
+ *
+ * Added by apps/translation (#67/#69), relayed by the API like any typed JSON:
+ * - A later `start` switches the language mid-stream (the operator's `en`/`vi`/
+ *   `auto` command); `sessionId` is a label, and the service stores segments
+ *   under `<label>-<UTC start time>` so a restarted service never reuses a
+ *   sequence number.
+ * - `gap`: the capture client's buffer overflowed during an outage and it
+ *   dropped `samples` of audio (16 kHz) before the next frame; the service
+ *   advances its timeline and closes the open sentence.
  */
 export const ingestControlMessageSchema = z.discriminatedUnion("type", [
   z.object({
@@ -169,6 +178,7 @@ export const ingestControlMessageSchema = z.discriminatedUnion("type", [
     encoding: z.literal("s16le").optional(),
   }),
   z.object({ type: z.literal("stop") }),
+  z.object({ type: z.literal("gap"), samples: z.number().int().min(0) }),
 ]);
 export type IngestControlMessage = z.infer<typeof ingestControlMessageSchema>;
 
@@ -180,3 +190,19 @@ export const ingestStatusMessageSchema = z.object({
   droppedFrames: z.number().int().min(0),
 });
 export type IngestStatusMessage = z.infer<typeof ingestStatusMessageSchema>;
+
+/**
+ * Translation service -> capture client (text frames the API relays verbatim;
+ * apps/translation, #67/#69). `ready` names the session a connection feeds.
+ * `ack` counts audio samples received on this service connection, about every
+ * 250 ms: the capture client keeps frames until they are acknowledged and
+ * resends the rest after a reconnect, so a Wi-Fi blip costs a few hundred ms of
+ * duplicated audio at worst rather than a lost sentence. `error` precedes a
+ * close by the service (4415: unsupported audio format).
+ */
+export const ingestServiceMessageSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("ready"), sessionId: z.string().min(1), resumed: z.boolean() }),
+  z.object({ type: z.literal("ack"), receivedSamples: z.number().int().min(0) }),
+  z.object({ type: z.literal("error"), code: z.string(), message: z.string() }),
+]);
+export type IngestServiceMessage = z.infer<typeof ingestServiceMessageSchema>;

@@ -89,9 +89,12 @@ describe("Journal", () => {
     let now = new Date("2026-11-20T02:00:00Z");
     const journal = new Journal(dir, () => now);
     await journal.init();
-    await journal.put({ id: "a", photoPublicId: "p", copies: 1, phase: "reported", outcome: "done" });
+    const claim = { photoPublicId: "p", copies: 1, imageUrl: "https://x.test/media/p/display", attempt: 1, leaseExpiresAt: "2026-11-20T02:05:00Z" };
+    await journal.put({ id: "a", ...claim, phase: "reported", outcome: "done" });
     now = new Date("2026-11-20T03:00:00Z");
-    await journal.put({ id: "b", photoPublicId: "p", copies: 1, phase: "printed" });
+    await journal.put({ id: "b", ...claim, phase: "printed" });
+    await journal.put({ id: "c", ...claim, phase: "received" });
+    await journal.remove("c");
 
     expect((await journal.get("a"))?.outcome).toBe("done");
     expect(await journal.get("missing")).toBeNull();
@@ -119,10 +122,28 @@ describe("HTTP client", () => {
         throw new TypeError("fetch failed");
       },
     });
-    const err = await api.fetchDerivative("secret-public-id").catch((e: unknown) => e);
+    const err = await api.fetchImage("https://api.example.test/media/secret-public-id/display").catch((e: unknown) => e);
     expect(err).toBeInstanceOf(ApiError);
     expect((err as ApiError).retryable).toBe(true);
     expect((err as ApiError).message).not.toContain("secret-public-id");
+  });
+
+  it("fetches the job's imageUrl as given, without the service token, and refuses non-http URLs", async () => {
+    const seen: { url: string; auth: string | null }[] = [];
+    const api = createHttpApi({
+      apiUrl: "http://api.internal",
+      serviceToken: "secret-token",
+      timeoutMs: 500,
+      fetchImpl: async (input, init) => {
+        seen.push({ url: String(input), auth: new Headers(init?.headers).get("authorization") });
+        return new Response("img", { status: 200 });
+      },
+    });
+    expect((await api.fetchImage("https://api.example.test/media/p/display")).toString()).toBe("img");
+    expect(seen).toEqual([{ url: "https://api.example.test/media/p/display", auth: null }]);
+    const bad = await api.fetchImage("file:///etc/passwd").catch((e: unknown) => e);
+    expect((bad as ApiError).retryable).toBe(false);
+    expect(seen).toHaveLength(1);
   });
 
   it("treats 204 from next as an empty queue and rejects off-contract bodies", async () => {

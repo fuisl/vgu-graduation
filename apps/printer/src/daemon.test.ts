@@ -28,9 +28,13 @@ let fake: FakePrintApi;
 let baseUrl: string;
 let stateDir: string;
 let logLines: string[];
+/** One clock for the fake API's leases and the daemon. */
+let clock: number;
 
 beforeEach(async () => {
+  clock = Date.parse("2026-11-20T03:00:00Z");
   fake = new FakePrintApi();
+  fake.now = () => clock;
   baseUrl = await fake.start();
   stateDir = await mkdtemp(path.join(os.tmpdir(), "grad-printer-"));
   logLines = [];
@@ -45,8 +49,8 @@ function api(token = fake.token): PrintApi {
   return createHttpApi({ apiUrl: baseUrl, serviceToken: token, timeoutMs: 2_000 });
 }
 
-async function daemon(printer: Printer, client: PrintApi = api()) {
-  const d = new PrintDaemon({
+function options(printer: Printer, client: PrintApi) {
+  return {
     api: client,
     printer,
     journal: new Journal(stateDir),
@@ -55,10 +59,32 @@ async function daemon(printer: Printer, client: PrintApi = api()) {
     pollIntervalMs: 1,
     backoff: new Backoff(1, 5, () => 0),
     journalRetentionMs: 60_000,
+    leaseMarginMs: 30_000,
+    now: () => clock,
     sleep: async () => {},
-  });
+  };
+}
+
+async function daemon(printer: Printer, client: PrintApi = api()) {
+  const d = new PrintDaemon(options(printer, client));
   await d.init();
   return d;
+}
+
+/** Claims the next job as a daemon would have just before crashing, and journals it in `phase`. */
+async function claimAndJournal(phase: "received" | "submitting") {
+  const journal = new Journal(stateDir);
+  await journal.init();
+  const job = (await api().next())!;
+  await journal.put({
+    id: job.id,
+    photoPublicId: job.photoPublicId,
+    copies: job.copies,
+    imageUrl: job.imageUrl,
+    attempt: job.attempt,
+    leaseExpiresAt: job.leaseExpiresAt,
+    phase,
+  });
 }
 
 /** Ticks until the daemon reports idle (or gives up), swallowing errors like the run loop does. */
@@ -93,7 +119,7 @@ describe("PrintDaemon", () => {
     expect(printer.calls).toEqual([]);
   });
 
-  it("sends the service token to internal routes only, never to the public media route", async () => {
+  it("sends the service token to internal routes only, never to the job's public imageUrl", async () => {
     fake.addJob({ id: JOB_A, photoPublicId: "pub-a" });
     await drain(await daemon(new RecordingPrinter()));
     expect(fake.authHeaders.every((h) => h === `Bearer ${fake.token}`)).toBe(true);
@@ -107,6 +133,7 @@ describe("PrintDaemon", () => {
     await drain(await daemon(printer));
     expect(printer.calls).toEqual([]);
     expect(fake.reports).toEqual([{ id: JOB_A, body: { result: "failed", error: "Photo is not available to print (404)" } }]);
+    expect(fake.status(JOB_A)).toBe("failed");
   });
 
   it("retries a derivative download that fails transiently, then prints once", async () => {
@@ -154,12 +181,9 @@ describe("PrintDaemon", () => {
   });
 
   it("a crash mid-submission is reported failed, never reprinted", async () => {
-    const journal = new Journal(stateDir);
-    await journal.init();
     fake.addJob({ id: JOB_A, photoPublicId: "pub-a" });
     // Simulate: the job was handed out and journalled as submitting when the process died.
-    await api().next();
-    await journal.put({ id: JOB_A, photoPublicId: "pub-a", copies: 1, phase: "submitting" });
+    await claimAndJournal("submitting");
 
     const printer = new RecordingPrinter();
     await drain(await daemon(printer));
@@ -168,11 +192,8 @@ describe("PrintDaemon", () => {
   });
 
   it("a crash before anything reached CUPS prints the job on restart", async () => {
-    const journal = new Journal(stateDir);
-    await journal.init();
     fake.addJob({ id: JOB_A, photoPublicId: "pub-a" });
-    await api().next();
-    await journal.put({ id: JOB_A, photoPublicId: "pub-a", copies: 1, phase: "received" });
+    await claimAndJournal("received");
 
     const printer = new RecordingPrinter();
     await drain(await daemon(printer));
@@ -185,15 +206,16 @@ describe("PrintDaemon", () => {
     const printer = new RecordingPrinter();
     const d = await daemon(printer);
     await drain(d);
-    // The API lost the report and re-queues the same job (e.g. a stale `printing` sweep).
+    // The API never recorded the report and re-queues the job after its lease.
     fake.reports = [];
-    fake.addJob({ id: JOB_A, photoPublicId: "pub-a" });
+    fake.requeue(JOB_A);
     await drain(d);
     expect(printer.calls).toHaveLength(1);
     expect(fake.reports).toEqual([{ id: JOB_A, body: { result: "done" } }]);
+    expect(fake.status(JOB_A)).toBe("done");
   });
 
-  it("treats a repeated report the API already settled (409) as done", async () => {
+  it("repeats an identical report harmlessly when its acknowledgement was lost", async () => {
     fake.addJob({ id: JOB_A, photoPublicId: "pub-a" });
     const d = await daemon(new RecordingPrinter());
     await drain(d);
@@ -204,6 +226,63 @@ describe("PrintDaemon", () => {
     await drain(d);
     expect((await journal.get(JOB_A))?.phase).toBe("reported");
     expect(fake.reports).toHaveLength(1);
+    expect(fake.repeats).toBe(1);
+  });
+
+  it("treats a 409 (the job finished differently elsewhere) as settled", async () => {
+    fake.addJob({ id: JOB_A, photoPublicId: "pub-a" });
+    await claimAndJournal("received");
+    // Meanwhile the job was finished as failed (e.g. by an organizer).
+    await api().complete(JOB_A, { result: "failed", error: "elsewhere" });
+    const printer = new RecordingPrinter();
+    await drain(await daemon(printer));
+    expect(printer.calls).toHaveLength(1);
+    expect(fake.status(JOB_A)).toBe("failed");
+    expect((await new Journal(stateDir).get(JOB_A))?.phase).toBe("reported");
+  });
+
+  it("does not print a claim whose lease is about to run out, and prints it on the re-claim", async () => {
+    fake.leaseMs = 20_000; // less than the daemon's 30 s margin
+    fake.addJob({ id: JOB_A, photoPublicId: "pub-a" });
+    const printer = new RecordingPrinter();
+    const d = await daemon(printer);
+    expect(await d.tick()).toBe("worked");
+    expect(printer.calls).toEqual([]);
+    expect(fake.reports).toEqual([]);
+    expect(await new Journal(stateDir).get(JOB_A)).toBeNull();
+
+    // The API re-queues it once the lease runs out; the next claim has a full lease.
+    fake.leaseMs = 300_000;
+    clock += 21_000;
+    await drain(d);
+    expect(printer.calls).toHaveLength(1);
+    expect(fake.jobs[0]!.attempt).toBe(2);
+    expect(fake.reports).toEqual([{ id: JOB_A, body: { result: "done" } }]);
+  });
+
+  it("drops a journalled claim whose lease ran out during an outage, then prints the re-claim once", async () => {
+    fake.addJob({ id: JOB_A, photoPublicId: "pub-a" });
+    await claimAndJournal("received");
+    clock += 10 * 60_000; // the daemon was down for ten minutes
+    const printer = new RecordingPrinter();
+    await drain(await daemon(printer));
+    expect(printer.calls).toHaveLength(1);
+    expect(fake.jobs[0]!.attempt).toBe(2);
+    expect(fake.reports).toEqual([{ id: JOB_A, body: { result: "done" } }]);
+  });
+
+  it("still reports a print after its lease ran out, so it is not printed again", async () => {
+    fake.addJob({ id: JOB_A, photoPublicId: "pub-a" });
+    fake.failNext.done.push(503);
+    const first = new RecordingPrinter();
+    await expect((await daemon(first)).tick()).rejects.toThrow(/returned 503/);
+    clock += 10 * 60_000; // the API was unreachable past the lease
+    const second = new RecordingPrinter();
+    await drain(await daemon(second));
+    expect(first.calls).toHaveLength(1);
+    expect(second.calls).toEqual([]);
+    expect(fake.status(JOB_A)).toBe("done");
+    expect(logLines.some((l) => l.includes('"late":true'))).toBe(true);
   });
 
   it("works through several jobs in queue order", async () => {
@@ -222,14 +301,7 @@ describe("PrintDaemon", () => {
     const stop = new AbortController();
     let sleeps = 0;
     const loop = new PrintDaemon({
-      api: api("wrong-token-value"),
-      printer,
-      journal: new Journal(stateDir),
-      stateDir,
-      logger: createLogger("debug", (line) => logLines.push(line)),
-      pollIntervalMs: 1,
-      backoff: new Backoff(1, 5, () => 0),
-      journalRetentionMs: 60_000,
+      ...options(printer, api("wrong-token-value")),
       sleep: async () => {
         sleeps += 1;
         if (sleeps >= 3) stop.abort();

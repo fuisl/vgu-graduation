@@ -6,6 +6,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Cta, PillGroup, PillToggle } from "@grad/ui";
 import type { GalleryItem } from "../../../data/gallery";
+import { PrintRequest, usePrintAvailability } from "./PrintRequest";
 import "./gallery.css";
 
 type Filter = "ALL" | "WISHES" | "POLAROIDS";
@@ -44,6 +45,8 @@ export function GalleryView() {
   isAutoPlayingRef.current = isAutoPlaying;
 
   const [computedCols, setComputedCols] = useState(3);
+  // Guest print requests (#74): hidden unless the web flag is on; the API enforces its own.
+  const printAvailability = usePrintAvailability();
 
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
@@ -344,6 +347,10 @@ export function GalleryView() {
                 </div>
               </div>
             )}
+
+            {selectedItem.type === "POLAROID" && selectedItem.publicId ? (
+              <PrintRequest key={selectedItem.publicId} publicId={selectedItem.publicId} availability={printAvailability} />
+            ) : null}
           </div>
         </div>
       )}

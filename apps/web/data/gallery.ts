@@ -8,6 +8,8 @@ export interface GalleryItem {
   receivers: string[];
   content: string;
   timestamp: string;
+  /** Photos only: the API's `publicId`, used to request a print (#74). */
+  publicId?: string;
 }
 
 export function buildGalleryItems(
@@ -22,6 +24,7 @@ export function buildGalleryItems(
     receivers: ["Everyone"],
     content: mediaDerivativeUrl(photo.publicId, "display", mediaOrigin),
     timestamp: photo.createdAt,
+    publicId: photo.publicId,
   }));
 
   const wishItems: GalleryItem[] = (wishes?.items ?? []).map((wish) => ({

@@ -32,6 +32,11 @@ const envSchema = z.object({
   PASS_SIGNING_KEY: z.string().optional(),
   /** Identifies the public key verifiers use; bump it when rotating PASS_SIGNING_KEY. */
   PASS_KEY_ID: z.string().default("pass-1"),
+  /** Lets guests queue prints of photos themselves (#72, experimental). Off unless "true". */
+  PRINT_GUEST_REQUESTS_ENABLED: z
+    .enum(["true", "false", "1", "0", ""])
+    .default("false")
+    .transform((v) => v === "true" || v === "1"),
 });
 
 /** Variables with no safe default: a deployed API must not boot without them. */
@@ -91,6 +96,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     serviceTokens: {
       translation: parsed.SERVICE_TOKEN_TRANSLATION,
       printer: parsed.SERVICE_TOKEN_PRINTER,
+    },
+    print: {
+      guestRequestsEnabled: parsed.PRINT_GUEST_REQUESTS_ENABLED,
     },
   };
 }

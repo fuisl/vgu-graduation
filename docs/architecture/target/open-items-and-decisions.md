@@ -51,3 +51,10 @@ Decided 2026-09-29:
 - The ceremony date and time are still unconfirmed (#83). Everything builds against the placeholder with `timeConfirmed: false` in the event configuration; nothing else may hard-code them.
 - Guest-facing pages use one fixed blue-and-white theme, with no light/dark switch (redesign #142, `docs/design/redesign-2026-10.md`). A light theme (#10) and a more minimal landing layout (#5) are superseded by it.
 - CI: the API image is built and pushed only when something merges to `main`, and pull-request CI runs only the packages a change affects (#103, #104, #105). Local development and the cluster both run Garage v2.4.1 (#49 vendored the chart).
+
+Decided 2026-10-19 (#66, #70; details in `docs/design/live-surfaces.md`):
+
+- `/display` keeps the invitation credential of the display feed (#65); there is no separate display key. The kiosk gets its own invitation and opens its link once in the kiosk browser. Captions on `/live` are public (#68).
+- `/live` is not in the header navigation, which keeps its four links; it is linked from the invitation's event details and from the display's caption band. It has no footer.
+- Phones subscribe to every caption language and switch locally; after a reconnect they catch up by `since`, and they poll the segments endpoint when the socket is refused at the connection cap.
+- The display's caption line defaults to the other hall language (Vietnamese while English is spoken and vice versa), configurable with `?captions=`.

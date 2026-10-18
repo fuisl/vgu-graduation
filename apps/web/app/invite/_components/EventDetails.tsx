@@ -42,6 +42,16 @@ export function EventDetails({ event }: { event: ApiResult<EventConfig> }) {
             </span>
           </dd>
         </div>
+        <div>
+          <dt>Captions</dt>
+          <dd>
+            Read the ceremony live in Deutsch, English or Tiếng Việt on your phone (experimental).
+            <br />
+            <span className="invite-facts__action">
+              <Cta tone="on-white" variant="secondary" href="/live">Live captions</Cta>
+            </span>
+          </dd>
+        </div>
         {data.arrivalInfo ? (
           <div>
             <dt>Arrival</dt>

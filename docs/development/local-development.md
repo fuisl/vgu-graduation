@@ -93,6 +93,18 @@ Images are processed with [sharp](https://sharp.pixelplumbing.com) (libvips). It
 
 CORS allows `PUBLIC_ORIGIN` and nothing else, so a web app on any other origin (for example a Vercel preview) must be listed there. `GET /metrics` serves Prometheus metrics; it is unauthenticated, so the Ingress must not route it publicly.
 
+## Live pages without the API: the mock
+
+`/display` (event display) and `/live` (captions) talk to the API directly from the browser over WebSockets (ADR-003). To work on them without the API, Postgres or the translation service, run the dev-only mock, which serves the live endpoints, `GET /event` and generated photo derivatives with the contract's shapes:
+
+```sh
+node apps/web/scripts/mock-live-api.mjs --port=4100            # busy display, live captions
+API_ORIGIN=http://localhost:4100 PUBLIC_API_ORIGIN=http://localhost:4100 \
+  pnpm --filter @grad/web exec next dev -p 3100
+```
+
+Then open <http://localhost:3100/display> and <http://localhost:3100/live>. Scenarios: `--display=busy|empty|signin` (signin answers 401 like a kiosk without its invitation), `--translation=live|unavailable|absent|full` (unavailable: service suspended; absent: routes missing; full: socket refused with 503 so `/live` polls), and `--fast` for a 4x feed. Stop and restart the mock to watch both pages reconnect and catch up. Design and behaviour: `docs/design/live-surfaces.md`.
+
 ## Trying the API by hand with Bruno
 
 [Bruno](https://www.usebruno.com) is a git-native API client — requests are plain-text `.bru` files, no cloud account. The collection lives in `dev/bruno/` (never runs in production, same spirit as `dev/Caddyfile`): open that folder in the Bruno app and select the "Local" environment.

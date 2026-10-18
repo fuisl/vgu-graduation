@@ -1,0 +1,36 @@
+# Live surfaces: event display and captions
+
+Two pages run during the ceremony: `/display` on the projector in the hall (#66) and `/live` on guests' phones (#70). Both reach the API directly (ADR-003: streams go browser-direct, `NEXT_PUBLIC_API_ORIGIN`), keep working through poor venue Wi-Fi, and never affect another page. The client logic is pure, unit-tested modules in `apps/web/lib/live/`.
+
+## `/display` (event display)
+
+- **Layout.** No site header or footer. A full-bleed blue screen in a grid: a top row (compact mark, event name, connection state), the stage, a share rail with a QR code to `/wishes`, and a deep-blue caption band along the bottom while captions flow. All type is Inter Tight sized in `vmin` with `clamp()` bounds, so it reads from the back of a hall at 1920x1080 and scales down to a phone (portrait stacks the QR row under the stage). No mono labels: nothing small enough to need one.
+- **Stage.** One slide at a time: an approved wish as a large quote (five type steps by length, so a 1,000-character wish still fits) or a guest-camera photo (`display` derivative, contained, never cropped). New arrivals jump the queue, then everything cycles least-recently-shown first, alternating wishes and photos. A wish stays up 8 to 20 s by length, a photo 9 s. A slide a moderator hides leaves at once.
+- **Empty and loading state.** "Welcome to", the event name in display size, the date, and "Scan the code to leave a wish." It is also what shows while connecting, so the screen is never blank.
+- **Captions.** The display feed carries `segment` messages with every language. The band shows the newest line large and the one before it muted; drafts are muted until final. `?captions=` picks the language: `auto` (default) shows the other hall language (Vietnamese while English is spoken, English while Vietnamese is spoken), or `en`, `vi`, `de`, `off`. The band hides after 45 s without a new line and never shows when translation is absent. It also points phones at `/live`.
+- **Connection state.** Top right, a small square dot and a word: Live (the one accent use on this screen), Connecting, Reconnecting, Offline (showing the last update), or Not signed in. The last content stays on screen while offline.
+- **Motion.** Slides crossfade over `--motion-slow`; with reduced motion they cut (the leaving slide is never rendered).
+- **Keyboard.** `F` toggles full screen; a "Full screen (F)" button appears when focused.
+
+### Running unattended
+
+The display must run for hours without leaking: at most two slides in the DOM, wishes and photos capped at 150 each (newest kept), caption segments capped at 4, the "recently shown" and "failed image" maps pruned to what is on the deck, one rotation timer, photo preloads that are aborted when superseded, one socket with at most two timers (`LiveSocket`), and the Screen Wake Lock re-acquired when the tab becomes visible. A 10-minute soak against the fast mock (with the API killed and restarted midway) is the check; see "Verifying" below.
+
+### Access
+
+The display feed keeps the invitation credential (#65): photos are guest-only until flagged public, so the screen shows nothing to a browser without an invitation. The kiosk gets its own invitation and opens its link once in the kiosk browser; the `inv` cookie on the parent domain then rides on the socket handshake and the catch-up request. A browser without it sees the empty state and an operator notice ("This screen is not signed in"), and the page keeps retrying, so opening the link in another tab and reloading is enough. There is no separate display key: one more credential type would have to be minted, stored and rotated for a single screen, and the invitation already does that job. Captions on `/live` are public (#68) and need nothing.
+
+## `/live` (captions on phones)
+
+- **Layout.** Shared site header, a compact blue band (eyebrow, "Live captions", one lead line, connection state), then the caption log on white. No footer: the page is anchored to its live edge at the bottom. A white dock fixed to the bottom, clear of the home indicator (`env(safe-area-inset-*)`), holds the language toggle (DE, EN, VI) and the text size toggle (three steps up to the h2 size), both `PillGroup as="toggle"` within thumb reach. Choices are remembered in `localStorage` (wrapped in try/catch); the first visit picks the browser's language if it is one of the three.
+- **Captions.** One line per spoken sentence in the chosen language. A draft or a line still waiting for its translation shows lighter (the source text stands in until the translation arrives) and is replaced in place by the final. A line whose translation failed says so and shows the original. At most 300 lines are kept.
+- **Following.** The page follows new lines while the reader is at the bottom; scrolling up stops it and shows a "Jump to live" button above the dock.
+- **Screen readers.** The visible log is `role="log"` with `aria-live="off"`. Final lines are announced through a separate polite live region, batched at most every 5 s and capped at 280 characters, so a fast speaker cannot flood the queue; the burst of recent lines sent on connect is not announced.
+- **States.** Connecting, Live, "Waiting for the first words" (connected, nothing said yet), Reconnecting, and **Translation unavailable**: a notice explaining that the ceremony carries on and the page reconnects by itself, shown when the API reports `unavailable` (service suspended) or cannot be reached at all. Earlier lines stay readable.
+- **Protocol.** `WS /live/translation` without `lang`, so every caption language arrives and switching language needs no refetch (a line is a few hundred bytes every few seconds). After a reconnect the page fetches `GET /live/translation/segments?since=<last until>` (up to three pages of 200). When the socket cannot open (the API answers 503 above `LIVE_TRANSLATION_MAX_CLIENTS`, or the network blocks WebSockets) it polls that endpoint every 5 s and returns to the socket as soon as one opens. Merging is idempotent by (sessionId, sequence) and never replaces a final with a draft.
+- **Wake lock** while the page is open and visible.
+- **Navigation.** Not in the header nav (it keeps four links). Linked from the invitation's event details and from the display's caption band.
+
+## Verifying without the API
+
+`apps/web/scripts/mock-live-api.mjs` is a dependency-free dev mock of the live endpoints, `GET /event` and generated photo derivatives (see `docs/development/local-development.md`). Scenarios: `--display=busy|empty|signin`, `--translation=live|unavailable|absent|full`, `--fast` for a 4x feed. Kill and restart it to watch both pages reconnect and catch up.

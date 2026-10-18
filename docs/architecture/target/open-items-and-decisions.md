@@ -59,3 +59,10 @@ Decided 2026-10-19 (infrastructure for #53, #71, #73, #77):
 - The printer runs on the venue cluster only, alone in a `print` namespace. cupsd and the printer driver live on the venue host and the pod mounts only the CUPS socket, instead of a privileged pod with the USB bus. Printing is at most once per job (a local journal), reporting at least once.
 - The archive is exported with `scripts/archive-export.sh` (pg_dump plus both media buckets, checksummed, age-encrypted when it leaves the machine) and verified with `scripts/archive-restore.sh`; at most two exports are kept, and a takedown is followed by a fresh export (`operations/archive.md`).
 - Yearbook v1 is a static HTML export plus a print-ready A4 PDF of the publicly displayed set (visible photos and wishes), built from display derivatives after the ceremony; the generator is not built yet.
+
+Decided 2026-10-19 (#66, #70; details in `docs/design/live-surfaces.md`):
+
+- `/display` keeps the invitation credential of the display feed (#65); there is no separate display key. The kiosk gets its own invitation and opens its link once in the kiosk browser. Captions on `/live` are public (#68).
+- `/live` is not in the header navigation, which keeps its four links; it is linked from the invitation's event details and from the display's caption band. It has no footer.
+- Phones subscribe to every caption language and switch locally; after a reconnect they catch up by `since`, and they poll the segments endpoint when the socket is refused at the connection cap.
+- The display's caption line defaults to the other hall language (Vietnamese while English is spoken and vice versa), configurable with `?captions=`.

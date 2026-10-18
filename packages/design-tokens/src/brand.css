@@ -727,4 +727,8 @@
   display: block;
   border-radius: 50%;
 }
+/* Hidden tab: GuestAvatar sets data-paused and the idle blink and glance stop (#139). */
+[data-theme="brand"] .guest-avatar[data-paused] * {
+  animation-play-state: paused;
+}
 /* end guest chip (#146) */

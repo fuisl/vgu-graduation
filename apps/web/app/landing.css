@@ -65,6 +65,13 @@
   text-transform: uppercase;
   white-space: nowrap;
 }
+/* Larger text (#176): on phones the two nowrap columns no longer fit side by side, so stack them. */
+@media (max-width: 960px) {
+  html[data-text-size] [data-theme="brand"] .home-hero-meta {
+    grid-auto-flow: row;
+    grid-template-rows: none;
+  }
+}
 [data-theme="brand"] .home-hero-meta__cell {
   margin: 0;
   font-variant-numeric: tabular-nums;

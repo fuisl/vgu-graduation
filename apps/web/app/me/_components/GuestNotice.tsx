@@ -23,7 +23,7 @@ const COPY: Record<GuestNoticeKind, { title: string; lead: string }> = {
     lead: "Thank you for celebrating with us. If you still need something, contact an organizer.",
   },
   error: {
-    title: "We could not load your profile",
+    title: "We could not load this page",
     lead: "This is a temporary problem, not a problem with your link. Please try again in a moment.",
   },
 };

@@ -3,9 +3,6 @@ import type { TargetLanguage, TranslationSegment, TranslationText } from "@grad/
 /** Segments a phone keeps (and renders). Older ones scroll off, so the DOM stays bounded over a three-hour ceremony. */
 export const MAX_SEGMENTS = 300;
 
-/** How far back a phone fills when it joins mid-session or comes back after a long gap. */
-export const MAX_BACKFILL = 50;
-
 export function segmentKey(segment: Pick<TranslationSegment, "sessionId" | "sequence">): string {
   return `${segment.sessionId}:${segment.sequence}`;
 }
@@ -68,34 +65,6 @@ export function mergeSegments(
   let next = [...list];
   for (const segment of segments) next = mergeSegment(next, segment, max);
   return next;
-}
-
-/** Where to resume after a reconnect: the newest segment held, if any. */
-export function lastPosition(list: readonly TranslationSegment[]): { sessionId: string; sequence: number } | null {
-  const last = list[list.length - 1];
-  if (!last) return null;
-  const sequence = Math.max(...list.filter((s) => s.sessionId === last.sessionId).map((s) => s.sequence));
-  return { sessionId: last.sessionId, sequence };
-}
-
-/**
- * Sequences are gapless per session (contract), so a live segment that skips
- * ahead means something was missed: returns the `after` to request from
- * `GET /live/translation/segments`, or null when nothing is missing. A phone
- * that joins mid-session fills at most `maxBackfill` earlier lines.
- */
-export function backfillAfter(
-  list: readonly TranslationSegment[],
-  segment: Pick<TranslationSegment, "sessionId" | "sequence">,
-  maxBackfill = MAX_BACKFILL,
-): number | null {
-  const held = list.filter((s) => s.sessionId === segment.sessionId).map((s) => s.sequence);
-  const floor = segment.sequence - 1 - maxBackfill;
-  if (held.length === 0) return segment.sequence > 0 ? Math.max(-1, floor) : null;
-  const before = held.filter((n) => n < segment.sequence);
-  const highest = before.length > 0 ? Math.max(...before) : -1;
-  if (highest >= segment.sequence - 1) return null;
-  return Math.max(highest, floor);
 }
 
 export type CaptionTone = "final" | "draft" | "failed" | "pending";

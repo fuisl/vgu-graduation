@@ -1,5 +1,5 @@
 import type { GalleryItem, LiveDisplayFeedResponse, LiveDisplayMessage, TranslationSegment, Wish } from "@grad/contract";
-import { isLiveDisplayFeedResponse, isLiveDisplayMessage } from "./guards";
+import { isLiveDisplayFeedResponse, isLiveDisplayMessage, laterTimestamp } from "./guards";
 import { mergeSegment } from "./segments";
 
 /** What the kiosk holds. Bounded, so hours of wishes and photos never grow memory or the DOM. */
@@ -30,11 +30,6 @@ function upsert<T extends { createdAt: string }>(list: readonly T[], item: T, id
   return next.length > max ? next.slice(0, max) : next;
 }
 
-function later(a: string | null, b: string): string {
-  if (a === null) return b;
-  return Date.parse(b) >= Date.parse(a) ? b : a;
-}
-
 /**
  * Applies one feed message. Idempotent by id, because the catch-up fetch can
  * repeat what the socket already delivered (contract `liveDisplayMessageSchema`).
@@ -52,7 +47,7 @@ export function applyDisplayMessage(state: DisplayContent, message: LiveDisplayM
     case "segment":
       return { ...state, captions: mergeSegment(state.captions, message.segment, DISPLAY_LIMITS.captions) };
     case "keepalive":
-      return { ...state, until: later(state.until, message.until) };
+      return { ...state, until: laterTimestamp(state.until, message.until) };
   }
 }
 
@@ -60,7 +55,7 @@ export function applyDisplayMessage(state: DisplayContent, message: LiveDisplayM
 export function applyFeedResponse(state: DisplayContent, response: LiveDisplayFeedResponse): DisplayContent {
   let next = state;
   for (const message of response.messages) next = applyDisplayMessage(next, message);
-  return { ...next, until: later(next.until, response.until) };
+  return { ...next, until: laterTimestamp(next.until, response.until) };
 }
 
 /** Parses one socket frame; anything malformed or unknown is dropped, never thrown. */

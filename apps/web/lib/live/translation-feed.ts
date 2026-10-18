@@ -1,5 +1,5 @@
-import type { LiveTranslationMessage, TargetLanguage, TranslationSegment } from "@grad/contract";
-import { isLiveTranslationMessage, isTargetLanguage, isTranslationBacklog } from "./guards";
+import type { LiveTranslationMessage, LiveTranslationSegmentsResponse, TargetLanguage } from "@grad/contract";
+import { isLiveTranslationMessage, isLiveTranslationSegmentsResponse, isTargetLanguage } from "./guards";
 import type { LiveSocketState } from "./live-socket";
 
 export function parseTranslationMessage(data: string): LiveTranslationMessage | null {
@@ -11,30 +11,44 @@ export function parseTranslationMessage(data: string): LiveTranslationMessage | 
   }
 }
 
-export function parseBacklog(body: unknown): TranslationSegment[] | null {
-  return isTranslationBacklog(body) ? body.segments : null;
+export function parseSegmentsPage(body: unknown): LiveTranslationSegmentsResponse | null {
+  return isLiveTranslationSegmentsResponse(body) ? body : null;
 }
 
-/** `GET /live/translation/segments?sessionId=&after=` (contract `translationBacklogQuerySchema`). */
-export function backlogUrl(apiOrigin: string, sessionId: string, after: number): string {
+/** Largest page the API serves (`liveTranslationSegmentsQuerySchema`). */
+export const SEGMENTS_PAGE_LIMIT = 200;
+
+/**
+ * `GET /live/translation/segments?since=&limit=`: catch-up after a reconnect
+ * (with the last `until` seen) and the polling fallback. No `lang`: the page
+ * keeps every caption language so switching is instant and needs no refetch;
+ * a caption line is a few hundred bytes every few seconds.
+ */
+export function segmentsUrl(apiOrigin: string, since: string | null, limit = SEGMENTS_PAGE_LIMIT): string {
   const url = new URL("/live/translation/segments", apiOrigin);
-  url.searchParams.set("sessionId", sessionId);
-  url.searchParams.set("after", String(after));
+  if (since) url.searchParams.set("since", since);
+  url.searchParams.set("limit", String(limit));
   return url.toString();
 }
 
 export type TranslationView = "connecting" | "live" | "reconnecting" | "unavailable";
+export type ServiceState = "unknown" | "live" | "unavailable";
 
 /** Attempts in a row that never open before the page says the service is absent rather than "connecting". */
 export const UNAVAILABLE_AFTER_FAILURES = 3;
 
 /**
- * What the page says about the service. `unavailable` covers both the API
- * saying so (translation pod suspended) and a socket that cannot be reached
- * at all (route absent, API down); the page keeps retrying underneath.
+ * What the page says about the service. With the socket open, or refused but
+ * the HTTP polling fallback answering (the API caps live connections and
+ * answers 503 beyond that), it follows the server's `state`. `unavailable`
+ * also covers an API that cannot be reached at all; the page keeps retrying
+ * underneath either way.
  */
-export function translationView(socket: LiveSocketState, service: "unknown" | "live" | "unavailable"): TranslationView {
-  if (socket.phase === "open") return service === "unavailable" ? "unavailable" : "live";
+export function translationView(socket: LiveSocketState, service: ServiceState, polling = false): TranslationView {
+  if (socket.phase === "open" || polling) {
+    if (service === "unavailable") return "unavailable";
+    return service === "live" || socket.phase === "open" ? "live" : "connecting";
+  }
   if (socket.phase === "stopped") return "connecting";
   if (service === "unavailable") return "unavailable";
   if (!socket.everOpened && socket.failures >= UNAVAILABLE_AFTER_FAILURES) return "unavailable";

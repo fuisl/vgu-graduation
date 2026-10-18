@@ -3,6 +3,7 @@ import type {
   LiveDisplayFeedResponse,
   LiveDisplayMessage,
   LiveTranslationMessage,
+  LiveTranslationSegmentsResponse,
   TargetLanguage,
   TranslationSegment,
   TranslationText,
@@ -84,13 +85,29 @@ export function isLiveDisplayFeedResponse(v: unknown): v is LiveDisplayFeedRespo
   return isObj(v) && Array.isArray(v.messages) && v.messages.every(isLiveDisplayMessage) && isTimestamp(v.until);
 }
 
+const isState = (v: unknown) => v === "live" || v === "unavailable";
+
 export function isLiveTranslationMessage(v: unknown): v is LiveTranslationMessage {
-  if (!isObj(v)) return false;
+  if (!isObj(v) || !(v.until === undefined || isTimestamp(v.until))) return false;
   if (v.type === "segment") return isTranslationSegment(v.segment);
-  if (v.type === "status") return v.state === "live" || v.state === "unavailable";
-  return false;
+  if (v.type === "status") return isState(v.state);
+  return v.type === "keepalive";
 }
 
-export function isTranslationBacklog(v: unknown): v is { segments: TranslationSegment[] } {
-  return isObj(v) && Array.isArray(v.segments) && v.segments.every(isTranslationSegment);
+export function isLiveTranslationSegmentsResponse(v: unknown): v is LiveTranslationSegmentsResponse {
+  return (
+    isObj(v) &&
+    Array.isArray(v.segments) &&
+    v.segments.every(isTranslationSegment) &&
+    isTimestamp(v.until) &&
+    typeof v.more === "boolean" &&
+    isState(v.state)
+  );
+}
+
+/** The later of two contract timestamps; the cursor (`until`) only moves forward. */
+export function laterTimestamp(a: string | null, b: string | undefined): string | null {
+  if (b === undefined) return a;
+  if (a === null) return b;
+  return Date.parse(b) >= Date.parse(a) ? b : a;
 }

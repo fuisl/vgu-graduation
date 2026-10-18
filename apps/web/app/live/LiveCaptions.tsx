@@ -6,27 +6,33 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { browserApiOrigin } from "../../lib/api/browser-origin";
 import { usePrefersReducedMotion, useWakeLock } from "../../lib/live/browser";
 import { LiveSocket, liveSocketUrl, type LiveSocketState } from "../../lib/live/live-socket";
-import { backfillAfter, captionFor, lastPosition, mergeSegments, segmentKey } from "../../lib/live/segments";
+import { laterTimestamp } from "../../lib/live/guards";
+import { captionFor, mergeSegments, segmentKey } from "../../lib/live/segments";
 import {
   AnnouncementQueue,
   LANGUAGES,
   TEXT_SIZES,
-  backlogUrl,
   defaultLanguage,
-  parseBacklog,
   parseLanguage,
   parseTextSize,
+  parseSegmentsPage,
   parseTranslationMessage,
   safeStorage,
+  segmentsUrl,
   translationView,
+  type ServiceState,
   type TextSize,
   type TranslationView,
 } from "../../lib/live/translation-feed";
 
 const LANGUAGE_KEY = "grad26.live.language";
 const SIZE_KEY = "grad26.live.textSize";
-/** After a reconnect, re-read this many lines before the last one held, to pick up drafts that became final meanwhile. */
-const REFETCH_OVERLAP = 5;
+/** Polling cadence while the socket is refused (the API's Retry-After is 5 s). */
+const POLL_INTERVAL_MS = 5_000;
+/** A long outage is caught up in at most this many pages of 200; older lines are not needed on screen. */
+const MAX_CATCH_UP_PAGES = 3;
+/** Segments within this long after connecting are the server's snapshot of recent lines. */
+const SNAPSHOT_QUIET_MS = 1_500;
 /** Within this distance of the bottom the page follows new captions. */
 const FOLLOW_THRESHOLD_PX = 96;
 
@@ -40,16 +46,19 @@ const STATUS_LABEL: Record<TranslationView, string> = {
 };
 
 /**
- * Socket, catch-up and segment store. Missed segments are refetched over HTTP
- * after every reconnect (contract `translationBacklogQuerySchema`: by session
- * and sequence, which is gapless), and any gap seen on the live stream is
- * filled the same way, so a phone that joins mid-session gets recent context.
+ * Socket, catch-up and segment store (protocol: contract `liveTranslationMessageSchema`).
+ * On connect the API sends the status and the recent segments itself. After a
+ * reconnect the page also fetches everything changed since the last `until`
+ * it saw, so nothing missed while offline is lost. When the socket cannot open
+ * (API over its connection cap answers 503, or a network that blocks
+ * WebSockets) it polls the same endpoint every few seconds instead, and goes
+ * back to the socket as soon as one opens.
  */
 function useTranslationFeed(onLiveSegment: (segment: TranslationSegment) => void) {
   const [segments, setSegments] = useState<TranslationSegment[]>([]);
   const [socketState, setSocketState] = useState<LiveSocketState>({ phase: "connecting", failures: 0, everOpened: false });
-  const [service, setService] = useState<"unknown" | "live" | "unavailable">("unknown");
-  const segmentsRef = useRef<TranslationSegment[]>([]);
+  const [service, setService] = useState<ServiceState>("unknown");
+  const [polling, setPolling] = useState(false);
   const onLiveRef = useRef(onLiveSegment);
 
   useEffect(() => {
@@ -58,58 +67,100 @@ function useTranslationFeed(onLiveSegment: (segment: TranslationSegment) => void
 
   useEffect(() => {
     const origin = browserApiOrigin();
-    const inflight = new Map<string, AbortController>();
+    let segmentsHeld: TranslationSegment[] = [];
+    let until: string | null = null;
     let disposed = false;
+    let socketOpen = false;
+    let openedAt = 0;
+    let pollingNow = false;
+    let pollTimer: ReturnType<typeof setTimeout> | null = null;
+    let inflight: Promise<boolean> | null = null;
+    const controller = new AbortController();
 
     const apply = (incoming: TranslationSegment[]) => {
-      segmentsRef.current = mergeSegments(segmentsRef.current, incoming);
-      setSegments(segmentsRef.current);
+      if (incoming.length === 0) return;
+      segmentsHeld = mergeSegments(segmentsHeld, incoming);
+      setSegments(segmentsHeld);
+    };
+    const markPolling = (value: boolean) => {
+      pollingNow = value;
+      setPolling(value);
     };
 
-    const fetchBacklog = async (sessionId: string, after: number) => {
-      const key = `${sessionId}:${after}`;
-      if (inflight.has(key)) return;
-      const controller = new AbortController();
-      inflight.set(key, controller);
-      try {
-        const response = await fetch(backlogUrl(origin, sessionId, after), {
-          credentials: "include",
-          cache: "no-store",
-          signal: controller.signal,
+    /** Pages through everything since the cursor (bounded). True when the API answered. */
+    const catchUp = (): Promise<boolean> => {
+      inflight ??= (async () => {
+        try {
+          for (let page = 0; page < MAX_CATCH_UP_PAGES; page += 1) {
+            const response = await fetch(segmentsUrl(origin, until), { cache: "no-store", credentials: "omit", signal: controller.signal });
+            if (!response.ok || disposed) return false;
+            const body = parseSegmentsPage(await response.json());
+            if (!body || disposed) return false;
+            apply(body.segments);
+            until = laterTimestamp(until, body.until);
+            setService(body.state);
+            if (!body.more) break;
+          }
+          return true;
+        } catch {
+          return false; // Offline or aborted: the socket's next attempt tries again.
+        } finally {
+          inflight = null;
+        }
+      })();
+      return inflight;
+    };
+
+    const poll = () => {
+      if (pollTimer !== null || socketOpen || disposed) return;
+      pollTimer = setTimeout(() => {
+        pollTimer = null;
+        if (socketOpen || disposed) return;
+        if (document.visibilityState === "hidden") return poll();
+        void catchUp().then((ok) => {
+          if (disposed || socketOpen) return;
+          markPolling(ok);
+          if (ok) poll();
         });
-        if (!response.ok || disposed) return;
-        const backlog = parseBacklog(await response.json());
-        if (backlog && !disposed) apply(backlog);
-      } catch {
-        // Offline or aborted: the next reconnect tries again.
-      } finally {
-        inflight.delete(key);
-      }
+      }, POLL_INTERVAL_MS);
     };
 
     const socket = new LiveSocket({
       url: liveSocketUrl("/live/translation", origin),
+      // The API sends a keepalive about every 25 s; nearly three missed means the socket is dead.
+      idleTimeoutMs: 70_000,
       onMessage: (data) => {
         const message = parseTranslationMessage(data);
         if (!message) return;
-        if (message.type === "status") {
-          setService(message.state);
-          return;
-        }
-        setService("live");
-        const after = backfillAfter(segmentsRef.current, message.segment);
+        until = laterTimestamp(until, message.until);
+        if (message.type === "status") setService(message.state);
+        if (message.type !== "segment") return;
         apply([message.segment]);
-        const merged = segmentsRef.current.find((s) => segmentKey(s) === segmentKey(message.segment));
+        // The burst of recent segments right after connecting is history, not news for the screen reader.
+        if (Date.now() - openedAt < SNAPSHOT_QUIET_MS) return;
+        const merged = segmentsHeld.find((s) => segmentKey(s) === segmentKey(message.segment));
         if (merged) onLiveRef.current(merged);
-        if (after !== null) void fetchBacklog(message.segment.sessionId, after);
       },
       onOpen: () => {
-        const position = lastPosition(segmentsRef.current);
-        if (position) void fetchBacklog(position.sessionId, Math.max(-1, position.sequence - REFETCH_OVERLAP));
+        socketOpen = true;
+        openedAt = Date.now();
+        if (pollTimer !== null) clearTimeout(pollTimer);
+        pollTimer = null;
+        markPolling(false);
+        if (until !== null) void catchUp();
+      },
+      onClose: ({ opened }) => {
+        socketOpen = false;
+        if (opened) return;
+        void catchUp().then((ok) => {
+          if (disposed || socketOpen) return;
+          markPolling(ok);
+          if (ok) poll();
+        });
       },
       onStateChange: (state) => {
         setSocketState(state);
-        if (state.phase !== "open") setService((s) => (s === "unavailable" ? s : "unknown"));
+        if (state.phase !== "open" && !pollingNow) setService((s) => (s === "unavailable" ? s : "unknown"));
       },
     });
     socket.start();
@@ -123,13 +174,14 @@ function useTranslationFeed(onLiveSegment: (segment: TranslationSegment) => void
     return () => {
       disposed = true;
       socket.stop();
-      for (const controller of inflight.values()) controller.abort();
+      controller.abort();
+      if (pollTimer !== null) clearTimeout(pollTimer);
       window.removeEventListener("online", online);
       document.removeEventListener("visibilitychange", visible);
     };
   }, []);
 
-  return { segments, view: translationView(socketState, service) };
+  return { segments, view: translationView(socketState, service, polling) };
 }
 
 /** Screen-reader announcements of final lines, throttled through one timer. */

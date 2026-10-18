@@ -2,10 +2,10 @@ import {
   liveDisplayFeedResponseSchema,
   liveDisplayMessageSchema,
   liveTranslationMessageSchema,
-  translationBacklogResponseSchema,
+  liveTranslationSegmentsResponseSchema,
 } from "@grad/contract";
 import { describe, expect, it } from "vitest";
-import { isLiveDisplayFeedResponse, isLiveDisplayMessage, isLiveTranslationMessage, isTranslationBacklog } from "./guards";
+import { isLiveDisplayFeedResponse, isLiveDisplayMessage, isLiveTranslationMessage, isLiveTranslationSegmentsResponse } from "./guards";
 
 const at = "2026-10-24T09:00:00.000Z";
 const segment = {
@@ -50,8 +50,12 @@ const displayCases: unknown[] = [
 
 const translationCases: unknown[] = [
   { type: "segment", segment },
+  { type: "segment", segment, until: at },
+  { type: "segment", segment, until: "soon" },
   { type: "status", state: "live" },
-  { type: "status", state: "unavailable" },
+  { type: "status", state: "unavailable", until: at },
+  { type: "keepalive", until: at },
+  { type: "keepalive" },
   { type: "status", state: "paused" },
   { type: "segment", segment: { ...segment, sourceText: "" } },
   { type: "segment" },
@@ -75,7 +79,14 @@ describe("guards agree with the contract schemas", () => {
       { messages: [] },
     ];
     for (const f of feeds) expect(isLiveDisplayFeedResponse(f)).toBe(liveDisplayFeedResponseSchema.safeParse(f).success);
-    const backlogs: unknown[] = [{ segments: [segment] }, { segments: [] }, { segments: [{}] }, {}];
-    for (const b of backlogs) expect(isTranslationBacklog(b)).toBe(translationBacklogResponseSchema.safeParse(b).success);
+    const pages: unknown[] = [
+      { segments: [segment], until: at, more: false, state: "live" },
+      { segments: [], until: at, more: true, state: "unavailable" },
+      { segments: [{}], until: at, more: false, state: "live" },
+      { segments: [], until: at, more: "no", state: "live" },
+      { segments: [], until: at, more: false, state: "off" },
+      { segments: [] },
+    ];
+    for (const p of pages) expect(isLiveTranslationSegmentsResponse(p)).toBe(liveTranslationSegmentsResponseSchema.safeParse(p).success);
   });
 });

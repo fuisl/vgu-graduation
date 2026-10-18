@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   AnnouncementQueue,
-  backlogUrl,
   defaultLanguage,
-  parseBacklog,
+  parseSegmentsPage,
   parseLanguage,
   parseTextSize,
   parseTranslationMessage,
   safeStorage,
+  segmentsUrl,
   translationView,
 } from "./translation-feed";
 
@@ -16,12 +16,17 @@ describe("parsing", () => {
     expect(parseTranslationMessage('{"type":"status","state":"unavailable"}')).toEqual({ type: "status", state: "unavailable" });
     expect(parseTranslationMessage('{"type":"status","state":"maybe"}')).toBeNull();
     expect(parseTranslationMessage("{")).toBeNull();
-    expect(parseBacklog({ segments: [] })).toEqual([]);
-    expect(parseBacklog({})).toBeNull();
+    expect(parseTranslationMessage('{"type":"keepalive","until":"2026-10-24T09:00:00.000Z"}')).toMatchObject({ type: "keepalive" });
+    const page = { segments: [], until: "2026-10-24T09:00:00.000Z", more: false, state: "live" };
+    expect(parseSegmentsPage(page)).toEqual(page);
+    expect(parseSegmentsPage({ segments: [] })).toBeNull();
   });
 
-  it("builds the backlog URL from the contract query", () => {
-    expect(backlogUrl("https://api.example.test", "s 1", 4)).toBe("https://api.example.test/live/translation/segments?sessionId=s+1&after=4");
+  it("builds the catch-up URL from the contract query", () => {
+    expect(segmentsUrl("https://api.example.test", null)).toBe("https://api.example.test/live/translation/segments?limit=200");
+    expect(segmentsUrl("https://api.example.test", "2026-10-24T09:00:00.000+07:00", 50)).toBe(
+      "https://api.example.test/live/translation/segments?since=2026-10-24T09%3A00%3A00.000%2B07%3A00&limit=50",
+    );
   });
 });
 
@@ -39,6 +44,12 @@ describe("translationView", () => {
     expect(translationView(connecting(0), "unknown")).toBe("connecting");
     expect(translationView(waiting(2), "unknown")).toBe("connecting");
     expect(translationView(waiting(3), "unknown")).toBe("unavailable");
+  });
+
+  it("follows the server state while polling over HTTP (socket refused at capacity)", () => {
+    expect(translationView(waiting(5), "live", true)).toBe("live");
+    expect(translationView(waiting(5), "unavailable", true)).toBe("unavailable");
+    expect(translationView(waiting(1), "unknown", true)).toBe("connecting");
   });
 
   it("says reconnecting after a drop, for a while", () => {

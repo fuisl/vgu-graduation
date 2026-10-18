@@ -5,7 +5,7 @@
  * (node:http plus a minimal server-to-client WebSocket). Never deployed.
  *
  *   node apps/web/scripts/mock-live-api.mjs [--port=4100] [--display=busy|empty|signin]
- *                                         [--translation=live|unavailable|absent] [--fast]
+ *                                         [--translation=live|unavailable|absent|full] [--fast]
  *
  * Then start the web app against it:
  *   API_ORIGIN=http://localhost:4100 PUBLIC_API_ORIGIN=http://localhost:4100 pnpm --filter @grad/web exec next dev -p 3100
@@ -13,8 +13,10 @@
  * Serves GET /event, GET /live/display/feed, GET /live/translation/segments,
  * GET /media/{id}/display (generated SVG), and WS /live/display and
  * /live/translation with the shapes in packages/contract/src/live.ts.
- * `--translation=absent` refuses the socket (route missing, pod gone);
- * `unavailable` connects and says so; `--display=signin` answers 401 like a
+ * `--translation=absent` refuses the socket and the endpoint (API without the
+ * module); `unavailable` connects and says so (pod suspended); `full` answers
+ * the socket with 503 like an API over LIVE_TRANSLATION_MAX_CLIENTS, so the page
+ * falls back to polling; `--display=signin` answers 401 like a
  * kiosk without the invitation cookie. Kill the process to simulate the API
  * going away; restart it to watch clients reconnect and catch up.
  */
@@ -91,8 +93,14 @@ const LINES = [
   ["vi", "Xin cảm ơn các thầy cô đã đồng hành cùng chúng em.", "Thank you to the teachers who walked this road with us.", "Danke an die Lehrkräfte, die diesen Weg mit uns gegangen sind."],
 ];
 const SESSION = "mock-session-1";
-const segments = [];
+const segments = []; // index = sequence
+const changedAt = []; // index = sequence, ms
 let sequence = 0;
+
+function store(segment) {
+  segments[segment.sequence] = segment;
+  changedAt[segment.sequence] = Date.now();
+}
 
 function segmentFor(seq, status) {
   const [source, sourceText, a, b] = LINES[seq % LINES.length];
@@ -110,21 +118,20 @@ function segmentFor(seq, status) {
 }
 
 function speak() {
-  if (TRANSLATION !== "live") return;
+  if (TRANSLATION !== "live" && TRANSLATION !== "full") return;
   const seq = sequence++;
   const draft = segmentFor(seq, "draft");
-  segments[seq] = draft;
-  const message = { type: "segment", segment: draft };
-  broadcast(translationClients, message);
-  broadcast(displayClients, message);
+  store(draft);
+  broadcast(translationClients, { type: "segment", segment: draft, until: now() });
+  broadcast(displayClients, { type: "segment", segment: draft });
   setTimeout(() => {
     const final = segmentFor(seq, "final");
-    segments[seq] = final;
-    broadcast(translationClients, { type: "segment", segment: final });
+    store(final);
+    broadcast(translationClients, { type: "segment", segment: final, until: now() });
     broadcast(displayClients, { type: "segment", segment: final });
   }, 1500 / SPEED);
 }
-if (TRANSLATION === "live") for (let i = 0; i < 6; i += 1) segments[sequence] = segmentFor(sequence++, "final");
+if (TRANSLATION !== "absent") for (let i = 0; i < 6; i += 1) store(segmentFor(sequence++, "final"));
 
 // --- Minimal WebSocket (server to client only) ---------------------------
 
@@ -159,6 +166,7 @@ function upgrade(request, socket) {
     set = displayClients;
   } else if (path === "/live/translation") {
     if (TRANSLATION === "absent") return refuse("404 Not Found");
+    if (TRANSLATION === "full") return refuse("503 Service Unavailable");
     set = translationClients;
   } else return refuse("404 Not Found");
 
@@ -175,7 +183,11 @@ function upgrade(request, socket) {
   };
   socket.on("close", remove);
   socket.on("error", remove);
-  if (set === translationClients) send(socket, { type: "status", state: TRANSLATION === "live" ? "live" : "unavailable" });
+  if (set === translationClients) {
+    // Like the API: status, then the recent segments, then live changes.
+    send(socket, { type: "status", state: TRANSLATION === "live" ? "live" : "unavailable", until: now() });
+    for (const segment of segments.filter(Boolean).slice(-50)) send(socket, { type: "segment", segment, until: now() });
+  }
 }
 
 // --- HTTP ------------------------------------------------------------------
@@ -218,10 +230,18 @@ const server = createServer((request, response) => {
   }
   if (path === "/live/translation/segments") {
     if (TRANSLATION === "absent") return json(response, request, 404, { error: "Not Found", message: "Route not found" });
-    const after = Number(url.searchParams.get("after") ?? -1);
-    const sessionId = url.searchParams.get("sessionId");
-    const list = sessionId === SESSION ? segments.filter((s) => s && s.sequence > after) : [];
-    return json(response, request, 200, { segments: list });
+    const since = url.searchParams.get("since");
+    const limit = Math.min(200, Number(url.searchParams.get("limit") ?? 100));
+    // 5 s look-back like the API, so nothing committed just before `since` is missed.
+    const from = since ? Date.parse(since) - 5_000 : -Infinity;
+    const changed = segments.filter((s) => s && changedAt[s.sequence] > from).sort((a, b) => changedAt[a.sequence] - changedAt[b.sequence]);
+    const page = since ? changed.slice(0, limit) : changed.slice(-limit);
+    return json(response, request, 200, {
+      segments: page,
+      until: now(),
+      more: since ? changed.length > limit : false,
+      state: TRANSLATION === "live" || TRANSLATION === "full" ? "live" : "unavailable",
+    });
   }
   const media = path.match(/^\/media\/([^/]+)\/(display|thumb)$/);
   if (media) {
@@ -253,4 +273,7 @@ setInterval(() => {
   }
   speak();
 }, 3000 / SPEED);
-setInterval(() => broadcast(displayClients, { type: "keepalive", until: now() }), 25_000);
+setInterval(() => {
+  broadcast(displayClients, { type: "keepalive", until: now() });
+  broadcast(translationClients, { type: "keepalive", until: now() });
+}, 25_000);

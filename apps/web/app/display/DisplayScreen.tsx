@@ -335,7 +335,7 @@ export function DisplayScreen({ eventName, eventDate, wishesQrSvg, wishesLink, l
           </button>
           <p className="display-status" data-link={link} role="status">
             <span className="display-status__dot" aria-hidden="true" />
-            {LINK_LABEL[link]}
+            {problem ? "Not signed in" : LINK_LABEL[link]}
           </p>
         </div>
       </header>

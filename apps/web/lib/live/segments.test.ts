@@ -1,6 +1,6 @@
 import type { TranslationSegment, TranslationText } from "@grad/contract";
 import { describe, expect, it } from "vitest";
-import { backfillAfter, captionFor, lastPosition, mergeSegment, mergeSegments, mergeTranslations } from "./segments";
+import { captionFor, mergeSegment, mergeSegments, mergeTranslations } from "./segments";
 
 function seg(sequence: number, translations: TranslationText[] = [], sessionId = "s1"): TranslationSegment {
   return {
@@ -58,32 +58,6 @@ describe("mergeSegment", () => {
     const list = mergeSegments([], Array.from({ length: 50 }, (_, i) => seg(i)), 10);
     expect(list).toHaveLength(10);
     expect(list[0]!.sequence).toBe(40);
-  });
-});
-
-describe("lastPosition", () => {
-  it("is the newest sequence of the newest session", () => {
-    expect(lastPosition([])).toBeNull();
-    expect(lastPosition(mergeSegments([], [seg(3, [], "a"), seg(1, [], "b"), seg(2, [], "b")]))).toEqual({ sessionId: "b", sequence: 2 });
-  });
-});
-
-describe("backfillAfter", () => {
-  it("is null when nothing is missing", () => {
-    expect(backfillAfter([], seg(0))).toBeNull();
-    expect(backfillAfter([seg(0), seg(1)], seg(2))).toBeNull();
-    expect(backfillAfter([seg(0), seg(1)], seg(1))).toBeNull();
-  });
-
-  it("asks for the gap after the newest held sequence", () => {
-    expect(backfillAfter([seg(0), seg(1)], seg(5))).toBe(1);
-  });
-
-  it("fills a bounded window when joining mid-session", () => {
-    expect(backfillAfter([], seg(3))).toBe(-1);
-    expect(backfillAfter([], seg(500), 50)).toBe(449);
-    expect(backfillAfter([seg(10)], seg(500), 50)).toBe(449);
-    expect(backfillAfter([seg(0, [], "old")], seg(4, [], "new"))).toBe(-1);
   });
 });
 

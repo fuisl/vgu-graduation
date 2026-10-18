@@ -5,12 +5,12 @@ Verify public site/invitations, backup, venue internet/local network, media uplo
 
 - **Fallback page.** When the API answers 502–504 or has no ready pod, Traefik serves a static page with the event facts and two QR codes (site, directions); it lives in the deployment repository (`workloads/home/fallback`). Check it the week before: `kubectl -n grad scale deploy/api-service --replicas=0`, open `https://api.grad26.fuisloy.dev/`, scale back to 1. If the date, time or address changed in the admin UI, update the page too.
 - **Translation off switch.** `flux suspend kustomization translation`, then `kubectl -n grad scale deploy/translation --replicas=0` to free the GPU. `flux resume kustomization translation` brings it back. The API stays healthy and shows live captions as unavailable.
-- **Printer.** Venue cluster only (`clusters/venue`, `workloads/venue/printer`). Before doors: a test print from the venue host (`lp -d <queue> test.jpg`), then one queued job end to end. Off switch: `flux suspend kustomization printer` and `kubectl -n print scale deploy/printer --replicas=0`; queued jobs wait in the API. A job reported failed with "Interrupted while sending to the printer" may or may not have printed: check the tray before re-queueing it (`apps/printer/README.md`, Idempotency).
+- **Printer.** Venue cluster only (`clusters/venue`, `workloads/venue/printer`). Before doors: a test print from the venue host (`lp -d <queue> test.jpg`), then one queued job end to end. Off switch: `flux suspend kustomization printer` and `kubectl -n print scale deploy/printer --replicas=0`; queued jobs wait in the API. `/admin/print` shows the queue live and says "Printer offline or queue waiting" when jobs sit queued with nothing printing. A job reported failed with "Interrupted while sending to the printer" may or may not have printed: check the tray before re-queueing it (`apps/printer/README.md`, Idempotency).
 ## Takedown requests
 
 A guest or subject asks an admin to remove a photo or wish. Consent model and retention are decided in `docs/product/principles.md` (§8).
 
-1. Hide the photo/wish immediately from gallery, display feed and wishes list (admin moderation action).
+1. Hide the photo/wish immediately from gallery, display feed and wishes list: `/admin/moderation`, then Hide (or Remove for a takedown request). It works from a phone; the cached gallery and wishes listings are revalidated at once.
 2. Delete the derivative(s) and, once confirmed, the original from Garage.
 3. Delete the same object from the offsite mirror (nhientruong04's server, reached over Tailscale) on its next sync, or manually if urgent.
 4. Confirm removal back to the requester.

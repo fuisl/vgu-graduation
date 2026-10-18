@@ -1,5 +1,7 @@
 import fastifyMultipart from "@fastify/multipart";
 import {
+  adminMediaQuerySchema,
+  adminMediaResponseSchema,
   errorResponseSchema,
   galleryResponseSchema,
   MEDIA_MAX_UPLOAD_BYTES,
@@ -7,6 +9,9 @@ import {
   moderateMediaResponseSchema,
   moderateRequestSchema,
   pageQuerySchema,
+  publicGalleryResponseSchema,
+  setMediaPublicResponseSchema,
+  setPublicRequestSchema,
   uploadMediaResponseSchema,
 } from "@grad/contract";
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
@@ -19,7 +24,18 @@ import { MediaService } from "./media.service.js";
 
 export interface MediaRoutesOptions {
   /** Override for tests; defaults to the database- and Garage-backed service. */
-  service?: Pick<MediaService, "authorizeUpload" | "upload" | "listGallery" | "openDerivative" | "moderate">;
+  service?: Pick<
+    MediaService,
+    | "authorizeUpload"
+    | "upload"
+    | "listGallery"
+    | "listPublicGallery"
+    | "openDerivative"
+    | "moderate"
+    | "setPublic"
+    | "listForAdmin"
+    | "openDerivativeForAdmin"
+  >;
 }
 
 /** Seconds a guest is asked to wait before retrying when Garage is down. */
@@ -187,6 +203,29 @@ export const mediaRoutes: FastifyPluginAsync<MediaRoutesOptions> = async (fastif
   );
 
   /**
+   * GET /gallery/public (#75): the curated public gallery. Only photos a
+   * moderator flagged public, and only while they are visible and ready. Same
+   * caching as /gallery; anonymous pages after the ceremony render from this.
+   */
+  app.get(
+    "/gallery/public",
+    {
+      schema: {
+        querystring: pageQuerySchema,
+        response: {
+          200: publicGalleryResponseSchema,
+          400: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const page = await service.listPublicGallery(request.query);
+      reply.header("Cache-Control", GALLERY_CACHE);
+      return reply.status(200).send(page);
+    },
+  );
+
+  /**
    * GET /media/{publicId}/{variant}: streams one derivative from grad-derivatives.
    * No credential: the random id is the capability, so gallery pages, the event
    * display and the printer can load it. Only visible, ready photos; originals never.
@@ -259,6 +298,102 @@ export const mediaRoutes: FastifyPluginAsync<MediaRoutesOptions> = async (fastif
       if (!result) return reply.status(404).send({ error: "Not Found", message: "Photo not found" });
       request.log.info({ publicId: result.publicId, status: result.status }, "photo moderated");
       return reply.status(200).send(result);
+    },
+  );
+
+  /**
+   * POST /admin/media/{publicId}/public (#75): adds a visible, ready photo to
+   * the curated public gallery, or takes it out. 409 for a photo that can't be
+   * flagged. Audited as `photo.public`.
+   */
+  app.post(
+    "/admin/media/:id/public",
+    {
+      preHandler: requireAdmin,
+      schema: {
+        params: z.object({ id: z.string().min(1) }),
+        body: setPublicRequestSchema,
+        response: {
+          200: setMediaPublicResponseSchema,
+          400: errorResponseSchema,
+          401: errorResponseSchema,
+          403: errorResponseSchema,
+          404: errorResponseSchema,
+          409: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      reply.header("Cache-Control", "no-store");
+      const result = await service.setPublic(request.params.id, request.body.isPublic, request.adminHandle ?? "unknown");
+      switch (result.status) {
+        case "not_found":
+          return reply.status(404).send({ error: "Not Found", message: "Photo not found" });
+        case "not_eligible":
+          return reply.status(409).send({
+            error: "Conflict",
+            message: `Only visible, processed photos can be made public (this one is ${result.moderationStatus})`,
+          });
+        case "ok":
+          request.log.info({ publicId: result.photo.publicId, isPublic: result.photo.isPublic }, "photo public flag set");
+          return reply.status(200).send(result.photo);
+      }
+    },
+  );
+
+  /** GET /admin/media (#64): every photo in any state, for moderation. Filters in `adminMediaQuerySchema`. */
+  app.get(
+    "/admin/media",
+    {
+      preHandler: requireAdmin,
+      schema: {
+        querystring: adminMediaQuerySchema,
+        response: { 200: adminMediaResponseSchema, 400: errorResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema },
+      },
+    },
+    async (request, reply) => {
+      reply.header("Cache-Control", "no-store");
+      return reply.status(200).send(await service.listForAdmin(request.query));
+    },
+  );
+
+  /**
+   * GET /admin/media/{publicId}/{variant}: a derivative in any moderation state,
+   * so moderators can review hidden photos before restoring them. Never cached
+   * and never shared; the public route keeps refusing hidden photos.
+   */
+  app.get(
+    "/admin/media/:id/:variant",
+    {
+      preHandler: requireAdmin,
+      schema: {
+        params: mediaVariantParamsSchema,
+        response: {
+          200: z.unknown(),
+          400: errorResponseSchema,
+          401: errorResponseSchema,
+          403: errorResponseSchema,
+          404: errorResponseSchema,
+          503: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      reply.header("Cache-Control", "no-store");
+      const { id, variant } = request.params;
+      let object;
+      try {
+        object = await service.openDerivativeForAdmin(id, variant);
+      } catch (err) {
+        if (err instanceof StorageUnavailableError) {
+          return storageUnavailable(request, reply, err, "Photos are temporarily unavailable. Please try again in a moment.");
+        }
+        throw err;
+      }
+      if (!object) return reply.status(404).send({ error: "Not Found", message: "Photo not found" });
+      reply.header("Content-Type", "image/jpeg").header("X-Content-Type-Options", "nosniff");
+      if (object.contentLength !== undefined) reply.header("Content-Length", String(object.contentLength));
+      return reply.status(200).send(object.body);
     },
   );
 };

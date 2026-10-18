@@ -1,4 +1,5 @@
 import {
+  adminWishesQuerySchema,
   adminWishesResponseSchema,
   createWishRequestSchema,
   createWishResponseSchema,
@@ -6,6 +7,9 @@ import {
   moderateRequestSchema,
   moderateWishResponseSchema,
   pageQuerySchema,
+  publicWishesResponseSchema,
+  setPublicRequestSchema,
+  setWishPublicResponseSchema,
   wishesResponseSchema,
 } from "@grad/contract";
 import type { FastifyPluginAsync } from "fastify";
@@ -22,10 +26,13 @@ const badCursor = { error: "Bad Request", message: "Invalid cursor" };
 
 export interface WishesRoutesOptions {
   /** Override for tests; defaults to the database-backed service. */
-  service?: Pick<WishesService, "createByToken" | "listVisible" | "listAll" | "moderate">;
+  service?: Pick<WishesService, "createByToken" | "listVisible" | "listPublic" | "listAll" | "moderate" | "setPublic">;
 }
 
-/** Wishes module (#61): guest POST /wishes, public GET /wishes, admin listing and moderation. */
+/**
+ * Wishes module (#61): guest POST /wishes, public GET /wishes and the curated
+ * GET /wishes/public (#75), admin listing, moderation and the public flag.
+ */
 export const wishesRoutes: FastifyPluginAsync<WishesRoutesOptions> = async (fastify, options) => {
   const service = options.service ?? new WishesService();
   const app = fastify.withTypeProvider<ZodTypeProvider>();
@@ -94,13 +101,37 @@ export const wishesRoutes: FastifyPluginAsync<WishesRoutesOptions> = async (fast
     },
   );
 
-  /** GET /admin/wishes: every wish in any state, for moderation. */
+  /**
+   * GET /wishes/public (#75): the curated public wishes, flagged by a moderator
+   * and still visible. Public, cached like GET /wishes.
+   */
+  app.get(
+    "/wishes/public",
+    {
+      schema: {
+        querystring: pageQuerySchema,
+        response: { 200: publicWishesResponseSchema, 400: errorResponseSchema },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const page = await service.listPublic(request.query);
+        reply.header("Cache-Control", PUBLIC_CACHE);
+        return reply.status(200).send(page);
+      } catch (err) {
+        if (err instanceof InvalidCursorError) return reply.status(400).send(badCursor);
+        throw err;
+      }
+    },
+  );
+
+  /** GET /admin/wishes: every wish in any state, for moderation; filter by `status` and `isPublic`. */
   app.get(
     "/admin/wishes",
     {
       preHandler: requireAdmin,
       schema: {
-        querystring: pageQuerySchema,
+        querystring: adminWishesQuerySchema,
         response: { 200: adminWishesResponseSchema, 400: errorResponseSchema, 401: errorResponseSchema },
       },
     },
@@ -138,6 +169,44 @@ export const wishesRoutes: FastifyPluginAsync<WishesRoutesOptions> = async (fast
         return reply.status(404).send({ error: "Not Found", message: "Wish not found" });
       }
       return reply.status(200).send(result.wish);
+    },
+  );
+
+  /**
+   * POST /admin/wishes/{id}/public (#75): adds a visible wish to the curated
+   * public set, or takes it out. 409 for a hidden or removed wish. Audited.
+   */
+  app.post(
+    "/admin/wishes/:id/public",
+    {
+      preHandler: requireAdmin,
+      schema: {
+        params: z.object({ id: z.string().uuid() }),
+        body: setPublicRequestSchema,
+        response: {
+          200: setWishPublicResponseSchema,
+          400: errorResponseSchema,
+          401: errorResponseSchema,
+          403: errorResponseSchema,
+          404: errorResponseSchema,
+          409: errorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      reply.header("Cache-Control", "no-store");
+      const result = await service.setPublic(request.params.id, request.body.isPublic, request.adminHandle ?? "unknown");
+      switch (result.status) {
+        case "not_found":
+          return reply.status(404).send({ error: "Not Found", message: "Wish not found" });
+        case "not_eligible":
+          return reply.status(409).send({
+            error: "Conflict",
+            message: `Only visible wishes can be made public (this one is ${result.moderationStatus})`,
+          });
+        case "ok":
+          return reply.status(200).send(result.wish);
+      }
     },
   );
 };

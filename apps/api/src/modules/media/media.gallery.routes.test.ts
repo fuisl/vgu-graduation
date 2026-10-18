@@ -1,4 +1,10 @@
-import { galleryResponseSchema, type ModerationStatus } from "@grad/contract";
+import {
+  adminMediaResponseSchema,
+  galleryResponseSchema,
+  type ModerationStatus,
+  publicGalleryResponseSchema,
+  setMediaPublicResponseSchema,
+} from "@grad/contract";
 import { SignJWT } from "jose";
 import { describe, expect, it } from "vitest";
 import { loadConfig } from "../../config.js";
@@ -31,6 +37,7 @@ interface FakePhoto {
   publicId: string;
   processing: "pending" | "ready" | "failed";
   moderation: ModerationStatus;
+  isPublic: boolean;
   createdAt: Date;
 }
 
@@ -39,29 +46,67 @@ const JPEG_BYTES = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4]);
 /** Real MediaService over an in-memory photo table (same filters as the repository) and object store. */
 function setup(resolve: (t: string) => ResolveResult = (t) => (t === TOKEN ? { status: "ok", invitation } : { status: "invalid" })) {
   const photos: FakePhoto[] = [];
-  const audits: [string, string, ModerationStatus][] = [];
+  const audits: [string, string, ModerationStatus | boolean][] = [];
   const storage = fakeObjectStore();
-  const listable = () =>
-    photos
-      .filter((p) => p.moderation === "visible" && p.processing === "ready")
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime() || (a.publicId < b.publicId ? 1 : -1));
+  const newestFirst = (a: FakePhoto, b: FakePhoto) =>
+    b.createdAt.getTime() - a.createdAt.getTime() || (a.publicId < b.publicId ? 1 : -1);
+  const listable = () => photos.filter((p) => p.moderation === "visible" && p.processing === "ready").sort(newestFirst);
+  const page = <T extends FakePhoto>(all: T[], limit: number, cursor?: string) => {
+    const start = cursor ? all.findIndex((p) => p.publicId === cursor) + 1 : 0;
+    return all.slice(start, start + limit + 1);
+  };
   const service = new MediaService(
     { resolveByToken: async (t) => resolve(t) },
     {
       countShots: async () => 0,
       createWithJob: async () => ({ status: "roll_finished" }),
-      listGallery: async (limit, cursor) => {
-        const all = listable();
-        const start = cursor ? all.findIndex((p) => p.publicId === cursor) + 1 : 0;
-        return all.slice(start, start + limit + 1).map((p) => ({ publicId: p.publicId, width: 4, height: 3, createdAt: p.createdAt }));
-      },
+      listGallery: async (limit, cursor, options) =>
+        page(listable().filter((p) => !options?.publicOnly || p.isPublic), limit, cursor).map((p) => ({
+          publicId: p.publicId,
+          width: 4,
+          height: 3,
+          createdAt: p.createdAt,
+        })),
+      listForAdmin: async (query) =>
+        page(
+          [...photos]
+            .filter((p) => !query.status || p.moderation === query.status)
+            .filter((p) => !query.processing || p.processing === query.processing)
+            .filter((p) => query.isPublic === undefined || p.isPublic === query.isPublic)
+            .sort(newestFirst),
+          query.limit,
+          query.cursor,
+        ).map((p) => ({
+          publicId: p.publicId,
+          width: 4,
+          height: 3,
+          createdAt: p.createdAt,
+          updatedAt: p.createdAt,
+          status: p.moderation,
+          processingStatus: p.processing,
+          isPublic: p.isPublic,
+          invitationId: invitation.id,
+        })),
       isServable: async (publicId) => listable().some((p) => p.publicId === publicId),
+      isProcessed: async (publicId) => photos.some((p) => p.publicId === publicId && p.processing === "ready"),
       moderate: async (publicId, status, actor) => {
         const photo = photos.find((p) => p.publicId === publicId);
         if (!photo) return null;
+        const changed = photo.moderation !== status;
         photo.moderation = status;
-        audits.push([actor, publicId, status]);
-        return status;
+        if (changed) audits.push([actor, publicId, status]);
+        return { status, isPublic: photo.isPublic, changed };
+      },
+      setPublic: async (publicId, isPublic, actor) => {
+        const photo = photos.find((p) => p.publicId === publicId);
+        if (!photo) return { status: "not_found" };
+        if (photo.isPublic === isPublic) return { status: "ok", moderationStatus: photo.moderation, isPublic, changed: false };
+        if (isPublic && (photo.moderation !== "visible" || photo.processing !== "ready")) {
+          return { status: "not_eligible", moderationStatus: photo.moderation };
+        }
+        photo.isPublic = isPublic;
+        audits.push([actor, publicId, isPublic]);
+        return { status: "ok", moderationStatus: photo.moderation, isPublic, changed: true };
       },
     },
     storage.store,
@@ -73,6 +118,7 @@ function setup(resolve: (t: string) => ResolveResult = (t) => (t === TOKEN ? { s
       publicId: `pub${String(n).padStart(19, "0")}`,
       processing: "ready",
       moderation: "visible",
+      isPublic: false,
       createdAt: new Date(Date.UTC(2026, 10, 15, 3, 0, n)),
       ...overrides,
     };
@@ -222,7 +268,7 @@ describe("POST /admin/media/:id/moderate", () => {
     const hidden = await moderate("hidden");
     expect(hidden.statusCode).toBe(200);
     expect(hidden.headers["cache-control"]).toBe("no-store");
-    expect(hidden.json()).toEqual({ publicId: photo.publicId, status: "hidden" });
+    expect(hidden.json()).toEqual({ publicId: photo.publicId, status: "hidden", isPublic: false, revalidateTags: ["gallery"] });
     expect(await listed()).not.toContain(photo.publicId);
     expect((await app.inject({ method: "GET", url: `/media/${photo.publicId}/thumb` })).statusCode).toBe(404);
 
@@ -247,5 +293,153 @@ describe("POST /admin/media/:id/moderate", () => {
     expect((await app.inject({ method: "POST", url: "/admin/media/nope/moderate", payload: { status: "hidden" }, headers })).statusCode).toBe(404);
     const bad = await app.inject({ method: "POST", url: `/admin/media/${photo.publicId}/moderate`, payload: { status: "approved" }, headers });
     expect(bad.statusCode).toBe(400);
+  });
+
+  it("names the public gallery tag too when a public photo is taken down, and nothing on a no-op", async () => {
+    const { service, add } = setup();
+    const photo = add(1, { isPublic: true });
+    const app = server(service);
+    const headers = { authorization: `Bearer ${await adminToken()}` };
+    const moderate = (status: string) =>
+      app.inject({ method: "POST", url: `/admin/media/${photo.publicId}/moderate`, payload: { status }, headers });
+    expect((await moderate("hidden")).json().revalidateTags).toEqual(["gallery", "gallery-public"]);
+    expect((await moderate("hidden")).json().revalidateTags).toEqual([]);
+  });
+});
+
+describe("GET /gallery/public (curated, #75)", () => {
+  it("never shows unflagged photos to anonymous visitors", async () => {
+    const { service, add } = setup();
+    add(1);
+    add(2, { isPublic: true });
+    add(3);
+    const res = await server(service).inject({ method: "GET", url: "/gallery/public" });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["cache-control"]).toBe("public, s-maxage=60");
+    const body = publicGalleryResponseSchema.parse(res.json());
+    expect(body.items.map((i) => i.publicId)).toEqual(["pub0000000000000000002"]);
+  });
+
+  it("drops a public photo while it is hidden, removed or unprocessed, and brings it back when visible", async () => {
+    const { service, add, photos } = setup();
+    const photo = add(1, { isPublic: true });
+    add(2, { isPublic: true, processing: "pending" });
+    add(3, { isPublic: true, moderation: "removed" });
+    const app = server(service);
+    const listed = async () =>
+      (await app.inject({ method: "GET", url: "/gallery/public" })).json().items.map((i: { publicId: string }) => i.publicId);
+    expect(await listed()).toEqual([photo.publicId]);
+    photos[0]!.moderation = "hidden";
+    expect(await listed()).toEqual([]);
+    photos[0]!.moderation = "visible";
+    expect(await listed()).toEqual([photo.publicId]);
+  });
+
+  it("pages like /gallery and rejects a bad limit", async () => {
+    const { service, add } = setup();
+    for (let n = 1; n <= 3; n++) add(n, { isPublic: true });
+    const app = server(service);
+    const first = (await app.inject({ method: "GET", url: "/gallery/public?limit=2" })).json();
+    expect(first.nextCursor).toBe("pub0000000000000000002");
+    const second = (await app.inject({ method: "GET", url: `/gallery/public?limit=2&cursor=${first.nextCursor}` })).json();
+    expect(second.items.map((i: { publicId: string }) => i.publicId)).toEqual(["pub0000000000000000001"]);
+    expect((await app.inject({ method: "GET", url: "/gallery/public?limit=0" })).statusCode).toBe(400);
+  });
+});
+
+describe("POST /admin/media/:id/public", () => {
+  it("requires an approved admin", async () => {
+    const { service, add } = setup();
+    const photo = add(1);
+    const url = `/admin/media/${photo.publicId}/public`;
+    const app = server(service, fakeAdminAccounts({ tester: "pending" }).store);
+    expect((await app.inject({ method: "POST", url, payload: { isPublic: true } })).statusCode).toBe(401);
+    expect((await app.inject({ method: "POST", url, payload: { isPublic: true }, headers: auth })).statusCode).toBe(401);
+    const res = await app.inject({ method: "POST", url, payload: { isPublic: true }, headers: { authorization: `Bearer ${await adminToken()}` } });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it("flags a visible photo into the public gallery, audits it, and names the tag to revalidate", async () => {
+    const { service, add, audits } = setup();
+    const photo = add(1);
+    const app = server(service);
+    const headers = { authorization: `Bearer ${await adminToken()}` };
+    const set = (isPublic: boolean) =>
+      app.inject({ method: "POST", url: `/admin/media/${photo.publicId}/public`, payload: { isPublic }, headers });
+
+    const on = await set(true);
+    expect(on.statusCode).toBe(200);
+    expect(on.headers["cache-control"]).toBe("no-store");
+    expect(setMediaPublicResponseSchema.parse(on.json())).toEqual({
+      publicId: photo.publicId,
+      status: "visible",
+      isPublic: true,
+      revalidateTags: ["gallery-public"],
+    });
+    expect((await app.inject({ method: "GET", url: "/gallery/public" })).json().items).toHaveLength(1);
+    expect((await set(true)).json().revalidateTags).toEqual([]);
+
+    expect((await set(false)).json()).toMatchObject({ isPublic: false, revalidateTags: ["gallery-public"] });
+    expect((await app.inject({ method: "GET", url: "/gallery/public" })).json().items).toHaveLength(0);
+    expect(audits).toEqual([
+      ["tester", photo.publicId, true],
+      ["tester", photo.publicId, false],
+    ]);
+  });
+
+  it("refuses hidden, removed and unprocessed photos with 409, and unknown ones with 404", async () => {
+    const { service, add } = setup();
+    const app = server(service);
+    const headers = { authorization: `Bearer ${await adminToken()}` };
+    const cases = [{ moderation: "hidden" as const }, { moderation: "removed" as const }, { processing: "pending" as const }];
+    for (const [n, overrides] of cases.entries()) {
+      const photo = add(n + 1, overrides);
+      const res = await app.inject({ method: "POST", url: `/admin/media/${photo.publicId}/public`, payload: { isPublic: true }, headers });
+      expect(res.statusCode).toBe(409);
+    }
+    expect((await app.inject({ method: "POST", url: "/admin/media/nope/public", payload: { isPublic: true }, headers })).statusCode).toBe(404);
+    expect((await app.inject({ method: "POST", url: "/admin/media/nope/public", payload: { isPublic: "yes" }, headers })).statusCode).toBe(400);
+  });
+});
+
+describe("GET /admin/media (moderation queue, #64)", () => {
+  it("lists every state for admins only, with filters", async () => {
+    const { service, add } = setup();
+    add(1);
+    add(2, { moderation: "hidden" });
+    add(3, { moderation: "removed", isPublic: true });
+    add(4, { processing: "pending" });
+    const app = server(service);
+    expect((await app.inject({ method: "GET", url: "/admin/media" })).statusCode).toBe(401);
+    const headers = { authorization: `Bearer ${await adminToken()}` };
+
+    const all = await app.inject({ method: "GET", url: "/admin/media", headers });
+    expect(all.statusCode).toBe(200);
+    expect(all.headers["cache-control"]).toBe("no-store");
+    expect(adminMediaResponseSchema.parse(all.json()).items).toHaveLength(4);
+
+    const hidden = (await app.inject({ method: "GET", url: "/admin/media?status=hidden", headers })).json();
+    expect(hidden.items.map((i: { status: string }) => i.status)).toEqual(["hidden"]);
+    const pending = (await app.inject({ method: "GET", url: "/admin/media?processing=pending", headers })).json();
+    expect(pending.items).toHaveLength(1);
+    const flagged = (await app.inject({ method: "GET", url: "/admin/media?isPublic=true", headers })).json();
+    expect(flagged.items.map((i: { status: string }) => i.status)).toEqual(["removed"]);
+    expect((await app.inject({ method: "GET", url: "/admin/media?status=pending", headers })).statusCode).toBe(400);
+  });
+
+  it("previews a hidden photo for admins while the public route keeps refusing it", async () => {
+    const { service, add } = setup();
+    const photo = add(1, { moderation: "hidden" });
+    const pending = add(2, { processing: "pending" });
+    const app = server(service);
+    const headers = { authorization: `Bearer ${await adminToken()}` };
+    expect((await app.inject({ method: "GET", url: `/media/${photo.publicId}/thumb` })).statusCode).toBe(404);
+    expect((await app.inject({ method: "GET", url: `/admin/media/${photo.publicId}/thumb` })).statusCode).toBe(401);
+    const res = await app.inject({ method: "GET", url: `/admin/media/${photo.publicId}/thumb`, headers });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["content-type"]).toBe("image/jpeg");
+    expect(res.headers["cache-control"]).toBe("no-store");
+    expect(res.rawPayload.equals(JPEG_BYTES)).toBe(true);
+    expect((await app.inject({ method: "GET", url: `/admin/media/${pending.publicId}/thumb`, headers })).statusCode).toBe(404);
   });
 });

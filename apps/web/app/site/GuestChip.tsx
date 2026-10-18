@@ -6,14 +6,14 @@ import {ArrowUpRightPixel} from "@grad/ui";
 import {GuestAvatar} from "../guest-avatar/GuestAvatar";
 import {SignedOutChip} from "./SiteAction";
 
-export type GuestIdentity = {firstName: string; avatarSeed: string};
+export type GuestIdentity = {givenName: string; avatarSeed: string};
 
-/** Presentational signed-in pill. Same height and shape as the on-blue Cta. */
-export function SignedInChip({firstName, avatarSeed}: GuestIdentity) {
+/** Presentational signed-in pill, linking to the guest's profile (#139). Same height and shape as the on-blue Cta. */
+export function SignedInChip({givenName, avatarSeed}: GuestIdentity) {
   return (
-    <Link className="brand-guest-chip" href="/invite">
+    <Link className="brand-guest-chip" href="/me" aria-label={`${givenName}, your profile`}>
       <GuestAvatar seed={avatarSeed} size={28} />
-      <span className="brand-guest-chip__name">{firstName}</span>
+      <span className="brand-guest-chip__name">{givenName}</span>
       <span className="brand-guest-chip__tile"><ArrowUpRightPixel /></span>
     </Link>
   );
@@ -31,9 +31,9 @@ export function GuestChip() {
     const controller = new AbortController();
     fetch("/api/me", {cache: "no-store", credentials: "same-origin", signal: controller.signal})
       .then((r) => (r.ok ? r.json() : null))
-      .then((body: {signedIn?: boolean; firstName?: string; avatarSeed?: string} | null) => {
-        if (body?.signedIn && body.firstName && body.avatarSeed) {
-          setGuest({firstName: body.firstName, avatarSeed: body.avatarSeed});
+      .then((body: {signedIn?: boolean; givenName?: string; avatarSeed?: string} | null) => {
+        if (body?.signedIn && body.givenName && body.avatarSeed) {
+          setGuest({givenName: body.givenName, avatarSeed: body.avatarSeed});
         }
       })
       .catch(() => {});

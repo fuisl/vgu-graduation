@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { putRsvp } from "./rsvp";
+import { getRsvp, putRsvp } from "./rsvp";
 
 const rsvp = {
   id: "3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e6f",
@@ -64,5 +64,61 @@ describe("putRsvp", () => {
   it("returns a network error when fetch throws", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("fetch failed")));
     expect(await putRsvp("tok", request)).toMatchObject({ status: "error", kind: "network" });
+  });
+});
+
+const needs = {
+  wheelchair: true,
+  stepFreeAccess: true,
+  captions: false,
+  seatNearSpeakers: false,
+  largePrint: false,
+  visionAssistance: false,
+  seatNearFront: false,
+  aisleSeat: true,
+  companion: false,
+  note: "Arriving by taxi",
+};
+
+describe("getRsvp", () => {
+  it("sends a no-store GET with the bearer token and returns the RSVP with needs", async () => {
+    const fn = mockFetch({ json: async () => ({ rsvp: { ...rsvp, accessibility: needs } }) });
+    expect(await getRsvp("tok")).toEqual({ status: "ok", data: { ...rsvp, accessibility: needs } });
+    const [url, init] = fn.mock.calls[0]!;
+    expect(url).toMatch(/\/rsvp$/);
+    expect(init).toMatchObject({ cache: "no-store" });
+    expect(init.method).toBeUndefined();
+    expect(init.headers.Authorization).toBe("Bearer tok");
+  });
+
+  it("returns ok with null before the guest responds", async () => {
+    mockFetch({ json: async () => ({ rsvp: null }) });
+    expect(await getRsvp("tok")).toEqual({ status: "ok", data: null });
+  });
+
+  it.each([401, 404])("is empty on %i", async (status) => {
+    mockFetch({ ok: false, status });
+    expect(await getRsvp("tok")).toEqual({ status: "empty" });
+  });
+
+  it.each([410, 500])("returns an http error carrying %i", async (status) => {
+    mockFetch({ ok: false, status });
+    expect(await getRsvp("tok")).toMatchObject({ status: "error", kind: "http", httpStatus: status });
+  });
+
+  it("returns a validation error on an unexpected body or bad JSON", async () => {
+    mockFetch({ json: async () => ({ rsvp: { nonsense: true } }) });
+    expect(await getRsvp("tok")).toMatchObject({ status: "error", kind: "validation" });
+    mockFetch({
+      json: async () => {
+        throw new Error("bad json");
+      },
+    });
+    expect(await getRsvp("tok")).toMatchObject({ status: "error", kind: "validation" });
+  });
+
+  it("returns a network error when fetch throws", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("fetch failed")));
+    expect(await getRsvp("tok")).toMatchObject({ status: "error", kind: "network" });
   });
 });

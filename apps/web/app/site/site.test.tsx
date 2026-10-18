@@ -29,9 +29,9 @@ describe("SiteHeader", () => {
     expect(links).toEqual([["/", "Home"], ["/venue", "Venue"], ["/gallery", "Gallery"], ["/wishes", "Wishes"]]);
   });
 
-  it("defaults the action to the signed-out chip linking to /invite", () => {
+  it("defaults the action to the signed-out chip linking to the guest profile", () => {
     const out = html(<SiteHeader />);
-    expect(out).toContain('href="/invite"');
+    expect(out).toContain('href="/me"');
     expect(out).toContain("Guest portal");
   });
 
@@ -87,6 +87,10 @@ describe("SiteFooter", () => {
   it("links the curated archive from the footer only", () => {
     expect(html(<SiteFooter />)).toContain('<a href="/memories">Memories</a>');
     expect(html(<SiteHeader />)).not.toContain('href="/memories"');
+  });
+
+  it("links the accessibility page (#176)", () => {
+    expect(html(<SiteFooter />)).toMatch(/<a class="brand-footer__about" href="\/accessibility">Accessibility<\/a>/);
   });
 });
 

@@ -1,0 +1,75 @@
+/* Accessibility page (/accessibility, #176). Brand tokens only; no hex, gradients, blur or shadows. */
+[data-theme="brand"] .a11y-main {
+  background: var(--brand-white);
+}
+[data-theme="brand"] .a11y-hero,
+[data-theme="brand"] .a11y-site {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-4);
+}
+[data-theme="brand"] .a11y-title {
+  margin: 0;
+  max-width: 20ch;
+  font-size: var(--brand-text-h1);
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: var(--brand-tracking-display);
+  overflow-wrap: anywhere;
+}
+[data-theme="brand"] .a11y-lead {
+  max-width: var(--brand-measure);
+  margin: 0;
+  font-size: var(--brand-text-lead);
+  line-height: 1.35;
+  color: var(--brand-muted);
+}
+[data-theme="brand"] .a11y-body {
+  display: grid;
+  gap: var(--space-7);
+}
+[data-theme="brand"] .a11y-block {
+  display: grid;
+  gap: var(--space-3);
+}
+[data-theme="brand"] .a11y-block p {
+  max-width: var(--brand-measure);
+  margin: 0;
+}
+[data-theme="brand"] .a11y-heading {
+  margin: 0;
+  font-size: var(--brand-text-h3);
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+[data-theme="brand"] .a11y-list {
+  display: grid;
+  gap: var(--space-3);
+  max-width: var(--brand-measure);
+  margin: 0;
+  padding-left: var(--space-5);
+}
+[data-theme="brand"] .a11y-link {
+  display: inline-block;
+  padding-block: var(--space-2);
+  color: var(--brand-blue);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  overflow-wrap: anywhere;
+}
+[data-theme="brand"] .a11y-link:hover {
+  color: var(--brand-blue-deep);
+}
+[data-theme="brand"] .a11y-link:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 2px;
+}
+[data-theme="brand"] .a11y-actions {
+  margin-top: var(--space-2);
+}
+[data-theme="brand"] .a11y-note {
+  max-width: var(--brand-measure);
+  margin: 0;
+  color: var(--brand-muted);
+}

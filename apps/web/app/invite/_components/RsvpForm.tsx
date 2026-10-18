@@ -4,9 +4,11 @@ import type { Invitation } from "@grad/contract";
 import { Cta } from "@grad/ui";
 import { useState, useTransition, type FormEvent } from "react";
 import { IDLE, RETRY_MESSAGE, type RsvpFormState } from "../../../lib/invite/rsvp-form";
+import type { SavedNeeds } from "../../../lib/invite/accessibility";
+import { AccessibilitySection } from "./AccessibilitySection";
 import { submitRsvp } from "./rsvp-actions";
 
-export function RsvpForm({ invitation }: { invitation: Invitation }) {
+export function RsvpForm({ invitation, savedNeeds }: { invitation: Invitation; savedNeeds: SavedNeeds }) {
   const { rsvp, maxPlusOnes } = invitation;
   const [attending, setAttending] = useState<"yes" | "no" | "">(rsvp ? (rsvp.attending ? "yes" : "no") : "");
   const [plusOnes, setPlusOnes] = useState(String(rsvp?.plusOnesCount ?? 0));
@@ -37,8 +39,8 @@ export function RsvpForm({ invitation }: { invitation: Invitation }) {
       <p>You can change your answer at any time.</p>
 
       <fieldset disabled={pending} className="invite-fieldset">
-        <div role="radiogroup" aria-labelledby="rsvp-attending-label" className="invite-field">
-          <p id="rsvp-attending-label">Will you attend?</p>
+        <fieldset className="invite-field invite-choices">
+          <legend className="invite-choices__legend">Will you attend?</legend>
           <label className="invite-choice">
             <input
               type="radio"
@@ -60,7 +62,7 @@ export function RsvpForm({ invitation }: { invitation: Invitation }) {
             />
             No, I cannot attend
           </label>
-        </div>
+        </fieldset>
 
         {showPlusOnes ? (
           <div className="invite-field">
@@ -94,6 +96,9 @@ export function RsvpForm({ invitation }: { invitation: Invitation }) {
             />
           </div>
         ) : null}
+
+        {/* Not rendered for "No": nothing is submitted, so stored needs stay as they are. */}
+        {attending === "yes" ? <AccessibilitySection saved={savedNeeds} /> : null}
 
         <div className="invite-field">
           <label htmlFor="rsvp-notes">Notes (optional)</label>

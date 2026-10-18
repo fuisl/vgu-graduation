@@ -1,6 +1,43 @@
-import { putRsvpResponseSchema, type PutRsvpRequest, type Rsvp } from "@grad/contract";
+import {
+  getRsvpResponseSchema,
+  putRsvpResponseSchema,
+  type GuestRsvp,
+  type PutRsvpRequest,
+  type Rsvp,
+} from "@grad/contract";
 import { apiFetch } from "./client";
-import { type ApiResult, errorResult, ok } from "./result";
+import { type ApiResult, empty, errorResult, ok } from "./result";
+
+/**
+ * GET /rsvp: the guest's own answer including accessibility needs (#176), or
+ * null before they respond. Sensitive, so never cached (the API sends no-store
+ * too), never logged. 401/404 are `empty` like getInvitation; anything else is
+ * an error the form shows as "couldn't load what you saved".
+ */
+export async function getRsvp(token: string): Promise<ApiResult<GuestRsvp | null>> {
+  let response: Response;
+  try {
+    response = await apiFetch("/rsvp", {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: { mode: "no-store" },
+    });
+  } catch {
+    return errorResult("network", "Could not reach the API");
+  }
+
+  if (response.status === 401 || response.status === 404) return empty();
+  if (!response.ok) return errorResult("http", "The API returned an unexpected error", response.status);
+
+  let body: unknown;
+  try {
+    body = await response.json();
+  } catch {
+    return errorResult("validation", "The API response was not valid JSON");
+  }
+  const parsed = getRsvpResponseSchema.safeParse(body);
+  if (!parsed.success) return errorResult("validation", "The API response did not match the expected shape");
+  return ok(parsed.data.rsvp);
+}
 
 async function errorMessage(response: Response): Promise<string> {
   try {

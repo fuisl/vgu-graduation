@@ -1,5 +1,6 @@
 import type { PutRsvpRequest, Rsvp } from "@grad/contract";
 import type { ApiResult } from "../api/result";
+import { parseAccessibilityFields } from "./accessibility";
 
 export type RsvpFormState =
   | { status: "idle" }
@@ -42,15 +43,18 @@ export function parseRsvpForm(fields: { get(name: string): unknown }, maxPlusOne
   const notes = String(fields.get("notes") ?? "").trim();
   if (notes.length > 1000) return invalid("Notes must be at most 1000 characters.");
 
-  return {
-    ok: true,
-    request: {
-      attending,
-      plusOnesCount,
-      dietaryRequirements: attending ? dietary || null : null,
-      notes: notes || null,
-    },
+  const needs = parseAccessibilityFields(fields);
+  if (!needs.ok) return invalid(needs.message);
+
+  const request: PutRsvpRequest = {
+    attending,
+    plusOnesCount,
+    dietaryRequirements: attending ? dietary || null : null,
+    notes: notes || null,
   };
+  // Omitted (not null) unless the guest changed the section: PUT /rsvp then keeps what is stored.
+  if (needs.accessibility !== undefined) request.accessibility = needs.accessibility;
+  return { ok: true, request };
 }
 
 /** Maps the API result to what the guest sees. Pure. */

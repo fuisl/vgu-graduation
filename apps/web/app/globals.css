@@ -1,2 +1,4 @@
 *{box-sizing:border-box}html{background:var(--bg);color:var(--fg)}body{margin:0;font-family:var(--font-sans);background:var(--bg);color:var(--fg)}a{color:inherit;text-decoration:none}::selection{background:var(--fg);color:var(--bg)}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+/* Text size (#176, lib/a11y/text-size.ts): percentages, so they stack on the browser's own setting. */
+html[data-text-size="large"]{font-size:118.75%}html[data-text-size="largest"]{font-size:137.5%}

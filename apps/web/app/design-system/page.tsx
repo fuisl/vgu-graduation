@@ -275,7 +275,7 @@ export default function DesignSystem() {
           <BrandEyebrow ellipsis>Guest chip</BrandEyebrow>
           <h2 id="ds-chip" className="brand-ds-h2">Two states</h2>
           <p className="brand-ds-note">
-            The header&apos;s right-hand action. Signed in, it shows the guest&apos;s animated blobatar (seeded by guest id, eyes follow the cursor, still under reduced motion) and first name. <code>GuestAvatar</code> is reusable for the profile (#139).
+            The header&apos;s right-hand action. Signed in, it shows the guest&apos;s animated blobatar (seeded by guest id, eyes follow the cursor, still under reduced motion) and given name, and links to their profile (<code>/me</code>, #139). Signed out, it links to the same page, which explains how to open an invitation.
           </p>
           <div className="brand-ds-row">
             <p className="brand-ds-row__label">Signed out</p>
@@ -283,7 +283,7 @@ export default function DesignSystem() {
           </div>
           <div className="brand-ds-row">
             <p className="brand-ds-row__label">Signed in</p>
-            <div className="brand-ds-row__items"><SignedInChip firstName="Linh" avatarSeed="3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e70" /></div>
+            <div className="brand-ds-row__items"><SignedInChip givenName="Linh"avatarSeed="3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e70" /></div>
           </div>
         </Section>
 

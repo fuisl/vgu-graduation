@@ -1,6 +1,7 @@
 import fastifyCookie from "@fastify/cookie";
 import fastifyCors from "@fastify/cors";
 import fastifyWebsocket from "@fastify/websocket";
+import { INGEST_MAX_FRAME_BYTES } from "@grad/contract";
 import Fastify, { type FastifyInstance } from "fastify";
 import { type Config, config as defaultConfig } from "./config.js";
 import {
@@ -55,8 +56,8 @@ export interface BuildServerOptions {
   wishesService?: Pick<WishesService, "createByToken" | "listVisible" | "listAll" | "moderate">;
   /** Override for tests; defaults to the database- and Garage-backed service. */
   mediaService?: MediaRoutesOptions["service"];
-  /** Overrides for tests: the display feed's data source and timings. */
-  live?: Pick<LiveRoutesOptions, "displaySource" | "feed">;
+  /** Overrides for tests: the display feed's data source and timings, and the translation module's. */
+  live?: Pick<LiveRoutesOptions, "displaySource" | "feed" | "translation">;
   /** Log destination; defaults to stdout. Tests pass a stream to inspect output. */
   logStream?: { write(line: string): void };
 }
@@ -105,8 +106,8 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
   app.register(fastifyCookie);
 
   // WebSockets (/live/*). Registered before any route so it can handle upgrades.
-  // Clients only listen, so inbound frames are capped small.
-  app.register(fastifyWebsocket, { options: { maxPayload: 1024 } });
+  // Listeners send nothing; the cap is the largest audio frame on /live/ingest.
+  app.register(fastifyWebsocket, { options: { maxPayload: INGEST_MAX_FRAME_BYTES } });
 
   // Admin approval, read by requireAdmin on every /admin request (#119)
   app.decorate("adminAccounts", options.adminAccounts ?? new AdminAccountsRepository());

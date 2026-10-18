@@ -1,0 +1,39 @@
+meta {
+  name: Ingest Segment
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{apiOrigin}}/internal/translation/segments
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{translationServiceToken}}
+}
+
+body:json {
+  {
+    "sessionId": "local-1",
+    "sequence": 0,
+    "startMs": 0,
+    "endMs": 2400,
+    "sourceLanguage": "en",
+    "sourceText": "Welcome to the graduation ceremony",
+    "translations": [
+      { "language": "vi", "status": "draft", "text": "Chào mừng đến lễ tốt nghiệp", "provider": "mock" },
+      { "language": "de", "status": "failed", "text": null, "provider": "mock" }
+    ]
+  }
+}
+
+docs {
+  What the translation service posts for each segment (service token
+  `translation`, the `translationServiceToken` secret var). Idempotent per
+  (sessionId, sequence, language): re-post with a `final` to upgrade a draft;
+  a final is never revised. Answers the merged segment and whether it
+  changed; a change is broadcast on WS /live/translation and WS /live/display.
+}

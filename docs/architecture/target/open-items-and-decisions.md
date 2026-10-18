@@ -51,3 +51,11 @@ Decided 2026-09-29:
 - The ceremony date and time are still unconfirmed (#83). Everything builds against the placeholder with `timeConfirmed: false` in the event configuration; nothing else may hard-code them.
 - Guest-facing pages use one fixed blue-and-white theme, with no light/dark switch (redesign #142, `docs/design/redesign-2026-10.md`). A light theme (#10) and a more minimal landing layout (#5) are superseded by it.
 - CI: the API image is built and pushed only when something merges to `main`, and pull-request CI runs only the packages a change affects (#103, #104, #105). Local development and the cluster both run Garage v2.4.1 (#49 vendored the chart).
+
+Decided 2026-10-19 (infrastructure for #53, #71, #73, #77):
+
+- Translation and printer images are public on GHCR (`ghcr.io/fuisl/grad-translation`, `ghcr.io/fuisl/grad-printer`), built only on main by `docker-translation.yml` and `docker-printer.yml` with the same `main-<timestamp>-<sha>` tags Flux follows for the API. The repositories are public, so public images leak nothing and need no pull secret.
+- Live translation, including the NVIDIA device plugin, is its own Flux Kustomization `translation`, so a GPU problem can never hold up the core. The ceremony-day switch is suspend plus scale to zero (suspend alone leaves the pod running).
+- The printer runs on the venue cluster only, alone in a `print` namespace. cupsd and the printer driver live on the venue host and the pod mounts only the CUPS socket, instead of a privileged pod with the USB bus. Printing is at most once per job (a local journal), reporting at least once.
+- The archive is exported with `scripts/archive-export.sh` (pg_dump plus both media buckets, checksummed, age-encrypted when it leaves the machine) and verified with `scripts/archive-restore.sh`; at most two exports are kept, and a takedown is followed by a fresh export (`operations/archive.md`).
+- Yearbook v1 is a static HTML export plus a print-ready A4 PDF of the publicly displayed set (visible photos and wishes), built from display derivatives after the ceremony; the generator is not built yet.

@@ -11,6 +11,8 @@
 #   docs=true      files under docs/ changed. apps/docs renders them at build time
 #                  (Markdoc, Mermaid), so its build must run even though turbo sees
 #                  no package change.
+#   translation=true  apps/translation (Python) changed, or a full run: the
+#                  `translation` job installs uv and runs its checks for real.
 set -euo pipefail
 
 base="${1:-}"
@@ -18,6 +20,7 @@ if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ] \
   || ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
   echo "mode=full"
   echo "docs=true"
+  echo "translation=true"
   exit 0
 fi
 
@@ -33,5 +36,11 @@ if echo "$changed" | grep -qE '^docs/'; then
   docs=true
 fi
 
+translation=false
+if [ "$mode" = full ] || echo "$changed" | grep -qE '^apps/translation/'; then
+  translation=true
+fi
+
 echo "mode=$mode"
 echo "docs=$docs"
+echo "translation=$translation"

@@ -68,6 +68,15 @@ The scene renders normally, then passes through a two-stage GPU character render
 
 The route sits on the blue-and-white brand theme (`BrandTheme`, `SiteHeader`, `SiteFooter`, redesign #142): a blue title band, then a white section holding a deep-blue stage and a white controls panel. Its rules live in `apps/web/app/ascii-live/ascii-live.css`, brand tokens only. Choices use the on-white pill look, Start and Stop use `Cta`, and the renderer's `ink` is white (read from `--brand-white`) so the output is white on blue; source-color mode still shows the camera's own colours.
 
+## About page
+
+`/about` (#7) credits the developers. It renders inside `BrandTheme` with `SiteHeader` (no current item) and `SiteFooter`; styles are route-local in `apps/web/app/about/about.css`, brand tokens only. Sections: a blue hero (eyebrow, h1, lead), a white "The team" band with one entry per developer, and a blue "Built in the open" band with the page's single primary `Cta` to the source repository.
+
+- **Content.** GitHub handle (linking to the profile in a new tab), roles and a one-line bio, from `app/about/team.ts`, which follows "Roles and area owners" in `docs/development/workflow.md`. No names, emails or other personal data. Bios are drafts marked `TODO(owner)`.
+- **Portraits.** Each developer gets a `--brand-blue` plate with a small mono `$ cat <handle>.txt` prompt and a 48x29 ASCII portrait in white, drawn from their public GitHub avatar with the sculpture's ramp (space, then `.:-=+*#%@`), so it reads as the same white-on-blue line art as the motif rather than a second one. `apps/web/scripts/ascii-portraits.mjs` generates `app/about/portraits.generated.ts` by hand (the build never fetches avatars). The font size is the plate width over cols x 0.6 (container query units), so a portrait always fits its plate: about 10px at 360px wide, never a horizontal scroll. Plates are `aria-hidden`; the handle beside them names the person.
+- **Motion.** `PortraitReveal` prints each portrait once on scroll-in (`motion.md`); reduced motion and no-JS keep the static server-rendered art. It is the page's only client code.
+- **Navigation.** About is not in the header: the header keeps its four event links (Home, Venue, Gallery, Wishes) so event-critical pages stay one tap away. It is reached from the "Credits" link in the footer's credit line.
+
 ## Reference captures
 
 Captures of the shipped landing live in `docs/design/reference/`: `landing-desktop.png` (1440px wide) and `landing-mobile.png` (390px wide), full page. They are stills of a live, animated page with no event API behind it, so the data sections show their unavailable states; the sculpture is whichever shape was showing when the capture was taken.

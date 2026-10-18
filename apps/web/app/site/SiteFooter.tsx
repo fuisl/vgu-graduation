@@ -19,8 +19,9 @@ export function SiteFooter() {
           </nav>
         </div>
         <div className="brand-footer__row brand-footer__meta">
-          <p className="brand-footer__credit">VGU graduation · Class of 2026</p>
-          {/* TODO(owner): credits link. There is no credits page yet, so this is a plain label. */}
+          <p className="brand-footer__credit">
+            VGU graduation · Class of 2026 · <a className="brand-footer__about" href="/about">Credits</a>
+          </p>
           <p className="brand-footer__label">Grad &apos;26</p>
         </div>
       </Section>

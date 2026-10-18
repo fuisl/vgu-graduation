@@ -1,0 +1,17 @@
+meta {
+  name: List Public Wishes
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{apiOrigin}}/wishes/public?limit=20
+  body: none
+  auth: none
+}
+
+docs {
+  Curated public wishes (#75), no credential: only wishes a moderator
+  flagged public, while visible. Flag with POST /admin/wishes/{id}/public
+  and body `{ "isPublic": true }` (admin session).
+}

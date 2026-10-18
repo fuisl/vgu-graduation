@@ -61,6 +61,7 @@ Configuration is environment-only:
 | `SERVICE_TOKEN_TRANSLATION`, `SERVICE_TOKEN_PRINTER` | SOPS-encrypted Secret `api-service-tokens` |
 | `ADMIN_SESSION_SECRET` | SOPS-encrypted Secret, shared with the web app on Vercel |
 | `LOG_LEVEL` | ConfigMap |
+| `PRINT_GUEST_REQUESTS_ENABLED` | ConfigMap; `true` lets guests queue prints (#72), default off |
 
 ## 4.4 apps/translation (k3s, GPU)
 
@@ -70,7 +71,7 @@ Python service. It exposes one WebSocket ingest endpoint for audio, reachable on
 
 Request and response schemas shared by apps/web and apps/api, written once as runtime validators with inferred TypeScript types. A change to an endpoint fails the web app's typecheck instead of failing at the venue.
 
-Zod schemas live in `packages/contract/src`, one file per module: `invitations`, `rsvp`, `event`, `pass`, `media`, `wishes`, `live` (WebSocket messages), `translation`, `print` and `admin`, plus `common` (errors, timestamps, moderation, pagination). Conventions: JSON fields are camelCase; timestamps are ISO 8601 with offset; photos are addressed only by their random `publicId`; every listing is cursor-paginated (`pageQuerySchema`); every error is `{ error, message }`. Endpoints that don't speak JSON (`POST /media` multipart, `GET /event/calendar.ics`, the `WS /live/ingest` audio stream) are documented next to the schema of their JSON parts and have no schema of their own.
+Zod schemas live in `packages/contract/src`, one file per module: `invitations`, `graduates`, `rsvp`, `event`, `pass`, `media`, `wishes`, `live` (WebSocket messages), `translation`, `print`, `guide` and `admin`, plus `common` (errors, timestamps, moderation, pagination, cache tags) and `names` (the given/family name split, #170). Conventions: JSON fields are camelCase; timestamps are ISO 8601 with offset; photos are addressed only by their random `publicId`; every listing is cursor-paginated (`pageQuerySchema`); every error is `{ error, message }`. Endpoints that don't speak JSON (`POST /media` multipart, `GET /event/calendar.ics`, the `WS /live/ingest` audio stream) are documented next to the schema of their JSON parts and have no schema of their own.
 
 Translation shapes reflect the live-translation intent (#18): speech is `en` or `vi`, captions are `de`, `en` or `vi`, and every translation carries a `draft`, `final` or `failed` status and the `provider` that produced it, so local-GPU and cloud providers stay swappable.
 

@@ -1,0 +1,29 @@
+meta {
+  name: Create Print Job
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{apiOrigin}}/print/jobs
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{adminSessionToken}}
+}
+
+body:json {
+  {
+    "photoPublicId": "{{photoPublicId}}",
+    "copies": 1
+  }
+}
+
+docs {
+  Queues a print of a visible, processed photo (#72). Admin session, or a
+  guest's invitation token when PRINT_GUEST_REQUESTS_ENABLED=true (one copy,
+  three per invitation per hour, then 429).
+}

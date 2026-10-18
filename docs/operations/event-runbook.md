@@ -13,6 +13,10 @@ A guest or subject asks an admin to remove a photo or wish. Consent model and re
 
 No automatic expiry: the archive is otherwise kept for four years from the ceremony date.
 
+## After the ceremony
+
+Accessibility needs (#176) were collected for the day only. Once the event is over, delete them (`DELETE FROM rsvp_accessibility;`, data-model.md) and note it in the team channel. Earlier, on a guest's request, delete just theirs.
+
 ## Incident priority
 1. Guest/event information and pass access.
 2. Venue network/core API.

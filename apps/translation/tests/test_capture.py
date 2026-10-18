@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from pathlib import Path
 
-from grad_translation.capture.client import CaptureConfig, CaptureStreamer, _Frame
+import pytest
+
+from grad_translation.capture.client import CaptureConfig, CaptureStreamer, _Frame, _Reconnect
 from grad_translation.capture.sources import FileSource, _pick_channel
 
 from .helpers import silence, tone, write_wav
@@ -105,3 +108,34 @@ async def test_file_source_converts_wav_to_the_wire_format(tmp_path: Path) -> No
 def test_pick_channel() -> None:
     data = b"\x01\x00\x02\x00" * 3
     assert _pick_channel(data, 2, 1) == b"\x02\x00" * 3
+
+
+class _FakeSocket:
+    def __init__(self) -> None:
+        self.sent: list[bytes | str] = []
+
+    async def send_bytes(self, data: bytes) -> None:
+        self.sent.append(data)
+
+    async def send_str(self, data: str) -> None:
+        self.sent.append(data)
+
+    async def close(self) -> None:
+        return None
+
+
+async def test_no_ack_timeout_while_the_service_is_unavailable() -> None:
+    s = streamer(buffer_seconds=10.0)
+    s.config.ack_timeout_s = 0.05
+    for _ in range(3):
+        s.add_audio(tone(100))
+    mark_sent(s, 3)  # in flight when the service went away
+    s.upstream = False
+    s._last_progress = 0.0
+    sock = _FakeSocket()
+    with pytest.raises(TimeoutError):  # still waiting for the service, not reconnecting
+        await asyncio.wait_for(s._send(sock), 0.3)  # type: ignore[arg-type]
+    assert sock.sent == []
+    s.upstream = True
+    with pytest.raises(_Reconnect):  # the service is back but silent: the socket is dead
+        await asyncio.wait_for(s._send(sock), 0.3)  # type: ignore[arg-type]

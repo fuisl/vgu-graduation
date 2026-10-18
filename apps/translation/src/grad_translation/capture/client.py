@@ -322,7 +322,9 @@ class CaptureStreamer:
         frame_s = 0.1
         stop_sent = False
         while True:
-            if self._inflight and time.monotonic() - self._last_progress > self.config.ack_timeout_s:
+            # Only while the service is said to be there; otherwise silence is expected.
+            stalled = time.monotonic() - self._last_progress > self.config.ack_timeout_s
+            if self.upstream and self._inflight and stalled:
                 raise _Reconnect("no acknowledgement from the service")
             if self.drained:
                 await ws.close()

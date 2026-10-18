@@ -1,0 +1,22 @@
+meta {
+  name: Claim Next Print Job
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{apiOrigin}}/internal/print/jobs/next
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{printerToken}}
+}
+
+docs {
+  What the printer daemon calls (service token SERVICE_TOKEN_PRINTER, as the
+  `printerToken` secret var). Claims the oldest queued job for 5 minutes and
+  returns its `imageUrl`, or `{ "job": null }`. Report before the lease ends
+  or the job is re-queued.
+}

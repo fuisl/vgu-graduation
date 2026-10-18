@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { createGraduateRequestSchema, updateGraduateRequestSchema } from "./graduates.js";
 import {
   createInvitationRequestSchema,
+  guestSchema,
   invitationSchema,
   rotateInvitationResponseSchema,
+  updateInvitationRequestSchema,
 } from "./invitations.js";
 
 describe("createInvitationRequestSchema", () => {
@@ -67,6 +70,39 @@ describe("invitationSchema", () => {
       rsvp: null,
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("given and family names (#170)", () => {
+  const guest = { id: "3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e6f", name: "Nguyễn Văn An", email: null, phone: null };
+
+  it("carries givenName on the guest, while older payloads without it still parse", () => {
+    expect(guestSchema.safeParse({ ...guest, givenName: "An", familyName: "Nguyễn" }).success).toBe(true);
+    expect(guestSchema.safeParse(guest).success).toBe(true);
+    expect(guestSchema.safeParse({ ...guest, givenName: "" }).success).toBe(false);
+  });
+
+  it("accepts optional, trimmed names on create", () => {
+    const parsed = createInvitationRequestSchema.parse({
+      guestName: "Nguyễn Văn An",
+      guestGivenName: " An ",
+      guestFamilyName: null,
+      inviterUserIds: ["3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e6f"],
+    });
+    expect(parsed).toMatchObject({ guestGivenName: "An", guestFamilyName: null });
+  });
+
+  it("updates need at least one field, and may clear nullable ones", () => {
+    expect(updateInvitationRequestSchema.safeParse({}).success).toBe(false);
+    expect(updateInvitationRequestSchema.parse({ guestEmail: null, nameReviewed: true })).toEqual({ guestEmail: null, nameReviewed: true });
+    expect(updateInvitationRequestSchema.safeParse({ guestGivenName: null }).success).toBe(false);
+    expect(updateInvitationRequestSchema.safeParse({ maxPlusOnes: -1 }).success).toBe(false);
+  });
+
+  it("graduates follow the same rules", () => {
+    expect(createGraduateRequestSchema.parse({ name: "Ann Nguyen", email: "ANN@example.com" })).toEqual({ name: "Ann Nguyen", email: "ann@example.com" });
+    expect(updateGraduateRequestSchema.safeParse({}).success).toBe(false);
+    expect(updateGraduateRequestSchema.parse({ familyName: null })).toEqual({ familyName: null });
   });
 });
 

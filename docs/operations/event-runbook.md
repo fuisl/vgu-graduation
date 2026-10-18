@@ -21,6 +21,8 @@ After a takedown, also make a new archive export and delete older exports, which
 
 ## After the ceremony
 
+Accessibility needs (#176) were collected for the day only. Once the event is over, and before the first archive export, delete them (`DELETE FROM rsvp_accessibility;`, data-model.md) and note it in the team channel. Earlier, on a guest's request, delete just theirs.
+
 Once uploads stop: make the first encrypted archive export, copy it offsite and run the restore drill (`operations/archive.md`). Repeat the restore check yearly for the four years and note the date and result here.
 
 ## Incident priority

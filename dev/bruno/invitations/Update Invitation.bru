@@ -1,0 +1,32 @@
+meta {
+  name: Update Invitation
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{apiOrigin}}/admin/invitations/{{invitationId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{adminSessionToken}}
+}
+
+body:json {
+  {
+    "guestGivenName": "An",
+    "guestFamilyName": "Nguyễn"
+  }
+}
+
+docs {
+  Admin (#170). Every field is optional. Sending given/family names stores
+  them as reviewed; sending only `guestName` re-splits it (unreviewed);
+  `{ "nameReviewed": true }` confirms the current split. Lowering
+  `maxPlusOnes` below the RSVP's plus-ones is 409. `adminSessionToken` is an
+  HS256 JWT signed with ADMIN_SESSION_SECRET whose `sub` is an approved
+  GitHub handle (secret var, never committed).
+}

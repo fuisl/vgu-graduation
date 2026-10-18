@@ -3,9 +3,11 @@ import {
   errorResponseSchema,
   graduateSchema,
   graduatesResponseSchema,
+  updateGraduateRequestSchema,
 } from "@grad/contract";
 import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
+import { z } from "zod";
 import { requireAdmin } from "../admin/admin-auth.js";
 import { DuplicateGraduateError } from "./graduates.repository.js";
 import { GraduatesService } from "./graduates.service.js";
@@ -49,6 +51,41 @@ export function graduatesRoutes(
         try {
           const graduate = await service.createGraduate(request.body, request.adminHandle ?? "unknown");
           return reply.status(201).send(graduate);
+        } catch (error) {
+          if (error instanceof DuplicateGraduateError) {
+            return reply
+              .status(409)
+              .send({ error: "Conflict", message: "A graduate with this email already exists" });
+          }
+          throw error;
+        }
+      },
+    );
+
+    /** PATCH /admin/graduates/:id: edits names or email; 404 unknown, 409 email taken. */
+    app.patch(
+      "/admin/graduates/:id",
+      {
+        preHandler: requireAdmin,
+        schema: {
+          params: z.object({ id: z.string().uuid() }),
+          body: updateGraduateRequestSchema,
+          response: {
+            200: graduateSchema,
+            400: errorResponseSchema,
+            401: errorResponseSchema,
+            403: errorResponseSchema,
+            404: errorResponseSchema,
+            409: errorResponseSchema,
+          },
+        },
+      },
+      async (request, reply) => {
+        reply.header("Cache-Control", "no-store");
+        try {
+          const graduate = await service.updateGraduate(request.params.id, request.body, request.adminHandle ?? "unknown");
+          if (!graduate) return reply.status(404).send({ error: "Not Found", message: "Graduate not found" });
+          return reply.status(200).send(graduate);
         } catch (error) {
           if (error instanceof DuplicateGraduateError) {
             return reply

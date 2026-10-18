@@ -106,7 +106,7 @@ describe("media, wishes and moderation", () => {
 
   it("admin wishes carry their moderation state", () => {
     const wish = { id: uuid, authorName: "Jane", body: "Congrats!", createdAt: now };
-    expect(adminWishSchema.safeParse({ ...wish, status: "hidden" }).success).toBe(true);
+    expect(adminWishSchema.safeParse({ ...wish, status: "hidden", isPublic: false }).success).toBe(true);
     expect(adminWishSchema.safeParse(wish).success).toBe(false);
   });
 

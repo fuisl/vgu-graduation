@@ -28,3 +28,43 @@ export type PageQuery = z.infer<typeof pageQuerySchema>;
 export function pageSchema<T extends z.ZodType>(item: T) {
   return z.object({ items: z.array(item), nextCursor: z.string().nullable() });
 }
+
+/**
+ * Next.js cache tags of the public listings the web app fetches (`next.tags`).
+ * Admin moderation and public-flag writes answer with `revalidateTags` naming
+ * the tags they made stale; the admin UI's Server Action calls `revalidateTag`
+ * for each, so a takedown or a curated-gallery change shows without waiting
+ * for the revalidate window. The API itself cannot reach the Vercel cache.
+ */
+export const CACHE_TAGS = {
+  event: "event",
+  /** GET /gallery */
+  gallery: "gallery",
+  /** GET /wishes */
+  wishes: "wishes",
+  /** GET /gallery/public (curated, #75) */
+  publicGallery: "gallery-public",
+  /** GET /wishes/public (curated, #75) */
+  publicWishes: "wishes-public",
+} as const;
+
+export const cacheTagSchema = z.enum([
+  CACHE_TAGS.event,
+  CACHE_TAGS.gallery,
+  CACHE_TAGS.wishes,
+  CACHE_TAGS.publicGallery,
+  CACHE_TAGS.publicWishes,
+]);
+export type CacheTag = z.infer<typeof cacheTagSchema>;
+
+/** Query-string boolean: `true`/`false` (or `1`/`0`). `z.coerce.boolean()` would read "false" as true. */
+export const queryBooleanSchema = z
+  .enum(["true", "false", "1", "0"])
+  .transform((v) => v === "true" || v === "1");
+
+/**
+ * Body of the admin public-flag endpoints (#75), media and wishes. Only a
+ * `visible` item can be made public; un-flagging always works.
+ */
+export const setPublicRequestSchema = z.object({ isPublic: z.boolean() });
+export type SetPublicRequest = z.infer<typeof setPublicRequestSchema>;

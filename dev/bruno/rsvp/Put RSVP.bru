@@ -1,0 +1,35 @@
+meta {
+  name: Put RSVP
+  type: http
+  seq: 1
+}
+
+put {
+  url: {{apiOrigin}}/rsvp
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{invitationToken}}
+}
+
+body:json {
+  {
+    "attending": true,
+    "plusOnesCount": 0,
+    "accessibility": {
+      "stepFreeAccess": true,
+      "aisleSeat": true,
+      "note": "Test note, not real data"
+    }
+  }
+}
+
+docs {
+  Guest RSVP. `accessibility` (#176) is optional: omitted keeps what is
+  stored, `null` clears it, an object replaces it (unset flags are false).
+  Accessibility needs are sensitive: never paste real ones into a shared
+  collection.
+}

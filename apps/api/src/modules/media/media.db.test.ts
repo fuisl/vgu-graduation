@@ -182,7 +182,8 @@ describe("MediaRepository (real Postgres)", () => {
   it("moderates and audits in one step, without PII", async () => {
     const photo = newPhoto();
     await repo.createWithJob(photo, 36);
-    expect(await repo.moderate(photo.publicId, "hidden", "tester")).toBe("hidden");
+    expect(await repo.moderate(photo.publicId, "hidden", "tester")).toEqual({ status: "hidden", isPublic: false, changed: true });
+    expect(await repo.moderate(photo.publicId, "hidden", "tester")).toEqual({ status: "hidden", isPublic: false, changed: false });
     expect(await repo.moderate("missing", "hidden", "tester")).toBeNull();
     const { rows } = await pool!.query("SELECT actor, action, target_type, target_id, metadata FROM audit");
     expect(rows).toEqual([
@@ -195,5 +196,53 @@ describe("MediaRepository (real Postgres)", () => {
       },
     ]);
     expect(await repo.findForDerivation(photo.id)).toMatchObject({ moderationStatus: "hidden" });
+  });
+
+  it("lists only flagged, visible, ready photos in the public gallery; unflagged never appear (#75)", async () => {
+    const [plain, flagged, flaggedHidden, flaggedPending] = [newPhoto(), newPhoto(), newPhoto(), newPhoto()];
+    for (const p of [plain, flagged, flaggedHidden, flaggedPending]) await repo.createWithJob(p, 36);
+    await pool!.query("UPDATE photos SET processing_status = 'ready' WHERE id <> $1", [flaggedPending.id]);
+
+    expect(await repo.setPublic(flagged.publicId, true, "tester")).toMatchObject({ status: "ok", isPublic: true, changed: true });
+    expect(await repo.setPublic(flagged.publicId, true, "tester")).toMatchObject({ status: "ok", changed: false });
+    expect(await repo.setPublic(flaggedHidden.publicId, true, "tester")).toMatchObject({ status: "ok", changed: true });
+    expect(await repo.setPublic(flaggedPending.publicId, true, "tester")).toEqual({ status: "not_eligible", moderationStatus: "visible" });
+    expect(await repo.setPublic("missing", true, "tester")).toEqual({ status: "not_found" });
+    await repo.moderate(flaggedHidden.publicId, "hidden", "tester");
+    expect(await repo.setPublic(flaggedHidden.publicId, true, "tester")).toMatchObject({ status: "ok", changed: false });
+
+    const publicIds = (await repo.listGallery(50, undefined, { publicOnly: true })).map((r) => r.publicId);
+    expect(publicIds).toEqual([flagged.publicId]);
+    expect((await repo.listGallery(50)).map((r) => r.publicId).sort()).toEqual([plain.publicId, flagged.publicId].sort());
+
+    const { rows } = await pool!.query("SELECT action, target_id, metadata FROM audit WHERE action = 'photo.public' ORDER BY id");
+    expect(rows).toEqual([
+      { action: "photo.public", target_id: flagged.id, metadata: { from: false, to: true } },
+      { action: "photo.public", target_id: flaggedHidden.id, metadata: { from: false, to: true } },
+    ]);
+    expect(await repo.setPublic(flagged.publicId, false, "tester")).toMatchObject({ status: "ok", isPublic: false, changed: true });
+    expect(await repo.listGallery(50, undefined, { publicOnly: true })).toEqual([]);
+  });
+
+  it("lists every photo for admins with filters, and previews any processed one", async () => {
+    const [a, b, c] = [newPhoto(), newPhoto(), newPhoto()];
+    for (const p of [a, b, c]) await repo.createWithJob(p, 36);
+    await pool!.query("UPDATE photos SET processing_status = 'ready' WHERE id IN ($1, $2)", [a.id, b.id]);
+    await repo.moderate(b.publicId, "removed", "tester");
+
+    expect(await repo.listForAdmin({ limit: 50 })).toHaveLength(3);
+    expect((await repo.listForAdmin({ limit: 50, status: "removed" })).map((r) => r.publicId)).toEqual([b.publicId]);
+    expect((await repo.listForAdmin({ limit: 50, processing: "pending" })).map((r) => r.publicId)).toEqual([c.publicId]);
+    expect(await repo.listForAdmin({ limit: 50, isPublic: true })).toEqual([]);
+    const page = await repo.listForAdmin({ limit: 1 });
+    expect(page).toHaveLength(2);
+    expect(page[0]).toMatchObject({ invitationId, isPublic: false });
+
+    expect(await repo.isProcessed(b.publicId)).toBe(true);
+    expect(await repo.isServable(b.publicId)).toBe(false);
+    expect(await repo.isProcessed(c.publicId)).toBe(false);
+    expect(await repo.findForPrint(a.publicId)).toEqual({ id: a.id, printable: true });
+    expect(await repo.findForPrint(b.publicId)).toEqual({ id: b.id, printable: false });
+    expect(await repo.findForPrint("missing")).toBeNull();
   });
 });

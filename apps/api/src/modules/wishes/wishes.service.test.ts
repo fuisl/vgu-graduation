@@ -26,6 +26,7 @@ function wish(n: number, moderationStatus: StoredWish["moderationStatus"] = "vis
     authorName: "Jane Guest",
     body: `wish ${n}`,
     moderationStatus,
+    isPublic: false,
     createdAt: new Date(NOW.getTime() - n * 1000),
   };
 }
@@ -36,6 +37,7 @@ function setup(resolved: ResolveResult = okInvitation, recent = 0, rows: StoredW
     countSince: vi.fn(async () => recent),
     list: vi.fn(async () => rows),
     moderate: vi.fn(),
+    setPublic: vi.fn(),
   };
   const service = new WishesService({ resolveByToken: async () => resolved }, repo, () => NOW);
   return { service, repo };

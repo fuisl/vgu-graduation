@@ -1,0 +1,20 @@
+meta {
+  name: Admin Accessibility Needs
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{apiOrigin}}/admin/rsvp/accessibility
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{adminSessionToken}}
+}
+
+docs {
+  Admin only (#176): guests on active invitations who stated a need, plus
+  counts over attending guests for planning the hall. Sensitive.
+}

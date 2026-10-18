@@ -1,5 +1,12 @@
 import { z } from "zod";
-import { moderationStatusSchema, pageSchema, timestampSchema } from "./common.js";
+import {
+  cacheTagSchema,
+  moderationStatusSchema,
+  pageQuerySchema,
+  pageSchema,
+  queryBooleanSchema,
+  timestampSchema,
+} from "./common.js";
 
 /**
  * Photos are addressed everywhere by `publicId`, a random unguessable
@@ -63,9 +70,72 @@ export type GalleryItem = z.infer<typeof galleryItemSchema>;
 export const galleryResponseSchema = pageSchema(galleryItemSchema);
 export type GalleryResponse = z.infer<typeof galleryResponseSchema>;
 
-/** POST /admin/media/{id}/moderate: body is `moderateRequestSchema`; response echoes the new state. */
+/**
+ * POST /admin/media/{id}/moderate: body is `moderateRequestSchema`; response
+ * echoes the new state. `revalidateTags` lists the web cache tags to revalidate
+ * (`CACHE_TAGS.gallery` and `CACHE_TAGS.publicGallery`); empty when nothing changed.
+ */
 export const moderateMediaResponseSchema = z.object({
   publicId: z.string().min(1),
   status: moderationStatusSchema,
+  isPublic: z.boolean(),
+  revalidateTags: z.array(cacheTagSchema),
 });
 export type ModerateMediaResponse = z.infer<typeof moderateMediaResponseSchema>;
+
+/**
+ * GET /gallery/public (#75): the curated public gallery. Only photos that are
+ * `visible`, `ready` and flagged public by a moderator, newest first. No
+ * credential; same item shape, pagination and caching as GET /gallery
+ * (`Cache-Control: public, s-maxage=60`, web tag `CACHE_TAGS.publicGallery`).
+ * Image URLs use the derivative endpoint; originals are never exposed.
+ */
+export const publicGalleryResponseSchema = galleryResponseSchema;
+export type PublicGalleryResponse = z.infer<typeof publicGalleryResponseSchema>;
+
+/**
+ * POST /admin/media/{publicId}/public: body is `setPublicRequestSchema`.
+ * Flagging needs a `visible`, `ready` photo (409 otherwise); un-flagging
+ * always works. Hiding or removing a public photo keeps the flag but drops it
+ * from the public listing until it is visible again.
+ * Audited as `photo.public` when the flag changes.
+ */
+export const setMediaPublicResponseSchema = z.object({
+  publicId: z.string().min(1),
+  status: moderationStatusSchema,
+  isPublic: z.boolean(),
+  revalidateTags: z.array(cacheTagSchema),
+});
+export type SetMediaPublicResponse = z.infer<typeof setMediaPublicResponseSchema>;
+
+export const processingStatusSchema = z.enum(["pending", "ready", "failed"]);
+export type ProcessingStatus = z.infer<typeof processingStatusSchema>;
+
+/**
+ * GET /admin/media: the moderation queue (#64). Every photo in any state,
+ * newest first, filterable. There is no approval step (owner decision
+ * 2026-09-30): `processing=pending` lists uploads still being processed.
+ */
+export const adminMediaQuerySchema = pageQuerySchema.extend({
+  status: moderationStatusSchema.optional(),
+  processing: processingStatusSchema.optional(),
+  isPublic: queryBooleanSchema.optional(),
+});
+export type AdminMediaQuery = z.infer<typeof adminMediaQuerySchema>;
+
+/**
+ * One photo as moderators see it. Thumbnails of hidden or removed photos are
+ * only reachable through GET /admin/media/{publicId}/{variant} (admin session).
+ */
+export const adminMediaItemSchema = galleryItemSchema.extend({
+  status: moderationStatusSchema,
+  processingStatus: processingStatusSchema,
+  isPublic: z.boolean(),
+  /** The uploader's invitation, for takedown requests. */
+  invitationId: z.string().uuid(),
+  updatedAt: timestampSchema,
+});
+export type AdminMediaItem = z.infer<typeof adminMediaItemSchema>;
+
+export const adminMediaResponseSchema = pageSchema(adminMediaItemSchema);
+export type AdminMediaResponse = z.infer<typeof adminMediaResponseSchema>;

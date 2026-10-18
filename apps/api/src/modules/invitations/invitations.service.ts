@@ -5,6 +5,8 @@ import type {
   Invitation,
   RevokeInvitationResponse,
   RotateInvitationResponse,
+  UpdateInvitationRequest,
+  UpdateInvitationResponse,
 } from "@grad/contract";
 import { generateToken, hashToken, safeEqual } from "../../auth/tokens.js";
 import { config } from "../../config.js";
@@ -94,5 +96,17 @@ export class InvitationsService {
 
   async listInvitations(): Promise<AdminInvitationsResponse> {
     return { items: await this.repository.listForAdmin() };
+  }
+
+  /**
+   * PATCH /admin/invitations/{id}; null when the id is unknown. Throws
+   * PlusOnesConflictError when `maxPlusOnes` drops below the RSVP's plus-ones.
+   */
+  async updateInvitation(
+    invitationId: string,
+    dto: UpdateInvitationRequest,
+    actor: string,
+  ): Promise<UpdateInvitationResponse | null> {
+    return this.repository.update(invitationId, dto, actor);
   }
 }

@@ -1,0 +1,22 @@
+meta {
+  name: Admin List Media
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{apiOrigin}}/admin/media?limit=50&status=hidden
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{adminSessionToken}}
+}
+
+docs {
+  Moderation queue (#64): every photo in any state, newest first. Filters:
+  `status` (visible/hidden/removed), `processing` (pending/ready/failed),
+  `isPublic` (true/false). Preview any processed photo, hidden ones too, at
+  GET /admin/media/{publicId}/{thumb|display} with the same header.
+}

@@ -46,4 +46,11 @@ describe("loadConfig", () => {
     const { ADMIN_SESSION_SECRET: _omit, ...env } = productionEnv;
     expect(() => loadConfig(env)).toThrow(/ADMIN_SESSION_SECRET/);
   });
+
+  it("keeps guest print requests off unless explicitly enabled", () => {
+    expect(loadConfig({}).print.guestRequestsEnabled).toBe(false);
+    expect(loadConfig({ PRINT_GUEST_REQUESTS_ENABLED: "false" }).print.guestRequestsEnabled).toBe(false);
+    expect(loadConfig({ PRINT_GUEST_REQUESTS_ENABLED: "true" }).print.guestRequestsEnabled).toBe(true);
+    expect(() => loadConfig({ PRINT_GUEST_REQUESTS_ENABLED: "yes" })).toThrow();
+  });
 });

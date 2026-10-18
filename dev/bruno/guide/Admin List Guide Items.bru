@@ -1,0 +1,21 @@
+meta {
+  name: Admin List Guide Items
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{apiOrigin}}/admin/guide/items
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{adminSessionToken}}
+}
+
+docs {
+  The guide-book catalogue (#140), inactive items included. Create with
+  POST /admin/guide/items, edit with PATCH /admin/guide/items/{id}, delete
+  with DELETE /admin/guide/items/{id}.
+}

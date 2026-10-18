@@ -1,0 +1,17 @@
+meta {
+  name: List Public Gallery
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{apiOrigin}}/gallery/public?limit=20
+  body: none
+  auth: none
+}
+
+docs {
+  Curated public gallery (#75), no credential: only photos a moderator
+  flagged public, and only while visible and processed. Same shape and
+  caching as GET /gallery.
+}

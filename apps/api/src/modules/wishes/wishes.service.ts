@@ -1,14 +1,19 @@
-import type {
-  AdminWishesResponse,
-  CreateWishRequest,
-  ModerateWishResponse,
-  ModerationStatus,
-  PageQuery,
-  Wish,
-  WishesResponse,
+import {
+  type AdminWishesQuery,
+  type AdminWishesResponse,
+  CACHE_TAGS,
+  type CacheTag,
+  type CreateWishRequest,
+  type ModerateWishResponse,
+  type ModerationStatus,
+  type PageQuery,
+  type PublicWishesResponse,
+  type SetWishPublicResponse,
+  type Wish,
+  type WishesResponse,
 } from "@grad/contract";
 import { InvitationsService } from "../invitations/invitations.service.js";
-import { WishesRepository, type StoredWish } from "./wishes.repository.js";
+import { type ListWishesOptions, WishesRepository, type StoredWish } from "./wishes.repository.js";
 
 /**
  * Per-invitation write cap on POST /wishes, on top of Traefik's per-IP limit:
@@ -25,6 +30,11 @@ export type CreateWishResult =
   | { status: "rate_limited"; retryAfterSeconds: number };
 
 export type ModerateWishResult = { status: "ok"; wish: ModerateWishResponse } | { status: "not_found" };
+
+export type SetWishPublicResult =
+  | { status: "ok"; wish: SetWishPublicResponse }
+  | { status: "not_eligible"; moderationStatus: ModerationStatus }
+  | { status: "not_found" };
 
 /** Thrown for a cursor that did not come from `nextCursor`; the route answers 400. */
 export class InvalidCursorError extends Error {
@@ -56,7 +66,7 @@ export function toWish(stored: StoredWish): Wish {
   };
 }
 
-type Repository = Pick<WishesRepository, "create" | "countSince" | "list" | "moderate">;
+type Repository = Pick<WishesRepository, "create" | "countSince" | "list" | "moderate" | "setPublic">;
 
 export class WishesService {
   constructor(
@@ -86,28 +96,59 @@ export class WishesService {
 
   /** GET /wishes: visible wishes only, newest first. */
   async listVisible(query: PageQuery): Promise<WishesResponse> {
-    const page = await this.page(query, true);
+    const page = await this.page(query, { visibleOnly: true });
     return { items: page.items.map(toWish), nextCursor: page.nextCursor };
   }
 
-  /** GET /admin/wishes: every state, so hidden wishes can be found and restored. */
-  async listAll(query: PageQuery): Promise<AdminWishesResponse> {
-    const page = await this.page(query, false);
+  /** GET /wishes/public (#75): visible wishes a moderator flagged public, newest first. */
+  async listPublic(query: PageQuery): Promise<PublicWishesResponse> {
+    const page = await this.page(query, { visibleOnly: true, publicOnly: true });
+    return { items: page.items.map(toWish), nextCursor: page.nextCursor };
+  }
+
+  /** GET /admin/wishes: every state, so hidden wishes can be found and restored; optional filters (#64). */
+  async listAll(query: AdminWishesQuery): Promise<AdminWishesResponse> {
+    const page = await this.page(query, { visibleOnly: false, status: query.status, isPublic: query.isPublic });
     return {
-      items: page.items.map((w) => ({ ...toWish(w), status: w.moderationStatus })),
+      items: page.items.map((w) => ({ ...toWish(w), status: w.moderationStatus, isPublic: w.isPublic })),
       nextCursor: page.nextCursor,
     };
   }
 
+  /**
+   * Shows, hides or removes a wish. `revalidateTags` names the listings that
+   * changed: wishes, and the public set too when the wish is flagged public.
+   */
   async moderate(id: string, status: ModerationStatus, actor: string): Promise<ModerateWishResult> {
     const result = await this.repository.moderate(id, status, actor);
     if (result.status === "not_found") return result;
-    return { status: "ok", wish: { id: result.wish.id, status: result.wish.moderationStatus } };
+    const { wish, changed } = result;
+    const revalidateTags: CacheTag[] = changed
+      ? [CACHE_TAGS.wishes, ...(wish.isPublic ? [CACHE_TAGS.publicWishes] : [])]
+      : [];
+    return { status: "ok", wish: { id: wish.id, status: wish.moderationStatus, isPublic: wish.isPublic, revalidateTags } };
   }
 
-  private async page(query: PageQuery, visibleOnly: boolean) {
+  /** POST /admin/wishes/{id}/public (#75). */
+  async setPublic(id: string, isPublic: boolean, actor: string): Promise<SetWishPublicResult> {
+    const result = await this.repository.setPublic(id, isPublic, actor);
+    if (result.status === "not_found") return result;
+    if (result.status === "not_eligible") return { status: "not_eligible", moderationStatus: result.wish.moderationStatus };
+    const { wish, changed } = result;
+    return {
+      status: "ok",
+      wish: {
+        id: wish.id,
+        status: wish.moderationStatus,
+        isPublic: wish.isPublic,
+        revalidateTags: changed ? [CACHE_TAGS.publicWishes] : [],
+      },
+    };
+  }
+
+  private async page(query: PageQuery, filters: Omit<ListWishesOptions, "limit" | "afterId">) {
     const afterId = query.cursor === undefined ? undefined : decodeCursor(query.cursor);
-    const rows = await this.repository.list({ limit: query.limit, afterId, visibleOnly });
+    const rows = await this.repository.list({ limit: query.limit, afterId, ...filters });
     const items = rows.slice(0, query.limit);
     const last = items.at(-1);
     const nextCursor = rows.length > query.limit && last ? encodeCursor(last.id) : null;

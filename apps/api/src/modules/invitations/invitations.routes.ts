@@ -6,13 +6,15 @@ import {
   invitationSchema,
   revokeInvitationResponseSchema,
   rotateInvitationResponseSchema,
+  updateInvitationRequestSchema,
+  updateInvitationResponseSchema,
 } from "@grad/contract";
 import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { invitationToken } from "../../auth/credentials.js";
 import { requireAdmin } from "../admin/admin-auth.js";
-import { UnknownInviterError } from "./invitations.repository.js";
+import { PlusOnesConflictError, UnknownInviterError } from "./invitations.repository.js";
 import { InvitationsService } from "./invitations.service.js";
 
 export function invitationsRoutes(
@@ -127,6 +129,45 @@ export function invitationsRoutes(
         const result = await service.listInvitations();
         reply.header("Cache-Control", "no-store");
         return reply.status(200).send(result);
+      },
+    );
+
+    /**
+     * PATCH /admin/invitations/:id: edits the guest (names, contact) and maxPlusOnes.
+     * Contains guest PII, so never cached; the audit row names the changed fields only.
+     */
+    app.patch(
+      "/admin/invitations/:id",
+      {
+        preHandler: requireAdmin,
+        schema: {
+          params: z.object({ id: z.string().uuid() }),
+          body: updateInvitationRequestSchema,
+          response: {
+            200: updateInvitationResponseSchema,
+            400: errorResponseSchema,
+            401: errorResponseSchema,
+            403: errorResponseSchema,
+            404: errorResponseSchema,
+            409: errorResponseSchema,
+          },
+        },
+      },
+      async (request, reply) => {
+        reply.header("Cache-Control", "no-store");
+        try {
+          const row = await service.updateInvitation(request.params.id, request.body, request.adminHandle ?? "unknown");
+          if (!row) return reply.status(404).send({ error: "Not Found", message: "Invitation not found" });
+          return reply.status(200).send(row);
+        } catch (error) {
+          if (error instanceof PlusOnesConflictError) {
+            return reply.status(409).send({
+              error: "Conflict",
+              message: `The guest already confirmed ${error.plusOnesCount} plus-ones`,
+            });
+          }
+          throw error;
+        }
       },
     );
 

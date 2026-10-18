@@ -4,7 +4,7 @@
 
 Unchanged in role. It gains:
 
-- Guest routes: `/invite/[token]` performs the cookie exchange and redirects to `/invite`; `/invite`, `/rsvp`, `/pass`, `/gallery`, `/wishes`, `/live`, `/display` render from API data.
+- Guest routes: `/invite/[token]` performs the cookie exchange and redirects to `/invite`; `/invite`, `/rsvp`, `/pass`, `/gallery`, `/wishes`, `/memories`, `/memories/timeline`, `/live`, `/display` render from API data.
 - Admin routes under `/admin`, protected by an application session. Admins sign in with GitHub; a first sign-in files a pending request that an owner approves on `/admin/admins` (#119). The API checks approval in `admin_accounts` on every `/admin` request, so a revoke applies immediately. Owners are fixed in `apps/api/src/modules/admin/owners.ts`.
 - A thin BFF layer: route handlers and server actions that call the API with the forwarded invitation credential, use `fetch` caching with revalidation on reads, and map API failures to explicit page states. No domain logic lives here.
 - Function region pinned to Singapore (`sin1`) so the hop to a homelab in Ho Chi Minh City stays short.
@@ -17,6 +17,7 @@ Caching policy for the Vercel layer:
 | Invitation and RSVP state | Revalidate every 60 seconds, tagged per invitation | Stale pass beats no pass; RSVP write revalidates the tag |
 | Gallery listing | Revalidate every 60 seconds | Moderator changes appear within a minute |
 | Wishes | Revalidate every 30 seconds | Same |
+| Curated gallery and wishes (`/memories`, #75) | Same cadences, tags `gallery-public` and `wishes-public` | Static pages; admin public-flag and moderation writes revalidate the tags |
 | Admin views | No cache | Must be current |
 
 ## 4.2 apps/docs (Vercel)

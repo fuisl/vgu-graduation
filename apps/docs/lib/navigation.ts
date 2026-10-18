@@ -45,6 +45,7 @@ export const navGroups: readonly NavGroup[] = [
           ["design/motion", "Motion"],
           ["design/figures", "Illustrative figures"],
           ["design/live-surfaces", "Event display and captions"],
+          ["design/memories-archive", "Curated archive and timeline"],
         ],
       },
       {

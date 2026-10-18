@@ -66,3 +66,9 @@ Decided 2026-10-19 (#66, #70; details in `docs/design/live-surfaces.md`):
 - `/live` is not in the header navigation, which keeps its four links; it is linked from the invitation's event details and from the display's caption band. It has no footer.
 - Phones subscribe to every caption language and switch locally; after a reconnect they catch up by `since`, and they poll the segments endpoint when the socket is refused at the connection cap.
 - The display's caption line defaults to the other hall language (Vietnamese while English is spoken and vice versa), configurable with `?captions=`.
+
+Decided 2026-10-19 (#74, #75, #76; details in `docs/design/memories-archive.md`):
+
+- The event gallery `/gallery` stays open to everyone and unchanged. The curated public view is a separate archive at `/memories`, with the cohort timeline at `/memories/timeline`. Both read only the curated listings (`GET /gallery/public`, `GET /wishes/public`) and are static Vercel pages tagged `gallery-public` and `wishes-public`, so admin revalidation reaches them. The header keeps its four links; `/memories` is linked from the footer, the landing and `/gallery`.
+- Timeline chapters come from the event configuration (Arrival, Ceremony, Celebration, plus the days before and after), falling back to days or hours when it is unavailable. The new layout pieces (rail, photo bursts, chapter index) await owner review.
+- Guest print requests show in the gallery's photo dialog only when the web app's server-side `PRINT_GUEST_REQUESTS_ENABLED=true` mirrors the API flag. They go through the BFF (`/api/print`), so the invitation cookie stays HttpOnly.

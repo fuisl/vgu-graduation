@@ -25,6 +25,12 @@ const envSchema = z.object({
   /** Cap for the exponential backoff after errors. */
   BACKOFF_MAX_MS: z.coerce.number().int().positive().default(60_000),
   REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
+  /**
+   * A claimed job is only sent to the printer while at least this much of its
+   * lease (PRINT_LEASE_SECONDS, 5 min) is left; covers clock skew between the
+   * venue host and the API, and the report's round trip.
+   */
+  LEASE_MARGIN_MS: z.coerce.number().int().min(0).default(30_000),
   /** Settled journal entries older than this are deleted (they only guard against re-delivery). */
   JOURNAL_RETENTION_HOURS: z.coerce.number().positive().default(72),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
@@ -51,6 +57,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     pollIntervalMs: parsed.POLL_INTERVAL_MS,
     backoffMaxMs: parsed.BACKOFF_MAX_MS,
     requestTimeoutMs: parsed.REQUEST_TIMEOUT_MS,
+    leaseMarginMs: parsed.LEASE_MARGIN_MS,
     journalRetentionMs: parsed.JOURNAL_RETENTION_HOURS * 3_600_000,
     logLevel: parsed.LOG_LEVEL,
   };

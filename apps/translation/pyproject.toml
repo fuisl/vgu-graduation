@@ -1,0 +1,64 @@
+[project]
+name = "grad-translation"
+version = "0.1.0"
+description = "GRAD '26 live translation: venue audio in, captioned segments out to apps/api (experimental, #18)."
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+# The core install is the service and the mock providers only: fast to install,
+# no GPU, no model weights. Real models come from the `gpu` extra.
+dependencies = ["aiohttp>=3.10,<4"]
+
+[project.optional-dependencies]
+# Local GPU providers (faster-whisper ASR, NLLB-200 via CTranslate2). Installed
+# in the CUDA image; never needed for tests or the mock.
+gpu = [
+  "faster-whisper>=1.1,<2",
+  "ctranslate2>=4.5,<5",
+  "transformers>=4.44,<5",
+  "sentencepiece>=0.2,<0.3",
+]
+# Venue capture client on the AV laptop (live input). File mode needs nothing extra.
+capture = ["sounddevice>=0.5,<0.6"]
+
+[project.scripts]
+grad-translation = "grad_translation.__main__:main"
+grad-capture = "grad_translation.capture.__main__:main"
+
+[dependency-groups]
+dev = [
+  "mypy>=1.11",
+  "pytest>=8.3",
+  "pytest-asyncio>=0.24",
+  "ruff>=0.6",
+]
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/grad_translation"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "ASYNC", "RUF", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-q"
+
+[tool.mypy]
+python_version = "3.12"
+files = ["src", "tests"]
+strict = true
+
+[[tool.mypy.overrides]]
+# Heavy or native optional dependencies without type information.
+module = ["faster_whisper.*", "ctranslate2.*", "transformers.*", "sounddevice.*", "numpy.*"]
+ignore_missing_imports = true

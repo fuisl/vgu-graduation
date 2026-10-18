@@ -177,6 +177,8 @@ importers:
         specifier: ^3.2.4
         version: 3.2.7(@types/node@22.20.4)(tsx@4.23.15)(yaml@2.9.1)
 
+  apps/translation: {}
+
   apps/web:
     dependencies:
       '@blobatar/react':

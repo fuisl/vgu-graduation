@@ -3,28 +3,52 @@ import {
   adminAccountSchema,
   adminAccountsResponseSchema,
   adminInvitationsResponseSchema,
+  adminMediaResponseSchema,
+  adminPrintJobsResponseSchema,
   adminRsvpListResponseSchema,
+  adminWishesResponseSchema,
+  createPrintJobResponseSchema,
   createInvitationResponseSchema,
   errorResponseSchema,
   eventSchema,
   graduateSchema,
   graduatesResponseSchema,
+  moderateMediaResponseSchema,
+  moderateWishResponseSchema,
+  retryPrintJobResponseSchema,
   revokeInvitationResponseSchema,
   rotateInvitationResponseSchema,
+  setMediaPublicResponseSchema,
+  setWishPublicResponseSchema,
   type AdminAccess,
   type AdminAccount,
   type AdminAccountDecision,
   type AdminAccountsResponse,
   type AdminInvitationsResponse,
+  type AdminMediaQuery,
+  type AdminMediaResponse,
+  type AdminPrintJobsQuery,
+  type AdminPrintJobsResponse,
   type AdminRsvpListResponse,
+  type AdminWishesQuery,
+  type AdminWishesResponse,
   type CreateGraduateRequest,
   type CreateInvitationRequest,
   type CreateInvitationResponse,
+  type CreatePrintJobRequest,
+  type CreatePrintJobResponse,
   type EventConfig,
   type Graduate,
   type GraduatesResponse,
+  type MediaVariant,
+  type ModerateMediaResponse,
+  type ModerateWishResponse,
+  type ModerationStatus,
+  type RetryPrintJobResponse,
   type RevokeInvitationResponse,
   type RotateInvitationResponse,
+  type SetMediaPublicResponse,
+  type SetWishPublicResponse,
   type UpdateEventRequest,
 } from "@grad/contract";
 import { apiFetch } from "./client";
@@ -181,5 +205,96 @@ export function decideAdminAccount(
   return adminRequest(token, `/admin/accounts/${encodeURIComponent(handle)}/${decision}`, {
     method: "POST",
     schema: adminAccountSchema,
+  });
+}
+
+type QueryValue = string | number | boolean | undefined;
+
+/** `?a=1&b=x` from the defined values only; "" when there are none. Values are API filters and opaque cursors, never credentials. */
+export function queryString(query: Record<string, QueryValue>): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined) params.set(key, String(value));
+  }
+  const encoded = params.toString();
+  return encoded ? `?${encoded}` : "";
+}
+
+/** GET /admin/media (#64): every photo in any state, newest first; filters `status`, `processing`, `isPublic`. */
+export function listAdminMedia(token: string, query: Partial<AdminMediaQuery> = {}): Promise<ApiResult<AdminMediaResponse>> {
+  return adminRequest(token, `/admin/media${queryString(query)}`, { schema: adminMediaResponseSchema });
+}
+
+/** GET /admin/wishes (#64): every wish in any state, newest first; filters `status`, `isPublic`. */
+export function listAdminWishes(
+  token: string,
+  query: Partial<AdminWishesQuery> = {}
+): Promise<ApiResult<AdminWishesResponse>> {
+  return adminRequest(token, `/admin/wishes${queryString(query)}`, { schema: adminWishesResponseSchema });
+}
+
+/** POST /admin/media/:publicId/moderate: show, hide or remove. Audited by the API; `revalidateTags` names the stale listings. */
+export function moderateMedia(
+  token: string,
+  publicId: string,
+  status: ModerationStatus
+): Promise<ApiResult<ModerateMediaResponse>> {
+  return adminRequest(token, `/admin/media/${encodeURIComponent(publicId)}/moderate`, {
+    method: "POST",
+    body: { status },
+    schema: moderateMediaResponseSchema,
+  });
+}
+
+/** POST /admin/wishes/:id/moderate: show, hide or remove. Audited by the API. */
+export function moderateWish(token: string, id: string, status: ModerationStatus): Promise<ApiResult<ModerateWishResponse>> {
+  return adminRequest(token, `/admin/wishes/${encodeURIComponent(id)}/moderate`, {
+    method: "POST",
+    body: { status },
+    schema: moderateWishResponseSchema,
+  });
+}
+
+/** POST /admin/media/:publicId/public (#75): 409 unless the photo is visible and processed (un-flagging always works). */
+export function setMediaPublic(token: string, publicId: string, isPublic: boolean): Promise<ApiResult<SetMediaPublicResponse>> {
+  return adminRequest(token, `/admin/media/${encodeURIComponent(publicId)}/public`, {
+    method: "POST",
+    body: { isPublic },
+    schema: setMediaPublicResponseSchema,
+  });
+}
+
+/** POST /admin/wishes/:id/public (#75): 409 unless the wish is visible (un-flagging always works). */
+export function setWishPublic(token: string, id: string, isPublic: boolean): Promise<ApiResult<SetWishPublicResponse>> {
+  return adminRequest(token, `/admin/wishes/${encodeURIComponent(id)}/public`, {
+    method: "POST",
+    body: { isPublic },
+    schema: setWishPublicResponseSchema,
+  });
+}
+
+/** Path of the admin-only derivative preview (any moderation state, never cached). Proxied by app/admin/preview. */
+export function adminMediaVariantPath(publicId: string, variant: MediaVariant): string {
+  return `/admin/media/${encodeURIComponent(publicId)}/${variant}`;
+}
+
+/** POST /print/jobs with the admin session (#72): 1 to 5 copies of a visible, processed photo; 409 otherwise. */
+export function createPrintJob(token: string, input: CreatePrintJobRequest): Promise<ApiResult<CreatePrintJobResponse>> {
+  return adminRequest(token, "/print/jobs", { method: "POST", body: input, schema: createPrintJobResponseSchema });
+}
+
+/** GET /admin/print/jobs: newest first, with counts by status over the whole queue. */
+export function listPrintJobs(
+  token: string,
+  query: Partial<AdminPrintJobsQuery> = {}
+): Promise<ApiResult<AdminPrintJobsResponse>> {
+  return adminRequest(token, `/admin/print/jobs${queryString(query)}`, { schema: adminPrintJobsResponseSchema });
+}
+
+/** POST /admin/print/jobs/:id/retry: re-queues a failed job (409 otherwise). Audited. */
+export function retryPrintJob(token: string, id: string): Promise<ApiResult<RetryPrintJobResponse>> {
+  return adminRequest(token, `/admin/print/jobs/${encodeURIComponent(id)}/retry`, {
+    method: "POST",
+    schema: retryPrintJobResponseSchema,
   });
 }

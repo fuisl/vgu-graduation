@@ -43,8 +43,8 @@ Vercel-served hostnames are unaffected by ADR-009: Vercel still terminates its o
 | Service | DNS name | Port | Clients |
 | --- | --- | --- | --- |
 | Traefik | `traefik.kube-system.svc.cluster.local` | 80, 443 | the router's port forward, LAN |
-| api | `api.grad.svc.cluster.local` | 80 to 3000 | Traefik, translation, printer |
-| translation | `translation.grad.svc.cluster.local` | 80 to 8000 | api, as audio proxy |
+| api | `api-service.grad.svc.cluster.local` | 4000 | Traefik, translation, printer |
+| translation | `translation.grad.svc.cluster.local` | 8000 (`/ingest` WebSocket) | api, as audio proxy |
 | Postgres primary | `grad-db-rw.grad.svc.cluster.local` | 5432 | api, worker |
 | Garage S3 | `garage.garage.svc.cluster.local` | 3900 | api, worker, CNPG backup, rclone |
 | Garage admin | `garage.garage.svc.cluster.local` | 3903 | ops hostname only |
@@ -98,3 +98,10 @@ Path B, photo upload:
 17. Offsite mirror configured; first sync completes; a restore of one file verified.
 18. Restore drill: Postgres restored into a scratch cluster from Garage.
 19. Power-loss drill: node recovers unattended, the router's port forward survives a reboot, and the Dynamic DNS record is still correct afterward.
+
+Added 2026-10-19 for the fallback page, translation and printer (#53, #71, #73) and the archive (#77). Each is written up in the infrastructure repository's README.
+
+20. Fallback page: `kubectl -n grad scale deploy/api-service --replicas=0`; `https://api.grad26.fuisloy.dev/` returns 503 with the GRAD '26 fallback page (event facts and both QR codes scan); scale back to 1 and the API answers again. Its date, time and address match the admin event settings.
+21. Translation: the GPU node is labelled `nvidia.com/gpu.present=true` and advertises `nvidia.com/gpu: 1`; the `translation` Kustomization is Ready and the pod runs with its model cache filled. `flux suspend kustomization translation` plus `kubectl -n grad scale deploy/translation --replicas=0` leaves `workloads-home` and every other Kustomization Ready and `/healthz` OK, and the live caption page says captions are unavailable; `flux resume kustomization translation` brings the pod back. `kubectl -n grad get ingress` shows no Ingress for translation.
+22. Printer (venue cluster): the venue node is labelled `grad.vgu/venue=true`; cupsd on the host prints a test page; the `printer-token` Secret is SOPS-encrypted and listed; the venue cluster is bootstrapped from `clusters/venue` and the `printer` Kustomization is Ready; one job prints end to end in `PRINT_MODE=dry-run` and then for real; on the home cluster `kubectl get deploy -A` lists no printer.
+23. Archive: `scripts/archive-drill.sh` passes on a workstation, and an age-encrypted export of the cluster (`operations/archive.md` §3) restores on a spare machine.

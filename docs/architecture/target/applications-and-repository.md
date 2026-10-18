@@ -68,6 +68,10 @@ Configuration is environment-only:
 
 Python service. It exposes one WebSocket ingest endpoint for audio, reachable only from the API over the cluster network, and pushes finished segments to the API with its service token. It has no Ingress and no public hostname. It never touches the database or storage and can be absent without the API noticing. A small capture client running on the AV laptop at the mixer connects to `WS /live/ingest` on the API with a service token, and the API proxies the audio to the translation service (decided 2026-09-27). The audio is raw PCM, 16 kHz mono s16le, in binary WebSocket frames, with optional JSON control messages; the full protocol is in `packages/contract/src/translation.ts` and `use-cases.md` §6.2. Where the GPU machine physically sits on ceremony day is an open item (section 11).
 
+## 4.4a apps/printer (venue only)
+
+Node/TypeScript daemon (#73), tooling like `apps/api` plus ESLint. It polls `GET /internal/print/jobs/next` with the printer's service token, downloads the photo's `display` derivative, prints it with CUPS `lp` (or writes it to a directory in dry-run mode) and reports `POST /internal/print/jobs/{id}/done`. A journal on its own volume makes printing at most once per job across crashes; `apps/printer/README.md` has the exact semantics. It runs only on the venue cluster, and when it is absent the queue simply waits.
+
 ## 4.5 packages/contract (new)
 
 Request and response schemas shared by apps/web and apps/api, written once as runtime validators with inferred TypeScript types. A change to an endpoint fails the web app's typecheck instead of failing at the venue.
@@ -89,6 +93,7 @@ deploy/
       infra-configs.yaml      Flux Kustomization, dependsOn infra-controllers
       apps.yaml               Flux Kustomization, dependsOn infra-configs
     venue/                    open item, same shape with the venue overlay
+                              (as deployed: clusters/venue/printer.yaml, Flux Kustomization `printer`)
   infra/
     controllers/              cert-manager, cloudnative-pg, plugin-barman-cloud, nvidia-device-plugin
     configs/                  namespaces, ClusterIssuer, RuntimeClass, Traefik middlewares, NetworkPolicies
@@ -107,8 +112,8 @@ Secrets are committed only as SOPS-encrypted files named `*.sops.yaml`. The `.so
 | Image | Built from | Registry | Notes |
 | --- | --- | --- | --- |
 | `ghcr.io/<owner>/grad-api` | `apps/api`, pruned workspace | GHCR, private | Contains no secrets; no private dependencies |
-| `ghcr.io/<owner>/grad-translation` | `apps/translation` | GHCR, private | CUDA runtime base |
+| `ghcr.io/fuisl/grad-translation` | `apps/translation` | GHCR, public (decided 2026-10-19) | CUDA runtime base; `.github/workflows/docker-translation.yml` |
 | `ghcr.io/<owner>/grad-web` | `apps/web`, standalone output | GHCR, private | Bundles the private ASCII dependency, so it must stay private; only used by the venue overlay |
-| `ghcr.io/<owner>/grad-printer` | `apps/printer` or a subfolder of api | GHCR, private | CUPS plus a job poller |
+| `ghcr.io/fuisl/grad-printer` | `apps/printer`, pruned workspace | GHCR, public (decided 2026-10-19) | CUPS client plus the job poller; `.github/workflows/docker-printer.yml` |
 
 GitHub Actions builds on push to `main` with tags of the form `main-<YYYYMMDDHHmmss>-<7-char sha>` (UTC build time, e.g. `main-20260930134501-7c646bf`); `latest` and `sha-<short>` are pushed alongside but never deployed. The API image is currently `docker.io/fuisl/grad26-api` (public, Docker Hub), built by `.github/workflows/docker-api.yml`. The Flux ImagePolicy filters `^main-(?P<ts>[0-9]{14})-[a-f0-9]{7}$`, extracts `$ts` and sorts numerically ascending, so the newest build wins. The web image build receives the GitHub read token as a BuildKit secret mount, never as a build argument or layer. Flux image automation watches the registry, picks the newest timestamp, and commits the tag bump straight to the infrastructure repository's `main`, so each build deploys on its own (auto-deploy, #52; kubernetes-workloads.md §7.6 has how to freeze deploys). Actions minutes are conserved by building on a self-hosted runner on the homelab if the free quota runs short.

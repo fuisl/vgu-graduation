@@ -134,7 +134,7 @@ export const navGroups: readonly NavGroup[] = [
   {
     title: "Operations",
     sections: [
-      { items: [["operations/event-runbook", "Event runbook"], ["operations/deployment", "Deployment"]] },
+      { items: [["operations/event-runbook", "Event runbook"], ["operations/deployment", "Deployment"], ["operations/archive", "Archive and yearbook"]] },
     ],
   },
 ];

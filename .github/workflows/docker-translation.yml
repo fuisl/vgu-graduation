@@ -1,0 +1,69 @@
+name: Translation image
+
+# Builds and pushes the apps/translation container image to GHCR, only when
+# something under apps/translation merges to main. Modelled on docker-api.yml:
+# pull requests never build it, so a fork PR can't reach the registry token.
+# Build locally with `docker build apps/translation` when changing its
+# Dockerfile (apps/translation/README.md).
+#
+# The image is experimental (#18, #71): it never blocks the API image or any
+# other workflow. It goes to ghcr.io/fuisl/grad-translation with the workflow's
+# own GITHUB_TOKEN, so no extra secret is needed. Set the package's visibility
+# to public once (Package settings) so the cluster pulls it without a secret.
+#
+# Flux image automation in fuisl/vgu-graduation-deployment
+# (clusters/home/image-automation.yaml, ImagePolicy grad-translation) follows
+# the main-<YYYYMMDDHHmmss UTC>-<7-char sha> tag, exactly as for the API; keep
+# the tag format in step with that policy.
+on:
+  push:
+    branches: [main]
+    paths:
+      - apps/translation/**
+      - .github/workflows/docker-translation.yml
+  # Rebuild by hand (Actions tab -> Run workflow) without a code change.
+  workflow_dispatch:
+
+concurrency:
+  group: docker-translation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: build-and-push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/fuisl/grad-translation
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
+            type=raw,value=main-{{date 'YYYYMMDDHHmmss' tz='UTC'}}-{{sha}}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/translation
+          file: apps/translation/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=translation
+          cache-to: type=gha,mode=max,scope=translation

@@ -28,6 +28,16 @@ const envSchema = z.object({
   S3_BUCKET_DERIVATIVES: z.string().optional(),
   SERVICE_TOKEN_TRANSLATION: z.string().optional(),
   SERVICE_TOKEN_PRINTER: z.string().optional(),
+  /**
+   * Venue capture client's token for `WS /live/ingest` (ADR-007), separate from
+   * the translation service's. Optional even in production: translation is
+   * experimental, and unset just means ingest refuses everyone.
+   */
+  SERVICE_TOKEN_INGEST: z.string().optional(),
+  /** Translation service's audio WebSocket on the cluster network, e.g. ws://translation:8000/ingest. Unset: ingest reports unavailable. */
+  TRANSLATION_INGEST_URL: z.string().url().optional(),
+  /** Concurrent `WS /live/translation` sockets; beyond it the handshake gets 503 and clients poll over HTTP. */
+  LIVE_TRANSLATION_MAX_CLIENTS: z.coerce.number().int().positive().default(1000),
   /** Ed25519 private key for signing pass payloads (#35), PKCS#8 PEM or its base64. */
   PASS_SIGNING_KEY: z.string().optional(),
   /** Identifies the public key verifiers use; bump it when rotating PASS_SIGNING_KEY. */
@@ -91,6 +101,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     serviceTokens: {
       translation: parsed.SERVICE_TOKEN_TRANSLATION,
       printer: parsed.SERVICE_TOKEN_PRINTER,
+      ingest: parsed.SERVICE_TOKEN_INGEST,
+    },
+    translation: {
+      ingestUrl: parsed.TRANSLATION_INGEST_URL,
+      maxClients: parsed.LIVE_TRANSLATION_MAX_CLIENTS,
     },
   };
 }

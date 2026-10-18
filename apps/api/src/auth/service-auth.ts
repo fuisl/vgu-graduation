@@ -22,7 +22,7 @@ declare module "fastify" {
  */
 export function requireService(
   scope: ServiceScope,
-  tokens: Record<ServiceScope, string | undefined> = config.serviceTokens,
+  tokens: Partial<Record<ServiceScope, string | undefined>> = config.serviceTokens,
 ) {
   return async function serviceGuard(request: FastifyRequest, reply: FastifyReply) {
     const expected = tokens[scope];

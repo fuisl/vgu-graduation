@@ -644,6 +644,15 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+/* Credits link to /about (#7), inline in the credit line; 44px tall like the footer links. */
+[data-theme="brand"] .brand-footer__about {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--brand-tap);
+  color: var(--brand-white);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 [data-theme="brand"] .brand-footer a:focus-visible {
   outline: 2px solid var(--brand-accent);
   outline-offset: 2px;

@@ -79,6 +79,10 @@ describe("SiteFooter", () => {
     expect(out).toContain('aria-label="Footer"');
     expect(out).toContain("VGU graduation · Class of 2026");
   });
+
+  it("links the credits to the about page", () => {
+    expect(html(<SiteFooter />)).toMatch(/<a class="brand-footer__about" href="\/about">Credits<\/a>/);
+  });
 });
 
 describe("nextTrapIndex", () => {

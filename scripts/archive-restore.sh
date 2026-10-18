@@ -68,11 +68,17 @@ if [ "$exists" = "1" ]; then
   tables="$(psql_at "$db" -c "SELECT count(*) FROM information_schema.tables WHERE table_schema IN ('public', 'drizzle')")"
   [ "$tables" = "0" ] || die "database '$db' already has tables; restore into a new or empty database"
 else
-  psql_at postgres -c "CREATE DATABASE \"$db\"" >/dev/null
+  owner=""
+  [ -z "${ARCHIVE_RESTORE_ROLE:-}" ] || owner=" OWNER \"$ARCHIVE_RESTORE_ROLE\""
+  psql_at postgres -c "CREATE DATABASE \"$db\"$owner" >/dev/null
   log "created database '$db'"
 fi
 log "restoring database into '$db'"
-pg pg_restore -U "$PG_USER" --no-owner --no-privileges --exit-on-error -d "$db" < "$archive/db.dump"
+# ARCHIVE_RESTORE_ROLE (e.g. grad on the cluster, where the tools run as postgres)
+# makes the application role own the restored objects.
+role_args=()
+[ -z "${ARCHIVE_RESTORE_ROLE:-}" ] || role_args=(--role="$ARCHIVE_RESTORE_ROLE")
+pg pg_restore -U "$PG_USER" ${role_args[@]+"${role_args[@]}"} --no-owner --no-privileges --exit-on-error -d "$db" < "$archive/db.dump"
 
 restored_counts="$(pg_counts "$db")"
 if [ "$restored_counts" = "$(cat "$archive/db-counts.tsv")" ]; then

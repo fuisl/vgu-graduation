@@ -20,7 +20,7 @@ Keys are generated in advance, stored SOPS-encrypted, and imported into Garage d
 
 ## 5.3 Offsite copy
 
-A CronJob runs `rclone sync` nightly from all three buckets to an offsite target. Decided 2026-09-27: the target is a disk on nhientruong04's always-on server, reached over Tailscale. The copy is encrypted client-side by rclone and a restore from it is part of the pre-event drill.
+A CronJob runs `rclone sync` nightly from all three buckets to an offsite target. Decided 2026-09-27: the target is a disk on nhientruong04's always-on server, reached over Tailscale. The copy is encrypted client-side by rclone and a restore from it is part of the pre-event drill. Archive exports (database plus both media buckets) and the four-year re-hosting procedure are in `operations/archive.md`.
 
 ## 5.4 What never leaves the cluster
 

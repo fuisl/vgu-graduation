@@ -320,6 +320,8 @@ export function parseEventForm(form: FormData): ParseResult<UpdateEventRequest> 
 
   const candidate = {
     name: text(form, "name"),
+    // Vietnamese versions (#9): empty means guests reading Vietnamese see the English field.
+    nameVi: text(form, "nameVi") || null,
     startsAt: startsAt ?? "",
     endsAt: endsAtLocal ? (endsAt ?? "") : null,
     timeZone,
@@ -327,12 +329,14 @@ export function parseEventForm(form: FormData): ParseResult<UpdateEventRequest> 
     venue: {
       name: text(form, "venueName"),
       address: text(form, "venueAddress"),
+      addressVi: text(form, "venueAddressVi") || null,
       mapUrl: text(form, "venueMapUrl"),
     },
     contact: hasContact
       ? { name: contactName, email: contactEmail || null, phone: contactPhone || null }
       : null,
     arrivalInfo: text(form, "arrivalInfo") || null,
+    arrivalInfoVi: text(form, "arrivalInfoVi") || null,
   };
 
   const parsed = updateEventRequestSchema.safeParse(candidate);

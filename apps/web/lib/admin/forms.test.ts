@@ -73,6 +73,9 @@ const validEvent: [string, string][] = [
   ["contactEmail", ""],
   ["contactPhone", ""],
   ["arrivalInfo", ""],
+  ["nameVi", ""],
+  ["venueAddressVi", ""],
+  ["arrivalInfoVi", ""],
 ];
 
 function eventForm(overrides: Record<string, string | null> = {}): FormData {
@@ -88,13 +91,15 @@ describe("parseEventForm", () => {
       ok: true,
       data: {
         name: "VGU Graduation 2026",
+        nameVi: null,
         startsAt: "2026-11-21T09:00:00+07:00",
         endsAt: "2026-11-21T12:00:00+07:00",
         timeZone: "Asia/Ho_Chi_Minh",
         timeConfirmed: true,
-        venue: { name: "VGU Campus", address: "Ring Road 4, Thu Dau Mot", mapUrl: "https://maps.example.com/vgu" },
+        venue: { name: "VGU Campus", address: "Ring Road 4, Thu Dau Mot", addressVi: null, mapUrl: "https://maps.example.com/vgu" },
         contact: null,
         arrivalInfo: null,
+        arrivalInfoVi: null,
       },
     });
   });
@@ -108,6 +113,17 @@ describe("parseEventForm", () => {
       endsAt: null,
       contact: { name: "Ms. Lan", email: null, phone: "+84 1" },
       arrivalInfo: "Gate 2",
+    });
+  });
+
+  it("reads the optional Vietnamese fields (#9)", () => {
+    const result = parseEventForm(
+      eventForm({ nameVi: "Lễ tốt nghiệp VGU 2026", venueAddressVi: " Vành đai 4, Thủ Dầu Một ", arrivalInfoVi: "Cổng 2" }),
+    );
+    expect(result.ok && result.data).toMatchObject({
+      nameVi: "Lễ tốt nghiệp VGU 2026",
+      venue: { addressVi: "Vành đai 4, Thủ Dầu Một" },
+      arrivalInfoVi: "Cổng 2",
     });
   });
 

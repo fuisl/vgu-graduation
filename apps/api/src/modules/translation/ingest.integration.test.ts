@@ -85,11 +85,11 @@ async function connect(url: string, headers: Record<string, string> = {}) {
   return { socket, messages, closed };
 }
 
-async function until(check: () => boolean, timeoutMs = 2000): Promise<void> {
+async function until(check: () => boolean, timeoutMs = 2000, intervalMs = 10): Promise<void> {
   const started = Date.now();
   while (!check()) {
     if (Date.now() - started > timeoutMs) throw new Error("timed out waiting for condition");
-    await new Promise((r) => setTimeout(r, 10));
+    await new Promise((r) => setTimeout(r, intervalMs));
   }
 }
 
@@ -183,12 +183,24 @@ describe("ingest proxy and segment fan-out", () => {
     // The service stops reading: its TCP window fills and the API's send buffer grows.
     const raw = (upstream.connections[0].socket as unknown as { _socket: { pause(): void; resume(): void } })._socket;
     raw.pause();
-    const sent = 4000; // 80 s of audio, 2.5 MB
-    for (let i = 0; i < sent; i++) mic.socket.send(frame(i % 250));
-    await new Promise((r) => setTimeout(r, 300));
+    // 32 MB in maximum-size frames. Linux autotunes loopback socket buffers to
+    // several MB, so a smaller burst can vanish into the kernel without the
+    // API's own send buffer ever growing.
+    const big = Buffer.alloc(16_000, 1);
+    const sent = 2000;
+    for (let i = 0; i < sent; i++) mic.socket.send(big);
+    await until(() => mic.socket.bufferedAmount === 0, 10_000);
+    await new Promise((r) => setTimeout(r, 200));
     raw.resume();
-    await new Promise((r) => setTimeout(r, 300));
-    const audio = upstream.connections[0].received.filter((r) => r.kind === "audio").length;
+    const audioCount = () => upstream.connections[0].received.filter((r) => r.kind === "audio").length;
+    let previous = -1;
+    await until(() => {
+      const now = audioCount();
+      const settled = now > 0 && now === previous;
+      previous = now;
+      return settled;
+    }, 10_000, 100);
+    const audio = audioCount();
     expect(audio).toBeGreaterThan(0);
     expect(audio).toBeLessThan(sent);
   });

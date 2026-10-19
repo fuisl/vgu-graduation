@@ -61,6 +61,7 @@ The scene renders normally, then passes through a two-stage GPU character render
 - The glyph atlas uses the same self-hosted Geist Mono face as the page and is created only after the font is ready, avoiding platform-dependent `monospace` substitutions.
 - The render loop pauses entirely when the document is hidden (`frameloop="never"`).
 - A static ASCII motif ships in server-rendered HTML and stays visible whenever the canvas isn't: reduced motion, no WebGL, a render error, or WebGL context loss.
+- **Loading (QA P1-4).** three.js is not in the landing's first load. The page server-renders `SculptureFallback` (the first shape's code backdrop and the ASCII motif, the LCP element) inside `LazySculpture`, which loads `Sculpture` with `next/dynamic` (`ssr: false`) only after the `load` event, an idle callback (at most 2.5s) and the hero being in view. It never loads under reduced motion, Save-Data (`navigator.connection.saveData` or `prefers-reduced-data`) or when a WebGL context cannot be created (`sculpture-gate.ts`). The motif is a copy of the one in `Sculpture.tsx`, and a test keeps the two identical. First Load JS for `/` went from 370 kB to 123 kB, in line with the other pages.
 
 ### Live camera
 

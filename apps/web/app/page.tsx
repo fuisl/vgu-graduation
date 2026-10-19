@@ -15,7 +15,9 @@ import { buildCalendarLinks } from "../lib/calendar/links";
 import { formatEventWhen } from "../lib/invite/format";
 import { Countdown } from "./landing-countdown/Countdown";
 import { DecodeText } from "./landing-title/DecodeText";
-import { Sculpture } from "./sculpture/Sculpture";
+import { LazySculpture } from "./sculpture/LazySculpture";
+import { SculptureFallback } from "./sculpture/SculptureFallback";
+import { SHAPE_NAMES } from "./sculpture/shapes";
 import { SiteFooter } from "./site/SiteFooter";
 import { SiteHeader } from "./site/SiteHeader";
 import "./landing.css";
@@ -51,7 +53,10 @@ export default async function Home() {
         <Section tone="blue" aria-labelledby="home-title">
           <div className="home-stage">
             <div className="home-visual">
-              <Sculpture label={t("landing.sculpture")} />
+              {/* The static motif is server-rendered (it is the LCP element); the canvas loads after idle (QA P1-4). */}
+              <LazySculpture label={t("landing.sculpture")}>
+                <SculptureFallback label={t("landing.sculpture", { name: SHAPE_NAMES[0] ?? "" })} />
+              </LazySculpture>
             </div>
           </div>
           <div className="home-hero-foot">

@@ -8,7 +8,7 @@ import { AdminNav } from "../_components/AdminNav";
 import "../admin.css";
 
 export const metadata: Metadata = {
-  title: "Admin · GRAD '26",
+  title: "Admin | GRAD '26",
   robots: { index: false, follow: false },
   // Invite links shown here are bearer credentials: never leak the page URL or its contents onward.
   referrer: "no-referrer",

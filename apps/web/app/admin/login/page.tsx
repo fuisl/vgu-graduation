@@ -3,7 +3,7 @@ import { Container, Eyebrow, Rule } from "@grad/ui";
 import "../admin.css";
 
 export const metadata: Metadata = {
-  title: "Admin sign-in · GRAD '26",
+  title: "Admin sign-in | GRAD '26",
   robots: { index: false, follow: false },
 };
 

@@ -12,6 +12,7 @@ The guest-facing site reads in English or Vietnamese (#9). English is the source
 
 - Every guest-facing string is a message in `apps/web/lib/i18n/messages/en.ts` with the same key in `vi.ts`. This includes headings, buttons, status, loading, empty and error states, `aria-label`, `alt`, `title` and page metadata.
 - Keys are `<surface>.<thing>` (`venue.email.send`, `rsvp.a11y.need.wheelchair`). Reuse `common.*` (Try again, Directions, When, Where) before adding a new one.
+- Page titles (`<surface>.metaTitle`) read `<Page> | GRAD '26` in both languages; the landing is `GRAD '26 | VGU graduation`. Every guest page sets one, the 404 page and `/invite/demo` included (#78).
 - Placeholders are `{name}`. Never build a sentence from fragments; put a link inside a sentence with `formatRich(t("x"), { link: <a …>{t("x.link")}</a> })` so translators control word order.
 - Counts are a pair, `foo.one` and `foo.other`, read with `t.plural("foo", n)`. Vietnamese repeats the same text in both.
 - Proper nouns stay as they are in both languages: VGU, GRAD '26, Ceremony Hall, Sunrise River, West Bridge, Ring Road 4, programme names on the sculpture, and the language endonyms Deutsch, English, Tiếng Việt.

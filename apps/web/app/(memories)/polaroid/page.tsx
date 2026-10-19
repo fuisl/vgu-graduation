@@ -18,7 +18,7 @@ export default async function PolaroidPage() {
   return (
     <BrandTheme>
       <SiteHeader i18n={i18n} />
-      <main>
+      <main id="main">
         <Section tone="blue" aria-labelledby="polaroid-title">
           <div className="mem-hero">
             <BrandEyebrow ellipsis>{t("polaroid.eyebrow")}</BrandEyebrow>

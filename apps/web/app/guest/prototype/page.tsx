@@ -19,7 +19,9 @@ export default async function GuestPrototype() {
       <SiteHeader i18n={i18n} />
       <main className="guest-prototype">
         {/* Plain brand-blue stage; the canvas spans it so drags can reach the edges. */}
-        <section className="guest-stage" aria-label={t("badge.stage")}>
+        <section className="guest-stage" aria-labelledby="guest-stage-title">
+          {/* The page's one heading (QA P2-17); the badge itself is the visual title. */}
+          <h1 id="guest-stage-title" className="brand-sr-only">{t("badge.stage")}</h1>
           <div className="guest-object-scene">
             <BadgeScene labels={{ interactive: t("badge.interactive"), static: t("badge.static") }}>
               <p className="guest-badge-placeholder mono">{t("badge.placeholder")}</p>

@@ -53,6 +53,7 @@ export function CameraPanel({ messages }: { messages: MessageSlice<"camera."> })
   const [failure, setFailure] = useState<UploadFailure | null>(null);
   const [localError, setLocalError] = useState("");
   const [uploadSuccess, setUploadSuccess] = useState("");
+  const [settledCount, setSettledCount] = useState(0);
   const [pending, setPending] = useState<Pending | null>(null);
 
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
@@ -77,6 +78,7 @@ export function CameraPanel({ messages }: { messages: MessageSlice<"camera."> })
     return () => controller.abort();
   }, []);
 
+  // While /api/me answers, the controls show (no layout shift) but the shutter waits.
   const mayShoot = access === "signed-in" || access === "unknown";
 
   // Keep camera running as long as there is film
@@ -176,15 +178,15 @@ export function CameraPanel({ messages }: { messages: MessageSlice<"camera."> })
       setUploadSuccess(body.processingStatus === "ready" ? t("camera.added") : t("camera.received"));
     } finally {
       setIsSubmitting(false);
+      setSettledCount((count) => count + 1);
     }
   };
 
-  // After an upload settles, its outcome is read out and the status region takes focus,
+  // After every upload settles, its outcome is read out and the status region takes focus,
   // so a guest on a screen reader or keyboard never lands on a removed control.
-  const settled = !isSubmitting && (failure !== null || uploadSuccess !== "");
   useEffect(() => {
-    if (settled) statusRef.current?.focus();
-  }, [settled]);
+    if (settledCount > 0) statusRef.current?.focus();
+  }, [settledCount]);
 
   const handleCaptureAndSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -258,7 +260,7 @@ export function CameraPanel({ messages }: { messages: MessageSlice<"camera."> })
             />
           )}
 
-          {mayShoot ? (
+          {access !== "signed-out" ? (
             <>
               {/* Mechanical odometer: rolls to the new count after each shot */}
               <div
@@ -284,7 +286,7 @@ export function CameraPanel({ messages }: { messages: MessageSlice<"camera."> })
               <div className="cam-shutter">
                 <button
                   type="submit"
-                  disabled={isSubmitting || !!cameraError || photosRemaining === 0}
+                  disabled={!mayShoot || isSubmitting || !!cameraError || photosRemaining === 0}
                   className="cam-shutter-button"
                   aria-label={isSubmitting ? t("camera.uploading") : t("camera.take")}
                 >

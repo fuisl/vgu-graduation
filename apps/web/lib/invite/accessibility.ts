@@ -1,10 +1,6 @@
-import {
-  ACCESSIBILITY_NEED_KEYS,
-  ACCESSIBILITY_NOTE_MAX_LENGTH,
-  type AccessibilityNeedKey,
-  type AccessibilityNeeds,
-  type GuestRsvp,
-} from "@grad/contract";
+// Types only: this module runs in the RSVP form's client bundle, and a value import from
+// @grad/contract would ship zod with it (QA P2-2). Limits come in as arguments or props.
+import type { AccessibilityNeedKey, AccessibilityNeeds, GuestRsvp } from "@grad/contract";
 import type { ApiResult } from "../api/result";
 import type { I18n } from "../i18n/dictionary";
 
@@ -24,6 +20,11 @@ export const ACCESSIBILITY_GROUPS: ReadonlyArray<{
   { id: "sight", needs: [{ key: "largePrint" }, { key: "visionAssistance" }] },
   { id: "seating", needs: [{ key: "seatNearFront" }, { key: "aisleSeat" }, { key: "companion" }] },
 ];
+
+/** Every need key, in form order (a test checks it matches the contract's ACCESSIBILITY_NEED_KEYS). */
+export const ACCESSIBILITY_NEED_ORDER: readonly AccessibilityNeedKey[] = ACCESSIBILITY_GROUPS.flatMap((group) =>
+  group.needs.map((need) => need.key),
+);
 
 /** Form field names. `touched` is set by the form once the guest changes anything in the section. */
 export const A11Y_TOUCHED_FIELD = "accessibilityTouched";
@@ -58,14 +59,19 @@ export type ParsedAccessibility =
  * - Touched: the full object. Everything unticked and no note is how a guest clears them; the API
  *   stores that as no needs.
  */
-export function parseAccessibilityFields(fields: Fields, { t }: Pick<I18n, "t">): ParsedAccessibility {
+export function parseAccessibilityFields(
+  fields: Fields,
+  { t }: Pick<I18n, "t">,
+  /** The contract's ACCESSIBILITY_NOTE_MAX_LENGTH, passed in by the server. */
+  noteMaxLength: number,
+): ParsedAccessibility {
   if (fields.get(A11Y_TOUCHED_FIELD) !== "1") return { ok: true, accessibility: undefined };
   const note = String(fields.get(A11Y_NOTE_FIELD) ?? "").trim();
-  if (note.length > ACCESSIBILITY_NOTE_MAX_LENGTH) {
-    return { ok: false, message: t("rsvp.a11y.noteLength", { max: ACCESSIBILITY_NOTE_MAX_LENGTH }) };
+  if (note.length > noteMaxLength) {
+    return { ok: false, message: t("rsvp.a11y.noteLength", { max: noteMaxLength }) };
   }
   const accessibility: AccessibilityNeeds = { ...NO_NEEDS, note: note || null };
-  for (const key of ACCESSIBILITY_NEED_KEYS) {
+  for (const key of ACCESSIBILITY_NEED_ORDER) {
     const value = fields.get(a11yFieldName(key));
     accessibility[key] = value === "on" || value === "true";
   }
@@ -84,5 +90,5 @@ export function savedNeedsFrom(result: ApiResult<GuestRsvp | null> | null): Save
 /** How many needs (ticked boxes, plus the note) are stated. */
 export function countNeeds(needs: AccessibilityNeeds | null | undefined): number {
   if (!needs) return 0;
-  return ACCESSIBILITY_NEED_KEYS.filter((key) => needs[key]).length + (needs.note ? 1 : 0);
+  return ACCESSIBILITY_NEED_ORDER.filter((key) => needs[key]).length + (needs.note ? 1 : 0);
 }

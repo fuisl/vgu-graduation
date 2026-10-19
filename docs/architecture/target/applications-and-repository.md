@@ -14,7 +14,7 @@ Caching policy for the Vercel layer:
 | Data | Cache | Reason |
 | --- | --- | --- |
 | Event configuration, venue info | Revalidate every 5 minutes | Rarely changes, must survive outages |
-| Invitation, guide-book and RSVP state | No cache (`no-store`); the last good invitation and guide per token hash are kept in process memory for 6 hours and served only on a network error or 5xx | A stale-while-revalidate copy kept a revoked, rotated or expired invitation working indefinitely (QA P0-1). A 401, 403, 404 or 410 deletes the copy and shows the invalid or expired page; an admin revoke or rotate deletes it too (per web process) |
+| Invitation, guide-book and RSVP state | No cache (`no-store`); the last good invitation and guide per token hash are kept in process memory for 6 hours and served only on a network error or 5xx | A stale-while-revalidate copy kept a revoked, rotated or expired invitation working indefinitely (QA P0-1). A 401, 403, 404 or 410 deletes the copy and shows the invalid or expired page; an admin revoke or rotate deletes it too (per web process). There is no per-invitation tag any more; after an RSVP save the server action calls `revalidatePath("/invite")` only so Next returns the re-rendered page with the action |
 | Gallery listing | Revalidate every 60 seconds | Moderator changes appear within a minute |
 | Wishes | Revalidate every 30 seconds | Same |
 | Curated gallery and wishes (`/memories`, #75) | Same cadences, tags `gallery-public` and `wishes-public` | Static pages; admin public-flag and moderation writes revalidate the tags |

@@ -1,8 +1,14 @@
+import type { Metadata } from "next";
 import { BrandEyebrow, BrandTheme, Cta, Section } from "@grad/ui";
 import { getI18n } from "../lib/i18n/server";
 import { SiteFooter } from "./site/SiteFooter";
 import { SiteHeader } from "./site/SiteHeader";
 import "./not-found.css";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("notFound.metaTitle") };
+}
 
 export default async function NotFound() {
   const i18n = await getI18n();

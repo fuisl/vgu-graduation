@@ -38,6 +38,7 @@ export const en = {
   "notFound.eyebrow": "Error 404",
   "notFound.text": "This page wandered off before the ceremony started.",
   "notFound.home": "Back to home",
+  "notFound.metaTitle": "Page not found | GRAD '26",
   "calendar.add": "Add to calendar",
   "calendar.directions": "Directions: {url}",
   // Add to calendar block (#78, QA P1-3): app names stay as they are.
@@ -48,7 +49,7 @@ export const en = {
   "calendar.ics": "Download .ics file",
 
   // Landing (/) -------------------------------------------------------------
-  "landing.metaTitle": "GRAD '26 · VGU graduation",
+  "landing.metaTitle": "GRAD '26 | VGU graduation",
   "landing.metaDescription": "The digital companion for the VGU graduation ceremony: invitation, venue, gallery and wishes.",
   "landing.title": "Graduation ’26",
   "landing.sculpture": "Animated ASCII sculpture: {name}",
@@ -75,7 +76,7 @@ export const en = {
   "landing.wishes.all": "Read all wishes",
 
   // Invitation (/invite) -------------------------------------------------------
-  "invite.metaTitle": "Your invitation · GRAD '26",
+  "invite.metaTitle": "Your invitation | GRAD '26",
   "invite.eyebrow": "Your invitation",
   "invite.loading": "Loading your invitation…",
   "invite.greeting": "You are invited, {name}",
@@ -97,9 +98,16 @@ export const en = {
   "invite.demo.eyebrow": "PERSONAL INVITATION / PREVIEW",
   "invite.demo.title1": "You are",
   "invite.demo.title2": "invited.",
+  // Guest-facing preview copy and the missing-link notice (#78, QA P2-4, P2-7).
+  "invite.demo.metaTitle": "Invitation preview | GRAD '26",
   "invite.demo.body":
-    "Design-system smoke test. Personalized guest data and RSVP behavior belong to the invitation vertical-slice PR.",
+    "This is how a personal invitation looks. Yours comes as a link from the graduate who invited you: open it on your phone to answer, see the ceremony details and keep your badge.",
+  "invite.demo.howTo": "How to open your invitation",
   "invite.demo.home": "Back home",
+  "invite.notice.missing.title": "Open your invitation link first",
+  "invite.notice.missing.body":
+    "Your invitation is a personal link from the graduate who invited you. Open it once on this phone and this page shows your invitation.",
+  "invite.notice.missing.link": "How to open your invitation",
   "event.ceremony": "The ceremony",
   "event.unavailable": "Event details could not be loaded right now. Please refresh this page in a moment, or contact an organizer.",
   "event.captions": "Captions",
@@ -113,7 +121,7 @@ export const en = {
   "pass.save": "Save badge",
 
   // Venue (/venue) ---------------------------------------------------------------
-  "venue.metaTitle": "Venue and calendar · GRAD '26",
+  "venue.metaTitle": "Venue and calendar | GRAD '26",
   "venue.metaDescription": "When and where the ceremony takes place, directions, and how to add it to your calendar.",
   "venue.title": "Venue and calendar",
   "venue.unavailable": "Event information is temporarily unavailable. Please try again in a moment, or contact an organizer.",
@@ -131,7 +139,7 @@ export const en = {
     "Map of the VGU campus around Sunrise River. The Ceremony Hall, where the ceremony takes place, is highlighted on the north bank beside the library. From the main entrance off Ring Road 4, walk north over the West Bridge to reach it.",
 
   // Guide-book (/guide) -----------------------------------------------------------
-  "guide.metaTitle": "Guide-book · GRAD '26",
+  "guide.metaTitle": "Guide-book | GRAD '26",
   "guide.eyebrow": "Guide-book",
   "guide.title": "While you are on campus",
   "guide.loading": "Loading your guide-book…",
@@ -156,7 +164,7 @@ export const en = {
   "guide.category.practical": "Practical",
 
   // Guest profile (/me) ---------------------------------------------------------
-  "profile.metaTitle": "Your profile · GRAD '26",
+  "profile.metaTitle": "Your profile | GRAD '26",
   "profile.loading": "Loading your profile…",
   "profile.eyebrow": "Guest profile",
   "profile.rsvp": "RSVP",
@@ -205,7 +213,7 @@ export const en = {
   "textSize.largest": "Largest",
 
   // Accessibility (/accessibility) -------------------------------------------------
-  "a11y.metaTitle": "Accessibility · GRAD '26",
+  "a11y.metaTitle": "Accessibility | GRAD '26",
   "a11y.metaDescription": "Getting into the venue, following the ceremony with captions, and how to ask for help.",
   "a11y.title": "Everyone is welcome at the ceremony",
   "a11y.lead":
@@ -239,7 +247,7 @@ export const en = {
     "The site also works with screen readers, keyboard only, your browser's zoom and the reduced-motion setting. If something does not work for you, tell the organizers and we will fix it.",
 
   // About (/about) -----------------------------------------------------------------
-  "about.metaTitle": "About · GRAD '26",
+  "about.metaTitle": "About | GRAD '26",
   "about.metaDescription": "The developers who built the GRAD '26 graduation companion.",
   "about.eyebrow": "About",
   "about.title": "The people behind Grad ’26",
@@ -501,7 +509,7 @@ export const en = {
   "display.problem.signedOut": "This screen is not signed in. Open the kiosk invitation link once in this browser, then reload.",
 
   // ASCII Live (/ascii-live, experimental) ----------------------------------------------
-  "ascii.metaTitle": "ASCII Live — GRAD '26",
+  "ascii.metaTitle": "ASCII Live | GRAD '26",
   "ascii.metaDescription": "Turn your camera into live ASCII art in your browser.",
   "ascii.eyebrow": "Experimental / on-device",
   "ascii.privacy": "Your camera stays in this browser. No frames are uploaded or saved.",

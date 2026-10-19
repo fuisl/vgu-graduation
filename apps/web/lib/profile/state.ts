@@ -7,11 +7,13 @@ import { selectInvitePageState, type InvitePageState } from "../invite/state";
  * plus `signed-out` when this device has no invitation cookie at all: the guest
  * has not opened their link here yet, which deserves an explainer, not an error.
  */
-export type GuestPageState = InvitePageState | { kind: "signed-out" };
+export type GuestPageState = Exclude<InvitePageState, { kind: "missing" }> | { kind: "signed-out" };
 
 export function selectGuestPageState(hasToken: boolean, invitation: ApiResult<Invitation> | null): GuestPageState {
   if (!hasToken) return { kind: "signed-out" };
-  return selectInvitePageState(invitation);
+  const state = selectInvitePageState(invitation);
+  // The invitation page calls a missing cookie "missing"; guest pages explain it as signed out.
+  return state.kind === "missing" ? { kind: "signed-out" } : state;
 }
 
 export type GuestLinkId = "invite" | "venue" | "guide" | "live" | "gallery" | "wishes" | "polaroid" | "accessibility";

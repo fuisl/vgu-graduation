@@ -31,7 +31,7 @@ export default async function AccessibilityPage() {
   return (
     <BrandTheme>
       <SiteHeader i18n={i18n} />
-      <main className="a11y-main">
+      <main id="main" className="a11y-main">
         <Section tone="blue" aria-labelledby="a11y-heading">
           <div className="a11y-hero">
             <BrandEyebrow>{t("footer.accessibility")}</BrandEyebrow>

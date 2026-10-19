@@ -1,13 +1,16 @@
 import Link from "next/link";
-import { BrandEyebrow, Section } from "@grad/ui";
+import { BrandEyebrow, Cta, Section } from "@grad/ui";
 import type { EventConfig } from "@grad/contract";
 import type { ApiResult } from "../../../lib/api/result";
 import type { I18n } from "../../../lib/i18n/dictionary";
 import { EventDetails } from "./EventDetails";
 
-export type NoticeKind = "invalid" | "expired" | "error";
+export type NoticeKind = "missing" | "invalid" | "expired" | "error";
 
-/** No invitation data is shown here, only the notice and public event information. Copy is `invite.notice.<kind>.*`. */
+/**
+ * No invitation data is shown here, only the notice and public event information. Copy is `invite.notice.<kind>.*`.
+ * `missing` (no invitation cookie on this browser, QA P2-7) points to the guest portal, which explains how to open the link.
+ */
 export function InviteNotice({ kind, event, i18n }: { kind: NoticeKind; event: ApiResult<EventConfig>; i18n: I18n }) {
   const { t } = i18n;
   const contact = event.status === "ok" ? event.data.contact : null;
@@ -23,7 +26,12 @@ export function InviteNotice({ kind, event, i18n }: { kind: NoticeKind; event: A
               <Link className="invite-link invite-link--on-blue" href="/invite" prefetch={false}>{t("common.tryAgain")}</Link>
             </p>
           ) : null}
-          {kind !== "error" && contact ? (
+          {kind === "missing" ? (
+            <div className="invite-actions">
+              <Cta tone="on-blue" href="/me">{t("invite.notice.missing.link")}</Cta>
+            </div>
+          ) : null}
+          {(kind === "invalid" || kind === "expired") && contact ? (
             <p className="invite-lead">
               {t("invite.notice.organizer", { name: contact.name })}
               {contact.email ? (

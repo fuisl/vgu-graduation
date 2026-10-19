@@ -48,7 +48,7 @@ describe("putRsvp", () => {
         throw new Error("bad json");
       },
     });
-    expect(await putRsvp("tok", request)).toMatchObject({ httpStatus: 400, message: "The API rejected the request" });
+    expect(await putRsvp("tok", request)).toMatchObject({ httpStatus: 400, message: "The request was rejected" });
   });
 
   it.each([404, 410, 500])("returns an http error carrying %i", async (status) => {

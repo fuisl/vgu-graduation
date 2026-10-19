@@ -30,6 +30,11 @@
 [data-theme="brand"] .invite-actions {
   margin-top: var(--space-5);
 }
+[data-theme="brand"] .invite-actions--row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
 
 /* Body layout -------------------------------------------------------- */
 [data-theme="brand"] .invite-grid {
@@ -64,8 +69,11 @@
 /* Links -------------------------------------------------------------- */
 [data-theme="brand"] .invite-link,
 [data-theme="brand"] .invite-body a:not(.brand-cta) {
-  display: inline-block;
-  padding-block: var(--space-2);
+  /* A 44px target (QA P1-7), centred on its line. */
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--brand-tap);
+  max-width: 100%;
   color: var(--brand-blue);
   text-decoration: underline;
   text-underline-offset: 0.2em;

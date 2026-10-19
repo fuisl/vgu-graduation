@@ -56,7 +56,7 @@ export default async function TimelinePage() {
   return (
     <BrandTheme>
       <SiteHeader i18n={i18n} />
-      <main>
+      <main id="main">
         <Section tone="blue" aria-labelledby="timeline-title">
           <div className="mem-hero">
             <BrandEyebrow ellipsis>{t("timeline.eyebrow")}</BrandEyebrow>

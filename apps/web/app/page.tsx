@@ -51,7 +51,7 @@ export default async function Home() {
   return (
     <BrandTheme>
       <SiteHeader i18n={i18n} current="home" />
-      <main className="home">
+      <main id="main" className="home">
         <Section tone="blue" aria-labelledby="home-title">
           <div className="home-stage">
             <div className="home-visual">

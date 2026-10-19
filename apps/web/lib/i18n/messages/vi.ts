@@ -41,6 +41,7 @@ export const vi: Messages = {
   "notFound.eyebrow": "Lỗi 404",
   "notFound.text": "Trang này đã đi lạc trước khi buổi lễ bắt đầu.",
   "notFound.home": "Về trang chủ",
+  "notFound.metaTitle": "Không tìm thấy trang | GRAD '26",
   "calendar.add": "Thêm vào lịch",
   "calendar.directions": "Chỉ đường: {url}",
   // Add to calendar block (#78, QA P1-3): app names stay as they are.
@@ -52,7 +53,7 @@ export const vi: Messages = {
   "calendar.ics": "Tải tệp .ics",
 
   // Landing (/) -------------------------------------------------------------
-  "landing.metaTitle": "GRAD '26 · Lễ tốt nghiệp VGU",
+  "landing.metaTitle": "GRAD '26 | Lễ tốt nghiệp VGU",
   "landing.metaDescription": "Người bạn đồng hành số cho lễ tốt nghiệp VGU: thư mời, địa điểm, thư viện ảnh và lời chúc.",
   // TODO(owner): confirm the translated landing headline (the brand moment) or keep "Graduation ’26" in both languages.
   "landing.title": "Tốt nghiệp ’26",
@@ -81,7 +82,7 @@ export const vi: Messages = {
   "landing.wishes.all": "Đọc tất cả lời chúc",
 
   // Invitation (/invite) -------------------------------------------------------
-  "invite.metaTitle": "Thư mời của Quý khách · GRAD '26",
+  "invite.metaTitle": "Thư mời của Quý khách | GRAD '26",
   "invite.eyebrow": "Thư mời của Quý khách",
   "invite.loading": "Đang tải thư mời…",
   "invite.greeting": "Trân trọng kính mời {name}",
@@ -105,9 +106,17 @@ export const vi: Messages = {
   "invite.demo.eyebrow": "THƯ MỜI CÁ NHÂN / XEM TRƯỚC",
   "invite.demo.title1": "Trân trọng",
   "invite.demo.title2": "kính mời.",
+  // Guest-facing preview copy and the missing-link notice (#78, QA P2-4, P2-7).
+  // TODO(owner): native review of the invitation preview and missing-link copy.
+  "invite.demo.metaTitle": "Xem trước thư mời | GRAD '26",
   "invite.demo.body":
-    "Trang thử nghiệm hệ thống thiết kế. Dữ liệu khách mời cá nhân và chức năng phản hồi thuộc về phần thư mời hoàn chỉnh.",
+    "Đây là hình thức của một thư mời cá nhân. Thư mời của Quý khách là một đường dẫn do tân khoa mời Quý khách gửi đến: hãy mở trên điện thoại để phản hồi, xem thông tin buổi lễ và giữ thẻ khách mời.",
+  "invite.demo.howTo": "Cách mở thư mời",
   "invite.demo.home": "Về trang chủ",
+  "invite.notice.missing.title": "Vui lòng mở đường dẫn thư mời trước",
+  "invite.notice.missing.body":
+    "Thư mời của Quý khách là một đường dẫn cá nhân do tân khoa mời Quý khách gửi đến. Hãy mở đường dẫn đó một lần trên điện thoại này, trang này sẽ hiển thị thư mời của Quý khách.",
+  "invite.notice.missing.link": "Cách mở thư mời",
   "event.ceremony": "Buổi lễ",
   "event.unavailable": "Hiện chưa tải được thông tin sự kiện. Vui lòng tải lại trang sau ít phút hoặc liên hệ ban tổ chức.",
   "event.captions": "Phụ đề",
@@ -121,7 +130,7 @@ export const vi: Messages = {
   "pass.save": "Lưu thẻ",
 
   // Venue (/venue) ---------------------------------------------------------------
-  "venue.metaTitle": "Địa điểm và lịch · GRAD '26",
+  "venue.metaTitle": "Địa điểm và lịch | GRAD '26",
   "venue.metaDescription": "Thời gian và địa điểm diễn ra buổi lễ, chỉ đường và cách thêm sự kiện vào lịch.",
   "venue.title": "Địa điểm và lịch",
   "venue.unavailable": "Thông tin sự kiện tạm thời chưa hiển thị được. Vui lòng thử lại sau ít phút hoặc liên hệ ban tổ chức.",
@@ -139,7 +148,7 @@ export const vi: Messages = {
     "Bản đồ khuôn viên VGU quanh Sunrise River. Ceremony Hall, nơi diễn ra buổi lễ, được tô nổi bật ở bờ bắc, cạnh thư viện. Từ cổng chính trên Ring Road 4, Quý khách đi bộ về phía bắc qua West Bridge để đến nơi.",
 
   // Guide-book (/guide) -----------------------------------------------------------
-  "guide.metaTitle": "Cẩm nang · GRAD '26",
+  "guide.metaTitle": "Cẩm nang | GRAD '26",
   "guide.eyebrow": "Cẩm nang",
   "guide.title": "Trong thời gian ở khuôn viên trường",
   "guide.loading": "Đang tải cẩm nang…",
@@ -164,7 +173,7 @@ export const vi: Messages = {
   "guide.category.practical": "Tiện ích",
 
   // Guest profile (/me) ---------------------------------------------------------
-  "profile.metaTitle": "Hồ sơ của Quý khách · GRAD '26",
+  "profile.metaTitle": "Hồ sơ của Quý khách | GRAD '26",
   "profile.loading": "Đang tải hồ sơ…",
   "profile.eyebrow": "Hồ sơ khách mời",
   "profile.rsvp": "Phản hồi",
@@ -216,7 +225,7 @@ export const vi: Messages = {
   "textSize.largest": "Lớn nhất",
 
   // Accessibility (/accessibility) -------------------------------------------------
-  "a11y.metaTitle": "Hỗ trợ tiếp cận · GRAD '26",
+  "a11y.metaTitle": "Hỗ trợ tiếp cận | GRAD '26",
   "a11y.metaDescription": "Cách vào địa điểm, theo dõi buổi lễ với phụ đề và cách yêu cầu hỗ trợ.",
   "a11y.title": "Buổi lễ chào đón tất cả mọi người",
   "a11y.lead":
@@ -250,7 +259,7 @@ export const vi: Messages = {
     "Trang web cũng hoạt động với trình đọc màn hình, khi chỉ dùng bàn phím, với chức năng thu phóng của trình duyệt và chế độ giảm chuyển động. Nếu có điều gì chưa phù hợp với Quý khách, xin báo ban tổ chức để chúng tôi khắc phục.",
 
   // About (/about) -----------------------------------------------------------------
-  "about.metaTitle": "Giới thiệu · GRAD '26",
+  "about.metaTitle": "Giới thiệu | GRAD '26",
   "about.metaDescription": "Các lập trình viên đã xây dựng người bạn đồng hành tốt nghiệp GRAD '26.",
   "about.eyebrow": "Giới thiệu",
   "about.title": "Những người đứng sau Grad ’26",
@@ -517,7 +526,7 @@ export const vi: Messages = {
   "display.problem.signedOut": "Màn hình này chưa đăng nhập. Hãy mở đường dẫn thư mời kiosk một lần trong trình duyệt này, rồi tải lại trang.",
 
   // ASCII Live (/ascii-live, experimental) ----------------------------------------------
-  "ascii.metaTitle": "ASCII Live — GRAD '26",
+  "ascii.metaTitle": "ASCII Live | GRAD '26",
   "ascii.metaDescription": "Biến hình ảnh máy ảnh thành tranh ASCII trực tiếp ngay trong trình duyệt.",
   "ascii.eyebrow": "Thử nghiệm / Trên thiết bị",
   "ascii.privacy": "Hình ảnh từ máy ảnh chỉ ở trong trình duyệt này. Không khung hình nào được tải lên hay lưu lại.",

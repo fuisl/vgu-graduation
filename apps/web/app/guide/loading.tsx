@@ -10,7 +10,7 @@ export default async function Loading() {
   return (
     <BrandTheme>
       <SiteHeader i18n={i18n} />
-      <main className="profile-main">
+      <main id="main" className="profile-main">
         <Section tone="blue">
           <div className="guide-hero">
             <BrandEyebrow>{i18n.t("guide.eyebrow")}</BrandEyebrow>

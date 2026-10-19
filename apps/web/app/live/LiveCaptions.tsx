@@ -313,7 +313,7 @@ export function LiveCaptions({ messages, locale }: { messages: MessageSlice<"liv
 
   return (
     <>
-      <main className="live-main">
+      <main id="main" className="live-main">
         <Section tone="blue" density="compact" aria-labelledby="live-title">
           <div className="live-hero">
             <BrandEyebrow>{t("live.eyebrow")}</BrandEyebrow>

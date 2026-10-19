@@ -42,7 +42,7 @@ export default async function InvitePage() {
   return (
     <BrandTheme>
       <SiteHeader i18n={i18n} />
-      <main className="invite-main">
+      <main id="main" className="invite-main">
         {state.kind === "personal" ? (
           <PersonalInvitation i18n={i18n} invitation={state.invitation} event={event} savedNeeds={savedNeedsFrom(saved)} />
         ) : (

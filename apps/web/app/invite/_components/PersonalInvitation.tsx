@@ -1,4 +1,4 @@
-import type { EventConfig, Invitation } from "@grad/contract";
+import { ACCESSIBILITY_NOTE_MAX_LENGTH, type EventConfig, type Invitation } from "@grad/contract";
 import { BrandEyebrow, Cta, Section } from "@grad/ui";
 import type { ApiResult } from "../../../lib/api/result";
 import { pickMessages, type I18n } from "../../../lib/i18n/dictionary";
@@ -47,7 +47,12 @@ export function PersonalInvitation({
               <p>{summarizeRsvp(invitation.rsvp, i18n)}</p>
             </section>
             <section aria-labelledby="rsvp-form-heading" className="invite-body">
-              <RsvpForm invitation={invitation} savedNeeds={savedNeeds} messages={pickMessages(i18n.locale, ...RSVP_MESSAGES)} />
+              <RsvpForm
+                invitation={invitation}
+                savedNeeds={savedNeeds}
+                messages={pickMessages(i18n.locale, ...RSVP_MESSAGES)}
+                noteMaxLength={ACCESSIBILITY_NOTE_MAX_LENGTH}
+              />
             </section>
           </div>
           <div className="invite-stack">

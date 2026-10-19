@@ -97,7 +97,9 @@ describe("runMigrations", () => {
     const applied = await query<{ count: string }>(
       "SELECT count(*) FROM drizzle.__drizzle_migrations",
     );
-    expect(Number(applied[0].count)).toBe(7);
+    // Every migration in the journal, so a new one doesn't need this test edited.
+    const journal = JSON.parse(fs.readFileSync(path.join(MIGRATIONS_FOLDER, "meta/_journal.json"), "utf8")) as { entries: unknown[] };
+    expect(Number(applied[0].count)).toBe(journal.entries.length);
 
     // 0004 moves the untouched placeholder date to 20 November 2026 and bumps the calendar sequence once.
     const [event] = await query<{ epoch: string; sequence: number }>(

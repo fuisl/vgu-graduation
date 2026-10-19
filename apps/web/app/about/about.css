@@ -1,0 +1,107 @@
+/* About and credits (#7). Brand tokens only; no hex, gradients, blur or shadows. */
+[data-theme="brand"] .about-main {
+  overflow-x: clip;
+}
+[data-theme="brand"] .about-title {
+  margin: var(--space-4) 0 0;
+  font-size: var(--brand-text-h1);
+  font-weight: 500;
+  line-height: var(--brand-leading-display);
+  letter-spacing: var(--brand-tracking-display);
+  overflow-wrap: anywhere;
+}
+[data-theme="brand"] .about-lead {
+  margin: var(--space-5) 0 0;
+  max-width: var(--brand-measure);
+  color: var(--brand-muted);
+  font-size: var(--brand-text-lead);
+  line-height: 1.35;
+}
+[data-theme="brand"] .about-h2 {
+  margin: var(--space-3) 0 var(--space-6);
+  font-size: var(--brand-text-h2);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: var(--brand-tracking-display);
+}
+[data-theme="brand"] .about-h2 + .about-lead { margin-top: 0; }
+[data-theme="brand"] .about-actions { margin-top: var(--space-6); }
+
+/* Team: intrinsic grid, one column on phones, up to four on wide screens. */
+[data-theme="brand"] .about-team {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+  gap: var(--space-7) var(--space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+[data-theme="brand"] .about-dev { min-width: 0; }
+
+/* The portrait plate: white ASCII on blue, like the landing sculpture. */
+[data-theme="brand"] .about-portrait {
+  container-type: inline-size;
+  max-width: 26rem;
+  padding: var(--space-3);
+  border-radius: var(--brand-radius);
+  background: var(--brand-blue);
+  color: var(--brand-white);
+}
+[data-theme="brand"] .about-portrait__prompt {
+  margin: 0 0 var(--space-2);
+  color: var(--brand-muted-on-blue);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--brand-tracking-label);
+  overflow-wrap: anywhere;
+}
+/*
+ * The grid always fits the plate: one cell is 1ch (0.6em in Geist Mono), so the font size is the
+ * plate width over cols x 0.6. It never scrolls and never needs a horizontal scrollbar.
+ */
+[data-theme="brand"] .about-portrait__art {
+  width: calc(var(--portrait-cols) * 1ch);
+  margin: 0 auto;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: calc(100cqi / (var(--portrait-cols) * 0.6 + 0.5));
+  line-height: 1;
+  letter-spacing: 0;
+  white-space: pre;
+  user-select: none;
+}
+
+[data-theme="brand"] .about-dev__handle {
+  margin: var(--space-4) 0 0;
+  font-size: var(--brand-text-h3);
+  font-weight: 500;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+[data-theme="brand"] .about-dev__handle a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--brand-tap);
+  color: var(--brand-blue);
+  text-decoration: none;
+}
+[data-theme="brand"] .about-dev__handle a:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+[data-theme="brand"] .about-dev__handle a:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+[data-theme="brand"] .about-dev__roles {
+  margin: 0;
+  color: var(--brand-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--brand-tracking-label);
+  text-transform: uppercase;
+}
+[data-theme="brand"] .about-dev__bio {
+  margin: var(--space-3) 0 0;
+  max-width: var(--brand-measure);
+}

@@ -1,0 +1,20 @@
+meta {
+  name: Admin List Print Jobs
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{apiOrigin}}/admin/print/jobs?limit=50
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{adminSessionToken}}
+}
+
+docs {
+  The queue, newest first, with counts by status. Optional `status` filter.
+  Re-queue a failed job with POST /admin/print/jobs/{id}/retry.
+}

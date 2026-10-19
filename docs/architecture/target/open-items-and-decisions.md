@@ -41,7 +41,7 @@ Decided 2026-09-29:
 
 - The ceremony is a public event and door check-in is not planned (#91 closed as not planned). Invitations and the digital pass are personalized keepsakes, and RSVP still gives a headcount. The pass payload is signed with Ed25519, the private key stays on the API and a verifier needs only the public key named by `keyId` (#35). Offline verification is dropped from the pass page (#40).
 - Uploads and wishes require an invitation credential; anonymous visitors only view. Unguessable photo identifiers and public viewing links are unchanged.
-- The site UI and event information support English and Vietnamese (#9), with English as the fallback. German is a live-translation caption language only.
+- The site UI and event information support English and Vietnamese (#9), with English as the fallback. German is a live-translation caption language only. Implemented 2026-10-19 (ADR-010): no locale in URLs; a `lang` cookie, else `Accept-Language`, else English; an EN | VI switch in the header, mobile menu and footer; typed dictionaries; optional Vietnamese event name, address and arrival notes (migration 0006). Admin stays English.
 - Live translation (#18, experimental): spoken languages are English and Vietnamese; captions are German, English or Vietnamese. The pipeline has one audio input and broadcasts to every viewer through the API. ASR and translation sit behind provider interfaces, so a local GPU model or a cloud service can be swapped by configuration if the GPU does not work out. Every translation is `draft`, `final` or `failed` per language, with its provider recorded.
 - RSVP is answered on our own form (attending, plus-ones, notes) and is editable until the event, with no deadline (#34). No email is sent to guests. Calendar apps can only send RSVP replies by email, so calendar RSVP buttons are out of scope.
 - Guests add the event to any calendar app (Google, Outlook, Apple) through a public subscribable feed, `GET /event/calendar.ics` as a `webcal://` link, plus "Add to Google" and "Add to Outlook" links (#33, #39). The feed carries no personal data. It keeps a stable `UID` and bumps `SEQUENCE` so subscribed calendars update when the date is confirmed. Google refreshes subscriptions slowly, up to about a day.
@@ -51,3 +51,24 @@ Decided 2026-09-29:
 - The ceremony date and time are still unconfirmed (#83). Everything builds against the placeholder with `timeConfirmed: false` in the event configuration; nothing else may hard-code them.
 - Guest-facing pages use one fixed blue-and-white theme, with no light/dark switch (redesign #142, `docs/design/redesign-2026-10.md`). A light theme (#10) and a more minimal landing layout (#5) are superseded by it.
 - CI: the API image is built and pushed only when something merges to `main`, and pull-request CI runs only the packages a change affects (#103, #104, #105). Local development and the cluster both run Garage v2.4.1 (#49 vendored the chart).
+
+Decided 2026-10-19 (infrastructure for #53, #71, #73, #77):
+
+- Translation and printer images are public on GHCR (`ghcr.io/fuisl/grad-translation`, `ghcr.io/fuisl/grad-printer`), built only on main by `docker-translation.yml` and `docker-printer.yml` with the same `main-<timestamp>-<sha>` tags Flux follows for the API. The repositories are public, so public images leak nothing and need no pull secret.
+- Live translation, including the NVIDIA device plugin, is its own Flux Kustomization `translation`, so a GPU problem can never hold up the core. The ceremony-day switch is suspend plus scale to zero (suspend alone leaves the pod running).
+- The printer runs on the venue cluster only, alone in a `print` namespace. cupsd and the printer driver live on the venue host and the pod mounts only the CUPS socket, instead of a privileged pod with the USB bus. Printing is at most once per job (a local journal), reporting at least once.
+- The archive is exported with `scripts/archive-export.sh` (pg_dump plus both media buckets, checksummed, age-encrypted when it leaves the machine) and verified with `scripts/archive-restore.sh`; at most two exports are kept, and a takedown is followed by a fresh export (`operations/archive.md`).
+- Yearbook v1 is a static HTML export plus a print-ready A4 PDF of the publicly displayed set (visible photos and wishes), built from display derivatives after the ceremony; the generator is not built yet.
+
+Decided 2026-10-19 (#66, #70; details in `docs/design/live-surfaces.md`):
+
+- `/display` keeps the invitation credential of the display feed (#65); there is no separate display key. The kiosk gets its own invitation and opens its link once in the kiosk browser. Captions on `/live` are public (#68).
+- `/live` is not in the header navigation, which keeps its four links; it is linked from the invitation's event details and from the display's caption band. It has no footer.
+- Phones subscribe to every caption language and switch locally; after a reconnect they catch up by `since`, and they poll the segments endpoint when the socket is refused at the connection cap.
+- The display's caption line defaults to the other hall language (Vietnamese while English is spoken and vice versa), configurable with `?captions=`.
+
+Decided 2026-10-19 (#74, #75, #76; details in `docs/design/memories-archive.md`):
+
+- The event gallery `/gallery` stays open to everyone and unchanged. The curated public view is a separate archive at `/memories`, with the cohort timeline at `/memories/timeline`. Both read only the curated listings (`GET /gallery/public`, `GET /wishes/public`) and fetch them with the tags `gallery-public` and `wishes-public`, so admin revalidation reaches them (since #9 the pages render per request in the guest's language and only the data is cached; ADR-010). The header keeps its four links; `/memories` is linked from the footer, the landing and `/gallery`.
+- Timeline chapters come from the event configuration (Arrival, Ceremony, Celebration, plus the days before and after), falling back to days or hours when it is unavailable. The new layout pieces (rail, photo bursts, chapter index) await owner review.
+- Guest print requests show in the gallery's photo dialog only when the web app's server-side `PRINT_GUEST_REQUESTS_ENABLED=true` mirrors the API flag. They go through the BFF (`/api/print`), so the invitation cookie stays HttpOnly.

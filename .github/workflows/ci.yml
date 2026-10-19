@@ -112,3 +112,54 @@ jobs:
       - name: Build docs site
         if: steps.scope.outputs.mode == 'affected' && steps.scope.outputs.docs == 'true'
         run: pnpm turbo build --filter=@grad/docs --cache-dir=.turbo
+
+  # apps/translation is Python. The `checks` job has no uv, so its turbo run
+  # skips the Python tasks (apps/translation/scripts/py.sh); this job runs them
+  # for real. It always reports, so it can be made a required check, but only
+  # works when scripts/ci-scope.sh says apps/translation changed (or on a full run).
+  translation:
+    name: translation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/translation
+    env:
+      # A missing uv fails here instead of skipping.
+      REQUIRE_UV: "1"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Decide scope
+        id: scope
+        working-directory: .
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: scripts/ci-scope.sh "$BASE_SHA" | tee -a "$GITHUB_OUTPUT"
+
+      - uses: astral-sh/setup-uv@v6
+        if: steps.scope.outputs.translation == 'true'
+        with:
+          version: "0.10.5"
+          enable-cache: true
+          cache-dependency-glob: apps/translation/uv.lock
+
+      # Core and dev dependencies only: the GPU extra (faster-whisper, CTranslate2,
+      # transformers) is never needed for lint, types or the mock pipeline's tests.
+      - name: Lint
+        if: steps.scope.outputs.translation == 'true'
+        run: sh scripts/py.sh lint
+
+      - name: Typecheck
+        if: steps.scope.outputs.translation == 'true'
+        run: sh scripts/py.sh typecheck
+
+      - name: Test
+        if: steps.scope.outputs.translation == 'true'
+        run: sh scripts/py.sh test
+
+      - name: Build the mock image
+        if: steps.scope.outputs.translation == 'true'
+        run: docker build --target mock -t grad-translation:ci .

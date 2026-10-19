@@ -1,0 +1,21 @@
+meta {
+  name: Get My Guide
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{apiOrigin}}/invitations/me/guide
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{invitationToken}}
+}
+
+docs {
+  Guest guide-book (#140): the items the graduates picked for this
+  invitation (`tailored: true`), or every active item (`tailored: false`).
+  `Cache-Control: private, max-age=300`.
+}

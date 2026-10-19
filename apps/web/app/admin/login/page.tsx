@@ -3,7 +3,7 @@ import { Container, Eyebrow, Rule } from "@grad/ui";
 import "../admin.css";
 
 export const metadata: Metadata = {
-  title: "Admin sign-in · GRAD '26",
+  title: "Admin sign-in | GRAD '26",
   robots: { index: false, follow: false },
 };
 
@@ -35,7 +35,8 @@ export default async function AdminLoginPage({
   const error = typeof params.error === "string" ? ERRORS[params.error] : undefined;
 
   return (
-    <div className="admin">
+    // Admin is internal and English-only (#9), whatever the site language on <html>.
+    <div className="admin" lang="en">
       <Container>
         <header className="admin-header">
           <Eyebrow>GRAD &apos;26 / ADMIN</Eyebrow>

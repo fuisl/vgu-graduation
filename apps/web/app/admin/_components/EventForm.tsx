@@ -12,17 +12,20 @@ import { SubmitButton } from "./SubmitButton";
 function eventToValues(event: EventConfig): FormValues {
   return {
     name: event.name,
+    nameVi: event.nameVi ?? "",
     startsAt: isoToZonedLocal(event.startsAt, event.timeZone),
     endsAt: event.endsAt ? isoToZonedLocal(event.endsAt, event.timeZone) : "",
     timeZone: event.timeZone,
     timeConfirmed: event.timeConfirmed ? "on" : "",
     venueName: event.venue.name,
     venueAddress: event.venue.address,
+    venueAddressVi: event.venue.addressVi ?? "",
     venueMapUrl: event.venue.mapUrl,
     contactName: event.contact?.name ?? "",
     contactEmail: event.contact?.email ?? "",
     contactPhone: event.contact?.phone ?? "",
     arrivalInfo: event.arrivalInfo ?? "",
+    arrivalInfoVi: event.arrivalInfoVi ?? "",
   };
 }
 
@@ -45,6 +48,14 @@ export function EventForm({ event }: { event: EventConfig }) {
         ) : null}
 
         <Field id="event-name" name="name" label="Event name" required defaultValue={v("name")} error={errors.name} />
+        <Field
+          id="event-name-vi"
+          name="nameVi"
+          label="Event name in Vietnamese (optional)"
+          hint="Shown to guests reading the site in Vietnamese. Empty shows the English name."
+          defaultValue={v("nameVi")}
+          error={errors.nameVi}
+        />
         <Field
           id="event-time-zone"
           name="timeZone"
@@ -90,6 +101,14 @@ export function EventForm({ event }: { event: EventConfig }) {
             error={errors.venueAddress}
           />
           <Field
+            id="event-venue-address-vi"
+            name="venueAddressVi"
+            label="Address in Vietnamese (optional)"
+            hint="The venue name is a proper noun and stays the same in both languages."
+            defaultValue={v("venueAddressVi")}
+            error={errors.venueAddressVi}
+          />
+          <Field
             id="event-venue-map-url"
             name="venueMapUrl"
             label="Map link"
@@ -130,6 +149,15 @@ export function EventForm({ event }: { event: EventConfig }) {
           defaultValue={v("arrivalInfo")}
           error={errors.arrivalInfo}
         />
+        <Field
+          id="event-arrival-info-vi"
+          name="arrivalInfoVi"
+          label="Arrival information in Vietnamese (optional)"
+          type="textarea"
+          hint="Empty shows the English notes to Vietnamese readers."
+          defaultValue={v("arrivalInfoVi")}
+          error={errors.arrivalInfoVi}
+        />
 
         <SubmitButton pendingLabel="Saving…">Save event</SubmitButton>
       </form>
@@ -140,10 +168,12 @@ export function EventForm({ event }: { event: EventConfig }) {
 function SavedEvent({ event }: { event: EventConfig }) {
   const rows: [string, string][] = [
     ["Event name", event.name],
+    ["Event name (Vietnamese)", event.nameVi ?? "—"],
     ["Starts", `${formatAdminDateTime(event.startsAt, event.timeZone)} (${event.timeZone})`],
     ["Ends", event.endsAt ? `${formatAdminDateTime(event.endsAt, event.timeZone)} (${event.timeZone})` : "—"],
     ["Time confirmed", event.timeConfirmed ? "Yes" : "No"],
     ["Venue", `${event.venue.name}, ${event.venue.address}`],
+    ["Address (Vietnamese)", event.venue.addressVi ?? "—"],
     ["Map link", event.venue.mapUrl],
     [
       "Contact",
@@ -152,6 +182,7 @@ function SavedEvent({ event }: { event: EventConfig }) {
         : "—",
     ],
     ["Arrival information", event.arrivalInfo ?? "—"],
+    ["Arrival information (Vietnamese)", event.arrivalInfoVi ?? "—"],
   ];
   return (
     <section className="admin-notice" role="status" aria-labelledby="event-saved-heading">

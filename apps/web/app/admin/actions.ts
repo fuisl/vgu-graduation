@@ -10,6 +10,7 @@ import {
   rotateInvitation,
   updateEvent,
 } from "../../lib/api/admin";
+import { forgetInvitation } from "../../lib/api/invitations";
 import type { ApiResult } from "../../lib/api/result";
 import {
   formValues,
@@ -75,7 +76,12 @@ export async function createInvitationAction(
   if (result.status !== "ok") return { status: "error", message: failureMessage(result), errors: {}, values };
 
   revalidateAdmin();
-  return { status: "created", guestName: result.data.guest.name, inviteUrl: result.data.inviteUrl };
+  return {
+    status: "created",
+    invitationId: result.data.invitationId,
+    guestName: result.data.guest.name,
+    inviteUrl: result.data.inviteUrl,
+  };
 }
 
 function invitationId(form: FormData): string | null {
@@ -95,6 +101,8 @@ export async function rotateInvitationAction(
   redirectIfUnauthorized(result);
   if (result.status !== "ok") return { status: "error", message: failureMessage(result) };
 
+  // Guest reads are no-store, so no cache tag holds the old token; drop the outage fallback copy too.
+  forgetInvitation(id);
   revalidateAdmin();
   return { status: "rotated", inviteUrl: result.data.inviteUrl };
 }
@@ -111,6 +119,7 @@ export async function revokeInvitationAction(
   redirectIfUnauthorized(result);
   if (result.status !== "ok") return { status: "error", message: failureMessage(result) };
 
+  forgetInvitation(id);
   revalidateAdmin();
   return { status: "revoked" };
 }

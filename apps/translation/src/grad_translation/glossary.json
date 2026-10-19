@@ -1,0 +1,41 @@
+{
+  "_todo": "TODO(owner): verify the official programme names in all three languages, add speakers' names (rector, deans, valedictorian) with their exact spelling, and remove anything VGU no longer offers.",
+  "terms": [
+    {
+      "en": "Vietnamese-German University",
+      "vi": "Trường Đại học Việt Đức",
+      "de": "Vietnamesisch-Deutsche Universität",
+      "aliases": {
+        "en": ["Vietnamese German University", "Vietnam German University", "Vietnam-German University"],
+        "vi": ["Đại học Việt Đức", "Đại học Việt-Đức", "trường Đại học Việt Đức"],
+        "de": ["Vietnamesisch Deutsche Universität", "Vietnamesisch-deutsche Universität"]
+      }
+    },
+    { "en": "VGU", "vi": "VGU", "de": "VGU", "aliases": { "en": ["V G U", "V.G.U."], "vi": ["V G U"] } },
+    { "en": "Binh Duong", "vi": "Bình Dương", "de": "Binh Duong", "aliases": { "en": ["Bin Duong"] } },
+    {
+      "en": "Ho Chi Minh City",
+      "vi": "Thành phố Hồ Chí Minh",
+      "de": "Ho-Chi-Minh-Stadt",
+      "aliases": { "vi": ["TP Hồ Chí Minh", "TP. Hồ Chí Minh"] }
+    },
+    {
+      "en": "new graduates",
+      "vi": "tân cử nhân",
+      "de": "neuen Absolventinnen und Absolventen",
+      "aliases": { "vi": ["tên cử nhân"] }
+    },
+    { "en": "Computer Science", "vi": "Khoa học Máy tính", "de": "Informatik", "aliases": {} },
+    {
+      "en": "Electrical and Computer Engineering",
+      "vi": "Kỹ thuật Điện và Máy tính",
+      "de": "Elektrotechnik und Informationstechnik",
+      "aliases": {}
+    },
+    { "en": "Mechanical Engineering", "vi": "Kỹ thuật Cơ khí", "de": "Maschinenbau", "aliases": {} },
+    { "en": "Civil Engineering", "vi": "Kỹ thuật Xây dựng", "de": "Bauingenieurwesen", "aliases": {} },
+    { "en": "Architecture", "vi": "Kiến trúc", "de": "Architektur", "aliases": {} },
+    { "en": "Business Administration", "vi": "Quản trị Kinh doanh", "de": "Betriebswirtschaftslehre", "aliases": {} },
+    { "en": "Finance and Accounting", "vi": "Tài chính và Kế toán", "de": "Finanzen und Rechnungswesen", "aliases": {} }
+  ]
+}

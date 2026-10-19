@@ -24,6 +24,12 @@ Deploy the docs project first. Its project URL will serve the handbook at `https
 
 For the **web** project, set `DOCS_ORIGIN` in Vercel's Environment Variables to the docs project's production origin, for example `https://<docs-project>.vercel.app` (no trailing `/docs`). Apply it to Production, then redeploy the web project. Assign the custom domain to the web project only.
 
+## Speed Insights
+
+The web project reports Core Web Vitals to [Vercel Speed Insights](https://vercel.com/fuisls-projects/vgu-graduation/speed-insights) (#8). Enable Speed Insights once in the web project's dashboard; the `@vercel/speed-insights` component in `apps/web/app/layout.tsx` renders only when `VERCEL` is set, so local and homelab builds load nothing. Docs is not instrumented.
+
+Invitation URLs are bearer credentials, so every event passes through `scrubSpeedInsightsEvent` (`apps/web/lib/analytics/speed-insights.ts`) before it leaves the browser: the query string and fragment are dropped, the segment after `/invite/` becomes `[token]` (except `/invite/demo`), any other token-shaped segment (20 or more base64url characters) becomes `[id]`, and `/admin` pages are not reported at all. Change that function, and its tests, before adding any route that carries an identifier in its path.
+
 ## Verify
 
 - `https://<domain>/` shows the landing page.

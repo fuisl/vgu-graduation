@@ -1,23 +1,32 @@
+import type { Metadata } from "next";
 import { BrandEyebrow, BrandTheme, Cta, Section } from "@grad/ui";
+import { getI18n } from "../lib/i18n/server";
 import { SiteFooter } from "./site/SiteFooter";
 import { SiteHeader } from "./site/SiteHeader";
 import "./not-found.css";
 
-export default function NotFound() {
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("notFound.metaTitle") };
+}
+
+export default async function NotFound() {
+  const i18n = await getI18n();
+  const { t } = i18n;
   return (
     <BrandTheme>
-      <SiteHeader />
-      <main>
+      <SiteHeader i18n={i18n} />
+      <main id="main">
         <Section tone="blue" aria-labelledby="notfound-title">
           <div className="notfound">
-            <BrandEyebrow>Error 404</BrandEyebrow>
-            <h1 id="notfound-title" className="notfound-title">Page not found</h1>
-            <p className="notfound-text">This page wandered off before the ceremony started.</p>
-            <Cta tone="on-blue" href="/">Back to home</Cta>
+            <BrandEyebrow>{t("notFound.eyebrow")}</BrandEyebrow>
+            <h1 id="notfound-title" className="notfound-title">{t("notFound.title")}</h1>
+            <p className="notfound-text">{t("notFound.text")}</p>
+            <Cta tone="on-blue" href="/">{t("notFound.home")}</Cta>
           </div>
         </Section>
       </main>
-      <SiteFooter />
+      <SiteFooter i18n={i18n} />
     </BrandTheme>
   );
 }

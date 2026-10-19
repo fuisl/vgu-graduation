@@ -44,6 +44,9 @@ export const navGroups: readonly NavGroup[] = [
           ["design/responsive", "Responsive"],
           ["design/motion", "Motion"],
           ["design/figures", "Illustrative figures"],
+          ["design/live-surfaces", "Event display and captions"],
+          ["design/memories-archive", "Curated archive and timeline"],
+          ["design/languages", "Languages (EN and VI)"],
         ],
       },
       {
@@ -113,6 +116,8 @@ export const navGroups: readonly NavGroup[] = [
           ["adr/007-venue-audio-ingest", "ADR-007 Venue audio ingest"],
           ["adr/008-infrastructure-repository", "ADR-008 Infrastructure repository"],
           ["adr/009-direct-home-network-exposure", "ADR-009 Direct network exposure"],
+          ["adr/010-site-languages", "ADR-010 Site languages"],
+          ["adr/011-no-service-worker", "ADR-011 No service worker"],
         ],
       },
     ],
@@ -134,7 +139,7 @@ export const navGroups: readonly NavGroup[] = [
   {
     title: "Operations",
     sections: [
-      { items: [["operations/event-runbook", "Event runbook"], ["operations/deployment", "Deployment"]] },
+      { items: [["operations/event-runbook", "Event runbook"], ["operations/deployment", "Deployment"], ["operations/archive", "Archive and yearbook"]] },
     ],
   },
 ];

@@ -1,0 +1,27 @@
+meta {
+  name: Complete Print Job
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{apiOrigin}}/internal/print/jobs/{{printJobId}}/done
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{printerToken}}
+}
+
+body:json {
+  {
+    "result": "done"
+  }
+}
+
+docs {
+  The daemon's report: `done`, or `failed` with an `error` (max 500 chars).
+  Repeating the same result is a no-op; a different one on a finished job is 409.
+}

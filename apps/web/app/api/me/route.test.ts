@@ -1,11 +1,19 @@
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { resetLastKnownGood } from "../../../lib/api/last-known-good";
 import { GET } from "./route";
 
 const TOKEN = "secret-invitation-token-123";
 const invitation = {
   id: "3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e6f",
-  guest: { id: "3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e70", name: "  Linh Tran ", email: "linh@example.com", phone: "+84123" },
+  guest: {
+    id: "3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e70",
+    name: "Linh Tran",
+    givenName: "Linh",
+    familyName: "Tran",
+    email: "linh@example.com",
+    phone: "+84123",
+  },
   maxPlusOnes: 1,
   status: "active",
   validFrom: null,
@@ -29,6 +37,7 @@ function stubApi(status: number, body: unknown = {}) {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
+  resetLastKnownGood();
 });
 
 describe("GET /api/me", () => {
@@ -40,12 +49,12 @@ describe("GET /api/me", () => {
     expect(spy).not.toHaveBeenCalled();
   });
 
-  it("returns only firstName and avatarSeed for a valid invitation", async () => {
+  it("returns only givenName and avatarSeed for a valid invitation", async () => {
     vi.stubEnv("API_ORIGIN", "http://api.example.test");
     const spy = stubApi(200, invitation);
     const response = await GET(request(true));
     const text = await response.text();
-    expect(JSON.parse(text)).toEqual({ signedIn: true, firstName: "Tran", avatarSeed: invitation.guest.id });
+    expect(JSON.parse(text)).toEqual({ signedIn: true, givenName: "Linh", avatarSeed: invitation.guest.id });
     expect(text).not.toContain(TOKEN);
     expect(text).not.toContain("linh@example.com");
     expect(response.headers.get("Cache-Control")).toBe("private, no-store");
@@ -56,14 +65,20 @@ describe("GET /api/me", () => {
   });
 
   it.each([
-    ["Nguyen Van An", "An"],
-    ["  Linh   Tran ", "Tran"],
-    ["Madonna", "Madonna"],
-  ])("uses the last whitespace-separated word of %j (#170)", async (name, expected) => {
+    [{ name: "Nguyễn Văn An", givenName: "An", familyName: "Nguyễn" }, "An"],
+    [{ name: "John Smith", givenName: "John", familyName: "Smith" }, "John"],
+    [{ name: "Madonna", givenName: "Madonna", familyName: null }, "Madonna"],
+  ])("uses the guest's givenName for %j (#170)", async (names, expected) => {
     vi.stubEnv("API_ORIGIN", "http://api.example.test");
-    stubApi(200, { ...invitation, guest: { ...invitation.guest, name } });
+    stubApi(200, { ...invitation, guest: { ...invitation.guest, ...names } });
     const response = await GET(request(true));
-    expect((await response.json()).firstName).toBe(expected);
+    expect((await response.json()).givenName).toBe(expected);
+  });
+
+  it("falls back to the shared name rules when the API omits givenName", async () => {
+    const { givenName: _given, familyName: _family, ...older } = invitation.guest;
+    stubApi(200, { ...invitation, guest: { ...older, name: "John Smith" } });
+    expect((await (await GET(request(true))).json()).givenName).toBe("John");
   });
 
   it.each([401, 404, 410, 500])("is signed out when the API answers %i", async (status) => {
@@ -84,5 +99,35 @@ describe("GET /api/me", () => {
     const text = await response.text();
     expect(JSON.parse(text)).toEqual({ signedIn: false });
     expect(text).not.toContain(TOKEN);
+  });
+});
+
+describe("GET /api/me after the guest was signed in (QA P0-1)", () => {
+  /** Answers each API call in turn: a status, or "down" for a network error. */
+  function sequence(...answers: (number | "down")[]) {
+    const spy = vi.fn();
+    for (const answer of answers) {
+      if (answer === "down") spy.mockRejectedValueOnce(new TypeError("fetch failed"));
+      else spy.mockResolvedValueOnce(new Response(JSON.stringify(answer < 300 ? invitation : { error: "x", message: "y" }), { status: answer }));
+    }
+    vi.stubGlobal("fetch", spy);
+    return spy;
+  }
+  const signedIn = { signedIn: true, givenName: "Linh", avatarSeed: invitation.guest.id };
+
+  it.each([401, 403, 404, 410])("signs out as soon as the API answers %i, and stays out while it is down", async (status) => {
+    const spy = sequence(200, status, "down");
+    expect(await (await GET(request(true))).json()).toEqual(signedIn);
+    expect(await (await GET(request(true))).json()).toEqual({ signedIn: false });
+    expect(await (await GET(request(true))).json()).toEqual({ signedIn: false });
+    // Every request asks the API; nothing is answered from the Next fetch cache.
+    expect(spy).toHaveBeenCalledTimes(3);
+    for (const [, init] of spy.mock.calls) expect(init.cache).toBe("no-store");
+  });
+
+  it.each(["down", 500, 503] as const)("stays signed in when the API is %s", async (outage) => {
+    sequence(200, outage);
+    await GET(request(true));
+    expect(await (await GET(request(true))).json()).toEqual(signedIn);
   });
 });

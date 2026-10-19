@@ -1,0 +1,156 @@
+/*
+ * /live (#70): live captions on phones. Brand tokens only; no hex, gradients, blur
+ * or shadows. Mobile-first: one column, controls docked at the bottom within thumb
+ * reach and clear of the home indicator (safe-area insets). The accent appears once,
+ * as the live dot on the blue band.
+ */
+[data-theme="brand"] .live-main {
+  --live-dock-h: calc(var(--brand-tap) + 8px + var(--space-3) * 2);
+  min-height: 100svh;
+  padding-bottom: calc(var(--live-dock-h) + env(safe-area-inset-bottom) + var(--space-4));
+}
+
+/* Blue band --------------------------------------------------------------- */
+[data-theme="brand"] .live-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+[data-theme="brand"] .live-title {
+  margin: 0;
+  font-size: var(--brand-text-h1);
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: var(--brand-tracking-display);
+}
+[data-theme="brand"] .live-lead {
+  margin: 0;
+  max-width: var(--brand-measure);
+  font-size: var(--brand-text-lead);
+  line-height: 1.35;
+  color: var(--brand-muted);
+}
+[data-theme="brand"] .live-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--brand-tracking-label);
+  text-transform: uppercase;
+  color: var(--brand-muted);
+}
+[data-theme="brand"] .live-status__dot {
+  width: 10px;
+  height: 10px;
+  border: 2px solid currentcolor;
+  border-radius: var(--brand-radius-sm);
+}
+[data-theme="brand"] .live-status[data-view="live"] {
+  color: var(--brand-white);
+}
+[data-theme="brand"] .live-status[data-view="live"] .live-status__dot {
+  border-color: var(--brand-accent);
+  background: var(--brand-accent);
+}
+
+/* Captions ---------------------------------------------------------------- */
+[data-theme="brand"] .live-log {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+[data-theme="brand"] .live-line {
+  max-width: 36ch;
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  color: var(--brand-ink);
+  overflow-wrap: anywhere;
+}
+[data-theme="brand"] .live-log--m .live-line { font-size: var(--brand-text-lead); }
+[data-theme="brand"] .live-log--l .live-line { font-size: var(--brand-text-h3); }
+[data-theme="brand"] .live-log--xl .live-line { font-size: var(--brand-text-h2); line-height: 1.25; }
+/* Drafts and lines still waiting for a translation are lighter and replaced in place. */
+[data-theme="brand"] .live-line--draft,
+[data-theme="brand"] .live-line--pending,
+[data-theme="brand"] .live-line--failed {
+  font-weight: 400;
+  color: var(--brand-muted);
+}
+[data-theme="brand"] .live-line__note {
+  display: block;
+  margin-bottom: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--brand-muted);
+}
+
+[data-theme="brand"] .live-empty {
+  margin: 0;
+  max-width: var(--brand-measure);
+  font-size: var(--brand-text-lead);
+  color: var(--brand-muted);
+}
+[data-theme="brand"] .live-notice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--brand-line);
+  border-radius: var(--brand-radius);
+  background: var(--brand-blue-soft);
+  color: var(--brand-ink);
+}
+[data-theme="brand"] .live-notice__title {
+  margin: 0;
+  font-size: var(--brand-text-h3);
+  font-weight: 500;
+  line-height: 1.2;
+}
+[data-theme="brand"] .live-notice__body {
+  margin: 0;
+  max-width: var(--brand-measure);
+}
+
+/* Dock: language and text size, thumb-reachable ----------------------------- */
+[data-theme="brand"] .live-dock {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 30;
+  border-top: 1px solid var(--brand-line-on-white);
+  background: var(--brand-white);
+  padding: var(--space-3) max(var(--gutter), env(safe-area-inset-right)) calc(var(--space-3) + env(safe-area-inset-bottom)) max(var(--gutter), env(safe-area-inset-left));
+}
+[data-theme="brand"] .live-dock__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  max-width: var(--brand-content);
+  margin-inline: auto;
+}
+/* Narrower pills so both groups share one row at 360px; targets stay 44px. */
+[data-theme="brand"] .live-dock .brand-pill {
+  padding: 0 var(--space-3);
+}
+[data-theme="brand"] .live-dock__jump {
+  position: absolute;
+  bottom: calc(100% + var(--space-3));
+  left: 50%;
+  transform: translateX(-50%);
+}
+[data-theme="brand"] .live-size-glyph {
+  line-height: 1;
+}
+[data-theme="brand"] .live-size-glyph--m { font-size: 0.875rem; }
+[data-theme="brand"] .live-size-glyph--l { font-size: 1.0625rem; }
+[data-theme="brand"] .live-size-glyph--xl { font-size: 1.3125rem; }

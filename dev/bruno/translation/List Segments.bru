@@ -1,0 +1,18 @@
+meta {
+  name: List Segments
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{apiOrigin}}/live/translation/segments?lang=vi&limit=50
+  body: none
+  auth: none
+}
+
+docs {
+  Public catch-up for live captions. Without `since`, the newest segments;
+  add `since=<until from a previous response>` for what changed after it.
+  `lang` keeps one caption language. `state` is `unavailable` when the
+  translation pipeline is down.
+}

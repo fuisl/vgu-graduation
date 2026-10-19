@@ -7,17 +7,21 @@ import { eventConfig } from "../../db/schema.js";
 /** The event_config row (single row, id = 1). */
 export interface StoredEvent {
   name: string;
+  /** Vietnamese versions (#9); null shows the English field. */
+  nameVi: string | null;
   startsAt: Date;
   endsAt: Date | null;
   timeZone: string;
   timeConfirmed: boolean;
   venueName: string;
   venueAddress: string;
+  venueAddressVi: string | null;
   venueMapUrl: string;
   contactName: string | null;
   contactEmail: string | null;
   contactPhone: string | null;
   arrivalInfo: string | null;
+  arrivalInfoVi: string | null;
   sequence: number;
   updatedAt: Date;
 }
@@ -43,17 +47,21 @@ export class EventRepository implements EventStore {
         .update(eventConfig)
         .set({
           name: input.name,
+          // PUT replaces the document: an omitted translation is cleared, like any other field.
+          nameVi: input.nameVi ?? null,
           startsAt: new Date(input.startsAt),
           endsAt: input.endsAt === null ? null : new Date(input.endsAt),
           timeZone: input.timeZone,
           timeConfirmed: input.timeConfirmed,
           venueName: input.venue.name,
           venueAddress: input.venue.address,
+          venueAddressVi: input.venue.addressVi ?? null,
           venueMapUrl: input.venue.mapUrl,
           contactName: input.contact?.name ?? null,
           contactEmail: input.contact?.email ?? null,
           contactPhone: input.contact?.phone ?? null,
           arrivalInfo: input.arrivalInfo,
+          arrivalInfoVi: input.arrivalInfoVi ?? null,
           sequence: sql`${eventConfig.sequence} + 1`,
           updatedAt: sql`now()`,
         })

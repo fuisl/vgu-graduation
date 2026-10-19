@@ -9,22 +9,27 @@ import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { invitationToken } from "../../auth/credentials.js";
 import type { Config } from "../../config.js";
 import { InvitationsService } from "../invitations/invitations.service.js";
+import { translationRoutes, type TranslationRoutesOptions } from "../translation/translation.routes.js";
 import { DisplayFeed, type DisplayFeedOptions } from "./display.feed.js";
 import { DisplayRepository, type DisplaySource } from "./display.repository.js";
 import { LiveHub } from "./live.hub.js";
 
 export interface LiveRoutesOptions {
-  config: Pick<Config, "publicOrigin">;
+  config: Pick<Config, "publicOrigin" | "serviceTokens" | "translation">;
   /** Override for tests; defaults to the database-backed service. */
   invitationsService?: Pick<InvitationsService, "resolveByToken">;
   /** Override for tests; defaults to reading the database. */
   displaySource?: DisplaySource;
   /** Timing overrides for tests. */
   feed?: DisplayFeedOptions & { pingIntervalMs?: number };
+  /** Overrides for the translation module (#68): its store and timings. */
+  translation?: Omit<TranslationRoutesOptions, "config" | "onSegment">;
 }
 
 /**
- * Live module (#65): `WS /live/display` and its HTTP catch-up.
+ * Live module (#65): `WS /live/display` and its HTTP catch-up, plus the
+ * translation module's caption and ingest routes (#68), registered here so
+ * captions reach the display hub.
  *
  * Auth: the display shows guest-only content (photos are visible to invited
  * guests only until flagged public), so both need the invitation credential,
@@ -50,6 +55,13 @@ export const liveRoutes: FastifyPluginAsync<LiveRoutesOptions> = async (fastify,
   fastify.addHook("onClose", async () => {
     displayFeed.stop();
     hub.close();
+  });
+
+  // Translation (#68) lives in its own module; the display also shows its captions.
+  await fastify.register(translationRoutes, {
+    config: options.config,
+    ...options.translation,
+    onSegment: (segment) => hub.broadcast({ type: "segment", segment }),
   });
 
   /** Invitation credential and, for browsers, the public origin. Replies with the error when refused. */

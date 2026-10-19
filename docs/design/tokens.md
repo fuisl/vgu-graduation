@@ -63,7 +63,7 @@ All brief values passed unchanged. `muted-on-blue` on `blue` is the tightest pai
 - Fluid display sizes: `--brand-text-display`, `-h1`, `-h2`, `-h3`, `-lead`; display tracking `--brand-tracking-display` (-0.03em), weight 400 to 500, sentence case.
 - Labels: Geist Mono, uppercase, `--text-xs`, `--brand-tracking-label` (0.08em).
 - Radii: `--brand-radius-sm` 2px, `--brand-radius` 4px. No large radii.
-- Content width: `--brand-content` 1200px, the maximum inside brand sections (`Section` renders `.brand-section-inner`; bands stay full-bleed, reading text stays at `--brand-measure`). The shared `Container` (`--wide`) is unchanged for non-brand pages.
+- Content width: `--brand-content` 1600px (1200px in the original brief; widened with the header redesign, #175), the maximum inside brand sections (`Section` renders `.brand-section-inner`; bands stay full-bleed, reading text stays at `--brand-measure`). The shared `Container` (`--wide`) is unchanged for non-brand pages.
 - Section rhythm, two densities: `--brand-section-y` (airy, default, `clamp(4rem, 9vw, 6rem)`) and `--brand-section-y-compact` (`clamp(2rem, 5vw, 3rem)`) for forms, the invitation, RSVP and the gallery (`Section density="compact"`). Minimum target: `--brand-tap` 44px.
 - `PillGroup tone`: `on-blue` (default) is a `--brand-blue-deep` container with white text and a white active pill (blue text on white: 7.80). `on-white` is a `--brand-blue-soft` container with `--brand-blue` text (6.71) and an active pill of solid `--brand-blue` with white text (7.80).
 - `Section tone="blue-deep"` (used by the footer): text follows the blue tone; `--brand-muted-on-blue` on `--brand-blue-deep` is 6.45.
@@ -75,7 +75,7 @@ All brief values passed unchanged. `muted-on-blue` on `blue` is the tightest pai
 
 - Type: `--text-xs` to `--text-xl`. Spacing: `--space-1` to `--space-9`.
 - Radius: `--radius-sm` 4px, `--radius-md` 8px.
-- Layout: `--content` 760px, `--wide` 1440px, `--gutter` `clamp(1rem, 4vw, 3rem)`.
+- Layout: `--content` 760px, `--wide` 1440px, `--gutter` `clamp(1rem, 4vw, 3rem)`, never less than the left or right safe-area inset (`env(safe-area-inset-*)`, #78).
 - Motion: `--motion-fast` 120ms, `--motion-default` 220ms, `--motion-slow` 480ms, `--ease`. A global reduced-motion rule shortens animations and transitions.
 
 Use these only in admin, the docs site and shared scales. Guest-facing pages use the brand theme; do not mix `--color-*` into brand routes.

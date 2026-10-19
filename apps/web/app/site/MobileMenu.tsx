@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import {useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode} from "react";
+import {useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject} from "react";
 import {BrandLogo} from "../logo/BrandLogo";
-import {SITE_NAV, nextTrapIndex, type SiteNavKey} from "./nav";
+import {nextTrapIndex, type SiteNavKey, type SiteNavLink} from "./nav";
 
 const FOCUSABLE = "a[href], button:not([disabled])";
 
@@ -25,8 +25,18 @@ function ThreeBarsIcon() {
   );
 }
 
+type Props = {
+  current?: SiteNavKey;
+  action: ReactNode;
+  /** The EN | VI switch (#9), above the guest chip. */
+  language: ReactNode;
+  /** Nav links with labels in the page's language. */
+  links: readonly SiteNavLink[];
+  labels: {menu: string; close: string; nav: string};
+};
+
 /** Mobile (<= 960px) menu button and full-screen blue sheet. */
-export function MobileMenu({current, action}: {current?: SiteNavKey; action: ReactNode}) {
+export function MobileMenu({current, action, language, links, labels}: Props) {
   const [open, setOpen] = useState(false);
   const sheetId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -72,7 +82,7 @@ export function MobileMenu({current, action}: {current?: SiteNavKey; action: Rea
         ref={buttonRef}
         type="button"
         className="brand-menu-button brand-menu-button--icon"
-        aria-label="Menu"
+        aria-label={labels.menu}
         aria-expanded={open}
         aria-controls={sheetId}
         onClick={() => setOpen(true)}
@@ -85,29 +95,56 @@ export function MobileMenu({current, action}: {current?: SiteNavKey; action: Rea
         className="brand-sheet"
         role="dialog"
         aria-modal="true"
-        aria-label="Menu"
+        aria-label={labels.menu}
         hidden={!open}
         onKeyDown={onKeyDown}
       >
-        <div className="brand-header__inner">
-          <Link className="brand-wordmark" href="/"><BrandLogo variant="compact" tone="on-blue" /></Link>
-          <button ref={closeRef} type="button" className="brand-menu-button brand-menu-button--icon" aria-label="Close menu" onClick={close}><XIcon /></button>
-        </div>
-        <nav className="brand-sheet__nav" aria-label="Main">
-          {SITE_NAV.map((item) => (
-            <a
-              key={item.key}
-              className="brand-sheet__link"
-              href={item.href}
-              aria-current={item.key === current ? "page" : undefined}
-              onClick={close}
-            >
-              {item.label}
-            </a>
-          ))}
-        </nav>
-        <div className="brand-sheet__action">{action}</div>
+        <SheetBody current={current} action={action} language={language} links={links} labels={labels} closeRef={closeRef} onClose={close} />
       </div>
+    </div>
+  );
+}
+
+type SheetBodyProps = Props & {closeRef?: RefObject<HTMLButtonElement | null>; onClose?: () => void};
+
+/** The sheet's contents: mark and Close, the links as large rows, then the language switch and the action. */
+function SheetBody({current, action, language, links, labels, closeRef, onClose}: SheetBodyProps) {
+  return (
+    <>
+      <div className="brand-header__inner">
+        <Link className="brand-wordmark" href="/"><BrandLogo variant="compact" tone="on-blue" /></Link>
+        <button ref={closeRef} type="button" className="brand-menu-button brand-menu-button--icon" aria-label={labels.close} onClick={onClose}><XIcon /></button>
+      </div>
+      <nav className="brand-sheet__nav" aria-label={labels.nav}>
+        {links.map((item) => (
+          <a
+            key={item.key}
+            className="brand-sheet__link"
+            href={item.href}
+            aria-current={item.key === current ? "page" : undefined}
+            onClick={onClose}
+          >
+            {item.label}
+          </a>
+        ))}
+      </nav>
+      <div className="brand-sheet__action">
+        {language}
+        {action}
+      </div>
+    </>
+  );
+}
+
+/**
+ * The open sheet as a static picture for `/design-system` (#153): same markup and styles, laid out
+ * in the page instead of fixed over it, not a dialog, and `inert` so nothing in it is focusable.
+ */
+export function MenuSheetPreview(props: Props & {label: string}) {
+  const {label, ...body} = props;
+  return (
+    <div className="brand-sheet brand-sheet--preview" role="img" aria-label={label} inert>
+      <SheetBody {...body} />
     </div>
   );
 }

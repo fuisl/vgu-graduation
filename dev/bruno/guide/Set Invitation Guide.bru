@@ -1,0 +1,27 @@
+meta {
+  name: Set Invitation Guide
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{apiOrigin}}/admin/invitations/{{invitationId}}/guide
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{adminSessionToken}}
+}
+
+body:json {
+  {
+    "itemIds": ["{{guideItemId}}"]
+  }
+}
+
+docs {
+  Picks the guide items one invitation sees. An empty list goes back to the
+  defaults. GET on the same path shows the picks and what the guest sees.
+}

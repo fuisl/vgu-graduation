@@ -1,13 +1,17 @@
 import type {Metadata} from "next";
 import type {ReactNode} from "react";
-import {ArrowUpRightPixel, BrandEyebrow, BrandTheme, Cta, PaperPlanePixel, PillGroup, PillItem, PillToggle, Section} from "@grad/ui";
+import {ArrowUpRightPixel, BrandEyebrow, BrandTheme, Button, Container, Cta, Eyebrow, PaperPlanePixel, PillGroup, PillItem, PillToggle, Rule, Section} from "@grad/ui";
 import {BrandLogo} from "../logo/BrandLogo";
 import {SiteFooter} from "../site/SiteFooter";
 import {SignedInChip} from "../site/GuestChip";
+import {LanguageSwitch} from "../site/LanguageSwitch";
+import {MenuSheetPreview} from "../site/MobileMenu";
+import {siteNavLinks} from "../site/nav";
 import {SignedOutChip} from "../site/SiteAction";
 import {SiteHeader} from "../site/SiteHeader";
+import {getI18n} from "../../lib/i18n/server";
 
-export const metadata: Metadata = {title: "Design system · GRAD '26"};
+export const metadata: Metadata = {title: "Design system | GRAD '26"};
 
 const SWATCHES = [
   {token: "--brand-blue", cls: "blue", hex: "#1F4BB0", role: "Blue section surface, primary button on white, links on white"},
@@ -106,10 +110,12 @@ function Toggles({title, tone}: {title: string; tone: "on-blue" | "on-white"}) {
   );
 }
 
-export default function DesignSystem() {
+/** A developer reference: its copy stays English (#9); the real header, footer and chips follow the site language. */
+export default async function DesignSystem() {
+  const i18n = await getI18n();
   return (
     <BrandTheme>
-      <main className="brand-ds">
+      <main id="main" className="brand-ds">
         <Section tone="blue" aria-labelledby="ds-intro">
           <BrandEyebrow ellipsis>GRAD &apos;26 / Blue and white</BrandEyebrow>
           <h1 id="ds-intro" className="brand-ds-title">Design system</h1>
@@ -265,25 +271,68 @@ export default function DesignSystem() {
           <h2 id="ds-shell" className="brand-ds-h2">Header and footer</h2>
           <p className="brand-ds-note">The real <code>SiteHeader</code> (compact mark only, Menu pill on mobile) and <code>SiteFooter</code> (deep-blue band, the only full wordmark), shown below.</p>
         </Section>
-        <SiteHeader current="home" />
+        <SiteHeader i18n={i18n} current="home" />
         <Section tone="white" density="compact" aria-labelledby="ds-shell-gap">
           <h3 id="ds-shell-gap" className="brand-ds-h3">Page content sits here</h3>
         </Section>
-        <SiteFooter />
+        <SiteFooter i18n={i18n} />
 
         <Section tone="blue" aria-labelledby="ds-chip">
           <BrandEyebrow ellipsis>Guest chip</BrandEyebrow>
           <h2 id="ds-chip" className="brand-ds-h2">Two states</h2>
           <p className="brand-ds-note">
-            The header&apos;s right-hand action. Signed in, it shows the guest&apos;s animated blobatar (seeded by guest id, eyes follow the cursor, still under reduced motion) and first name. <code>GuestAvatar</code> is reusable for the profile (#139).
+            The header&apos;s right-hand action. Signed in, it shows the guest&apos;s animated blobatar (seeded by guest id, eyes follow the cursor, still under reduced motion) and given name, and links to their profile (<code>/me</code>, #139). Signed out, it links to the same page, which explains how to open an invitation.
           </p>
           <div className="brand-ds-row">
             <p className="brand-ds-row__label">Signed out</p>
-            <div className="brand-ds-row__items"><SignedOutChip /></div>
+            <div className="brand-ds-row__items"><SignedOutChip label={i18n.t("header.guestPortal")} /></div>
           </div>
           <div className="brand-ds-row">
             <p className="brand-ds-row__label">Signed in</p>
-            <div className="brand-ds-row__items"><SignedInChip firstName="Linh" avatarSeed="3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e70" /></div>
+            <div className="brand-ds-row__items"><SignedInChip givenName="Linh" avatarSeed="3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e70" profileLabel={i18n.t("header.profile")} /></div>
+          </div>
+        </Section>
+
+        <Section tone="white" aria-labelledby="ds-menu">
+          <BrandEyebrow ellipsis>Site shell</BrandEyebrow>
+          <h2 id="ds-menu" className="brand-ds-h2">Mobile menu, open</h2>
+          <p className="brand-ds-note">
+            At 960px and below the header shows only the mark and the Menu button, which opens this full-screen sheet (<code>MobileMenu</code>): a modal dialog with
+            the four links as large rows, the current one in the accent colour, then the language switch and the guest chip. Shown here as a static, inert picture at phone width.
+          </p>
+          <MenuSheetPreview
+            label="Preview of the open mobile menu"
+            current="venue"
+            links={siteNavLinks(i18n)}
+            language={<LanguageSwitch locale={i18n.locale} label={i18n.t("lang.label")} />}
+            action={<SignedOutChip label={i18n.t("header.guestPortal")} />}
+            labels={{menu: i18n.t("header.menu"), close: i18n.t("header.closeMenu"), nav: i18n.t("header.navLabel")}}
+          />
+        </Section>
+
+        <Section tone="blue" aria-labelledby="ds-legacy">
+          <BrandEyebrow ellipsis>Legacy primitives</BrandEyebrow>
+          <h2 id="ds-legacy" className="brand-ds-h2">Admin and non-brand pages</h2>
+          <p className="brand-ds-note">
+            Also exported from <code>@grad/ui</code>, on the neutral tokens (<code>tokens.css</code>), for admin and docs. Not for brand pages: use <code>Section</code>,{" "}
+            <code>BrandEyebrow</code> and <code>Cta</code> instead. Shown in a neutral panel, as admin renders them.
+          </p>
+          <div className="brand-ds-legacy">
+            <Container>
+              <Eyebrow>Eyebrow · GRAD &apos;26 / ADMIN</Eyebrow>
+              <p className="brand-ds-legacy__text">
+                <code>Container</code> wraps this panel&apos;s content: the <code>--gutter</code> padding and <code>--wide</code> maximum width (<code>narrow</code> uses{" "}
+                <code>--content</code>).
+              </p>
+              <div className="brand-ds-legacy__row">
+                <Button href="#ds-legacy">Button solid</Button>
+                <Button href="#ds-legacy" variant="outline">Button outline</Button>
+              </div>
+              <Rule />
+              <p className="brand-ds-legacy__text">
+                Above: <code>Rule</code>, the structural divider.
+              </p>
+            </Container>
           </div>
         </Section>
 

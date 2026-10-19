@@ -1,0 +1,29 @@
+meta {
+  name: Set Photo Public
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{apiOrigin}}/admin/media/{{photoPublicId}}/public
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{adminSessionToken}}
+}
+
+body:json {
+  {
+    "isPublic": true
+  }
+}
+
+docs {
+  Adds a visible, processed photo to the curated public gallery (#75), or
+  takes it out with `false`. 409 for hidden, removed or unprocessed photos.
+  The response's `revalidateTags` lists the web cache tags to revalidate.
+  Hide/remove with POST /admin/media/{publicId}/moderate.
+}

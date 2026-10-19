@@ -1,10 +1,10 @@
-import { adminInvitationsResponseSchema, revokeInvitationResponseSchema } from "@grad/contract";
+import { adminInvitationsResponseSchema, revokeInvitationResponseSchema, updateInvitationResponseSchema } from "@grad/contract";
 import { SignJWT } from "jose";
 import { describe, expect, it } from "vitest";
 import { loadConfig } from "../../config.js";
 import { buildServer } from "../../server.js";
 import { approvedTester } from "../admin/admin-accounts.fake.js";
-import { UnknownInviterError } from "./invitations.repository.js";
+import { PlusOnesConflictError, UnknownInviterError } from "./invitations.repository.js";
 import type { InvitationsService } from "./invitations.service.js";
 
 const config = loadConfig({ LOG_LEVEL: "silent" });
@@ -132,5 +132,59 @@ describe("POST /admin/invitations with an unknown inviter", () => {
     expect(res.statusCode).toBe(400);
     expect(res.json()).toEqual({ error: "Bad Request", message: "One or more inviters do not exist" });
     expect(calls[0].args[1]).toBe("tester");
+  });
+
+  it("passes given and family names through", async () => {
+    const { app, calls } = build();
+    await app.inject({
+      method: "POST",
+      url: "/admin/invitations",
+      headers: await adminHeaders(),
+      payload: { guestName: "Nguyễn Văn An", guestGivenName: " An ", guestFamilyName: "Nguyễn", inviterUserIds: [INVITER] },
+    });
+    expect(calls[0].args[0]).toMatchObject({ guestGivenName: "An", guestFamilyName: "Nguyễn" });
+  });
+});
+
+describe("PATCH /admin/invitations/:id (#170)", () => {
+  const updated = { ...row, guest: { ...row.guest, givenName: "Jane", familyName: null, nameReviewed: true } };
+
+  it("requires an admin session", async () => {
+    const { app } = build();
+    expect((await app.inject({ method: "PATCH", url: `/admin/invitations/${ID}`, payload: { nameReviewed: true } })).statusCode).toBe(401);
+  });
+
+  it("updates with the admin as actor and returns the row, uncached", async () => {
+    const { app, calls } = build({
+      updateInvitation: async (...args: unknown[]) => {
+        calls.push({ method: "update", args });
+        return updated;
+      },
+    });
+    const res = await app.inject({
+      method: "PATCH",
+      url: `/admin/invitations/${ID}`,
+      headers: await adminHeaders(),
+      payload: { guestGivenName: "Jane", guestFamilyName: null },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["cache-control"]).toBe("no-store");
+    expect(updateInvitationResponseSchema.safeParse(res.json()).success).toBe(true);
+    expect(calls).toEqual([{ method: "update", args: [ID, { guestGivenName: "Jane", guestFamilyName: null }, "tester"] }]);
+  });
+
+  it("rejects an empty body, maps unknown ids to 404 and a plus-ones conflict to 409", async () => {
+    const headers = await adminHeaders();
+    const { app } = build({ updateInvitation: async () => null });
+    expect((await app.inject({ method: "PATCH", url: `/admin/invitations/${ID}`, headers, payload: {} })).statusCode).toBe(400);
+    expect((await app.inject({ method: "PATCH", url: `/admin/invitations/${ID}`, headers, payload: { maxPlusOnes: 1 } })).statusCode).toBe(404);
+    const conflict = build({
+      updateInvitation: async () => {
+        throw new PlusOnesConflictError(2);
+      },
+    });
+    const res = await conflict.app.inject({ method: "PATCH", url: `/admin/invitations/${ID}`, headers, payload: { maxPlusOnes: 1 } });
+    expect(res.statusCode).toBe(409);
+    expect(res.json()).toEqual({ error: "Conflict", message: "The guest already confirmed 2 plus-ones" });
   });
 });

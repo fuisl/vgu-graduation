@@ -1,0 +1,13 @@
+{
+  "name": "@grad/translation",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Python live translation service and venue capture client; scripts wrap uv so turbo runs them",
+  "scripts": {
+    "serve": "sh scripts/py.sh serve",
+    "lint": "sh scripts/py.sh lint",
+    "typecheck": "sh scripts/py.sh typecheck",
+    "test": "sh scripts/py.sh test",
+    "build": "sh scripts/py.sh build"
+  }
+}

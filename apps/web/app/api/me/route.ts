@@ -1,13 +1,16 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getInvitation } from "../../../lib/api/invitations";
 import { INVITATION_COOKIE } from "../../../lib/invite/cookie";
+import { guestGivenName } from "../../../lib/invite/guest-name";
 
 /**
  * GET /api/me: the signed-in guest chip's data (#146).
  *
  * The invitation cookie is HttpOnly (a bearer credential), so the browser cannot read the guest's name; this BFF route does, server-side, and returns only:
- *   - signed in:  200 `{ signedIn: true, firstName, avatarSeed }` (`firstName` is the last word of the guest name, see #170)
- *   - otherwise:  200 `{ signedIn: false }` (no cookie, unknown/expired/revoked invitation, API down)
+ *   - signed in:  200 `{ signedIn: true, givenName, avatarSeed }` (`givenName` is the name the guest is called by, #170)
+ *   - otherwise:  200 `{ signedIn: false }` (no cookie, unknown/expired/revoked/rotated invitation, API down)
+ * getInvitation never caches (QA P0-1): a 401/403/404/410 signs the guest out on the next request. While the API
+ * is down (network error or 5xx) a guest it confirmed earlier stays signed in from the last known good copy.
  * It is always 200 so the header never logs a failed request; the chip simply stays signed out.
  * `avatarSeed` is the guest id (a random UUID, never the token or an email). Responses are `private, no-store`.
  */
@@ -24,9 +27,5 @@ export async function GET(request: NextRequest) {
   }
 
   const { guest } = result.data;
-  // The chip shows the LAST whitespace-separated word (Vietnamese names are family-name first); a single word is used whole.
-  // TODO(#170): use givenName once the data model separates names
-  const words = guest.name.trim().split(/\s+/);
-  const firstName = words[words.length - 1];
-  return NextResponse.json({ signedIn: true, firstName, avatarSeed: guest.id }, { headers: HEADERS });
+  return NextResponse.json({ signedIn: true, givenName: guestGivenName(guest), avatarSeed: guest.id }, { headers: HEADERS });
 }

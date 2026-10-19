@@ -391,15 +391,42 @@
 [data-theme="brand"] .brand-ds-logo { display:inline-block }
 [data-theme="brand"] .brand-ds-logo--compact { width:36px }
 [data-theme="brand"] .brand-ds-logo--full { width:10rem }
+/* The open mobile sheet as a picture (#78): in the flow, phone-sized, never fixed over the page.
+   Two classes, so it wins over the .brand-sheet rule further down. */
+[data-theme="brand"] .brand-sheet.brand-sheet--preview {
+  position: relative;
+  inset: auto;
+  z-index: auto;
+  width: min(100%, 390px);
+  height: 640px;
+  overflow: hidden;
+  border: 1px solid var(--brand-line-on-white);
+  border-radius: var(--brand-radius);
+  animation: none;
+}
+/* Legacy primitives (#144) render on the neutral tokens, as admin shows them. */
+[data-theme="brand"] .brand-ds-legacy {
+  padding-block: var(--space-5);
+  border-radius: var(--brand-radius);
+  background: var(--surface);
+  color: var(--fg);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+[data-theme="brand"] .brand-ds-legacy__text { margin: 0 0 var(--space-4); max-width: var(--brand-measure); font-size: var(--text-sm); }
+[data-theme="brand"] .brand-ds-legacy__row { display: flex; flex-wrap: wrap; gap: var(--space-3); }
 /* end design-system showcase (#153) */
 
 /* site header & footer (#145) ---------------------------------------- */
 /*
- * Sticky and unfilled: the logo, nav and action float over the page, the buttons on frosted glass.
- * ThemeColorSync samples behind the logo, nav, action and Menu button separately and sets
- * data-surface="white" on each one whose backdrop is light, which flips it to on-white. No backdrop-filter on the header itself: it would trap the fixed mobile sheet.
+ * Sticky, unfilled at the top of the page: the logo, nav and action float over the first band,
+ * the buttons on frosted glass. ThemeColorSync samples behind the logo, nav, action and Menu
+ * button separately and sets data-surface="white" on each one whose backdrop is light, which
+ * flips it to on-white. No backdrop-filter on the header itself: it would trap the fixed mobile sheet.
  * Before a <main>, the header overlays it and the first band grows a transparent top border of
  * the header's height, so the band's own colour runs up behind the header.
+ * Once stuck (#78), ThemeColorSync sets data-stuck and --brand-header-fill (the colour under the
+ * top edge): the bar is filled solid with a hairline below, so text never shows through.
+ * Paint only: the hairline is a pseudo-element, so nothing moves.
  */
 [data-theme="brand"] .brand-header {
   --brand-header-h: 72px;
@@ -407,6 +434,55 @@
   top: 0;
   z-index: 40;
   color: var(--brand-white);
+  transition: background-color var(--motion-default) var(--ease);
+}
+[data-theme="brand"] .brand-header[data-stuck] {
+  background-color: var(--brand-header-fill, var(--brand-blue));
+}
+[data-theme="brand"] .brand-header[data-stuck]::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 1px;
+  background: var(--brand-line-on-blue);
+  pointer-events: none;
+}
+[data-theme="brand"] .brand-header[data-stuck][data-surface="white"]::after {
+  background: var(--brand-line-on-white);
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="brand"] .brand-header { transition: none; }
+}
+/* Zero-height marker before the header: once it scrolls out, the header is stuck. */
+[data-theme="brand"] .brand-header-sentinel {
+  display: block;
+  height: 0;
+}
+/* Skip link (#78): the page's first focusable element, above the viewport until focused. */
+[data-theme="brand"] .brand-skip-link {
+  position: fixed;
+  top: var(--space-3);
+  left: var(--gutter);
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--brand-tap);
+  padding: 0 var(--space-4);
+  border-radius: var(--brand-radius);
+  background: var(--brand-white);
+  color: var(--brand-blue);
+  font-weight: 500;
+  text-decoration: none;
+  transform: translateY(calc(-100% - var(--space-5)));
+}
+[data-theme="brand"] .brand-skip-link:focus {
+  transform: none;
+  outline: 2px solid var(--brand-accent);
+  outline-offset: 2px;
+}
+/* The skip link focuses <main> (tabindex -1); it is not a control, so no ring around the page. */
+[data-theme="brand"] main[tabindex="-1"]:focus {
+  outline: none;
 }
 /* Glass on the header's buttons only (nav pills, mobile Menu); the bar itself stays unfilled. */
 [data-theme="brand"] .brand-header .brand-pills,
@@ -460,13 +536,14 @@
   max-width: var(--brand-content);
   margin: 0 auto;
 }
-/* Header nav: smaller pills with more air between them than the shared PillGroup. */
+/* Header nav: smaller type and more air between the pills than the shared PillGroup. 44px tall
+   like the EN | VI switch beside it (#78), so the two read as one row of controls. */
 [data-theme="brand"] .brand-header__nav .brand-pills {
   gap: var(--space-1);
   padding: 3px;
 }
 [data-theme="brand"] .brand-header__nav .brand-pill {
-  min-height: 34px;
+  min-height: var(--brand-tap);
   padding: 0 var(--space-4);
   font-size: var(--text-sm);
 }
@@ -576,7 +653,7 @@
 }
 [data-theme="brand"] .brand-sheet__action {
   margin-top: auto;
-  padding: var(--space-5) var(--gutter) var(--space-6);
+  padding: var(--space-5) var(--gutter) max(var(--space-6), env(safe-area-inset-bottom, 0px));
 }
 @keyframes brand-sheet-in {
   from { opacity: 0; transform: translateY(-8px); }
@@ -644,6 +721,15 @@
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+/* Credits link to /about (#7), inline in the credit line; 44px tall like the footer links. */
+[data-theme="brand"] .brand-footer__about {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--brand-tap);
+  color: var(--brand-white);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 [data-theme="brand"] .brand-footer a:focus-visible {
   outline: 2px solid var(--brand-accent);
   outline-offset: 2px;
@@ -659,6 +745,81 @@
   font-size: var(--text-xs);
   letter-spacing: var(--brand-tracking-label);
   text-transform: uppercase;
+}
+
+/* language switch (#9) ------------------------------------------------ */
+/* EN | VI: a small mono pill in the header action slot, the mobile sheet and the footer meta row.
+   A form of two submit buttons; the current one is filled like a pressed pill. Colours follow the
+   surface: on blue by default, on white when ThemeColorSync marks the header action white. */
+[data-theme="brand"] .brand-lang {
+  display: inline-flex;
+  margin: 0;
+}
+[data-theme="brand"] .brand-lang__group {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px;
+  border-radius: var(--brand-radius);
+  background: color-mix(in srgb, var(--brand-blue-deep) 72%, transparent);
+}
+[data-theme="brand"] .brand-lang__option {
+  min-width: var(--brand-tap);
+  min-height: var(--brand-tap);
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--brand-radius-sm);
+  background: transparent;
+  color: var(--brand-white);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--brand-tracking-label);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease), color var(--motion-fast) var(--ease);
+}
+[data-theme="brand"] .brand-lang__option:hover {
+  background: var(--brand-line-on-blue);
+}
+[data-theme="brand"] .brand-lang__option[aria-current="true"] {
+  background: var(--brand-white);
+  color: var(--brand-blue);
+}
+[data-theme="brand"] .brand-lang__option:focus-visible {
+  outline: 2px solid var(--brand-accent);
+  outline-offset: 2px;
+}
+[data-theme="brand"] .brand-header__action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+[data-theme="brand"] .brand-header__action[data-surface="white"] .brand-lang__group {
+  background: color-mix(in srgb, var(--brand-blue-soft) 80%, transparent);
+}
+[data-theme="brand"] .brand-header__action[data-surface="white"] .brand-lang__option {
+  color: var(--brand-blue);
+}
+[data-theme="brand"] .brand-header__action[data-surface="white"] .brand-lang__option:hover {
+  background: var(--brand-line-on-white);
+}
+[data-theme="brand"] .brand-header__action[data-surface="white"] .brand-lang__option[aria-current="true"] {
+  background: var(--brand-blue);
+  color: var(--brand-white);
+}
+[data-theme="brand"] .brand-header__action[data-surface="white"] .brand-lang__option:focus-visible {
+  outline-color: var(--brand-blue);
+}
+[data-theme="brand"] .brand-sheet__action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+[data-theme="brand"] .brand-footer__end {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
 }
 
 /* guest chip (#146) -------------------------------------------------- */
@@ -688,10 +849,12 @@
   align-self: center;
   margin-left: var(--space-2);
 }
+/* A block flex item, not a flex container: text-overflow only applies to a block's own text (#78). */
 [data-theme="brand"] .brand-guest-chip__name {
-  display: inline-flex;
-  align-items: center;
+  display: block;
+  align-self: center;
   max-width: 12ch;
+  line-height: 1.3;
   padding: 0 var(--space-3);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -717,5 +880,9 @@
 [data-theme="brand"] .guest-avatar img {
   display: block;
   border-radius: 50%;
+}
+/* Hidden tab: GuestAvatar sets data-paused and the idle blink and glance stop (#139). */
+[data-theme="brand"] .guest-avatar[data-paused] * {
+  animation-play-state: paused;
 }
 /* end guest chip (#146) */

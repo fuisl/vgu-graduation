@@ -21,7 +21,16 @@ export type GraduateFormState = Idle | FormError | { status: "success"; message:
  * lives only in this in-memory action state: never in the URL, a cookie,
  * storage or a log.
  */
-export type InvitationFormState = Idle | FormError | { status: "created"; guestName: string; inviteUrl: string };
+export type InvitationFormState =
+  | Idle
+  | FormError
+  | { status: "created"; invitationId: string; guestName: string; inviteUrl: string };
+
+/** Edit forms for an existing graduate or invitation, and guide-book items (#170, #140). */
+export type EditFormState = Idle | FormError | { status: "saved"; message: string };
+
+/** One-tap actions: "Looks right" on a name, show/hide or delete a guide item, save guide-book picks. */
+export type QuickActionState = Idle | { status: "error"; message: string } | { status: "done"; message: string };
 
 export type InvitationActionState =
   | Idle
@@ -35,6 +44,9 @@ export type AdminAccountActionState = Idle | { status: "error"; message: string 
 export type EventFormState = Idle | FormError | { status: "saved"; event: EventConfig };
 
 export const IDLE: Idle = { status: "idle" };
+
+/** Prefix of the hidden inputs that carry the values an edit form was rendered with (lib/admin/forms.ts). */
+export const INITIAL_PREFIX = "initial.";
 
 /** Collects the submitted string values, skipping Next's internal `$ACTION_*` fields. */
 export function formValues(form: FormData): FormValues {

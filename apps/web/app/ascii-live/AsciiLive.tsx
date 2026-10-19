@@ -1,9 +1,8 @@
 "use client";
 
-import { BrandEyebrow, BrandTheme, Cta, PillGroup, PillToggle, Section } from "@grad/ui";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { SiteFooter } from "../site/SiteFooter";
-import { SiteHeader } from "../site/SiteHeader";
+import { BrandEyebrow, Cta, PillGroup, PillToggle, Section } from "@grad/ui";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { sliceTranslator, type MessageSlice, type SliceTranslator } from "../../lib/i18n/format";
 import "./ascii-live.css";
 import { GpuAscii, gpuSupported, measureLevels, resolveCharset, type CharsetId } from "./asciify-runtime.js";
 
@@ -23,23 +22,25 @@ const INITIAL_SETTINGS: LiveSettings = {
   threshold: 0,
 };
 
-const CHARSETS: Array<{ id: CharsetId; label: string }> = [
-  { id: "classic", label: "Classic" },
-  { id: "custom", label: "Ramp" },
-  { id: "blocks", label: "Blocks" },
-  { id: "braille", label: "Braille" },
-  { id: "halfblock", label: "Half block" },
-];
+type T = SliceTranslator<keyof MessageSlice<"ascii.">>;
 
-function cameraError(cause: unknown) {
-  if (!(cause instanceof DOMException)) return "The camera could not be started.";
-  if (cause.name === "NotAllowedError") return "Camera access was declined. Allow it in your browser settings, then try again.";
-  if (cause.name === "NotFoundError") return "No camera was found on this device.";
-  if (cause.name === "NotReadableError") return "The camera is already in use by another application.";
-  return cause.message || "The camera could not be started.";
+/** Charset names are `ascii.charset.<id>` messages (#9). */
+const CHARSETS: CharsetId[] = ["classic", "custom", "blocks", "braille", "halfblock"];
+
+/** An error whose message is already in the guest's language. */
+class LiveError extends Error {}
+
+function cameraError(cause: unknown, t: T) {
+  if (!(cause instanceof DOMException)) return t("ascii.error.start");
+  if (cause.name === "NotAllowedError") return t("ascii.error.denied");
+  if (cause.name === "NotFoundError") return t("ascii.error.noCamera");
+  if (cause.name === "NotReadableError") return t("ascii.error.inUse");
+  return t("ascii.error.start");
 }
 
-export function AsciiLive() {
+/** The studio below the site header; the page (a server component) renders the header and footer around it. */
+export function AsciiLive({ messages }: { messages: MessageSlice<"ascii."> }) {
+  const t = useMemo(() => sliceTranslator(messages), [messages]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -78,8 +79,8 @@ export function AsciiLive() {
     setStarting(true);
     setError("");
     try {
-      if (!navigator.mediaDevices?.getUserMedia) throw new Error("Camera capture needs HTTPS or localhost in a supported browser.");
-      if (!gpuSupported()) throw new Error("This live renderer needs WebGL 2, which is unavailable in this browser.");
+      if (!navigator.mediaDevices?.getUserMedia) throw new LiveError(t("ascii.error.insecure"));
+      if (!gpuSupported()) throw new LiveError(t("ascii.error.webgl"));
 
       streamRef.current?.getTracks().forEach((track) => track.stop());
       const opened = await navigator.mediaDevices.getUserMedia({
@@ -100,19 +101,19 @@ export function AsciiLive() {
         if (streamRef.current === opened) stopCamera();
       }, { once: true });
     } catch (cause) {
-      setError(cause instanceof Error && !(cause instanceof DOMException) ? cause.message : cameraError(cause));
+      setError(cause instanceof LiveError ? cause.message : cameraError(cause, t));
       stopCamera();
     } finally {
       setStarting(false);
     }
-  }, [cameraId, stopCamera]);
+  }, [cameraId, stopCamera, t]);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
     video.srcObject = stream;
-    if (stream) void video.play().catch(() => setError("The camera opened, but playback was blocked. Try starting it again."));
-  }, [stream]);
+    if (stream) void video.play().catch(() => setError(t("ascii.error.playback")));
+  }, [stream, t]);
 
   useEffect(() => {
     if (!stream || !canvasRef.current) return;
@@ -120,8 +121,8 @@ export function AsciiLive() {
     let renderer: GpuAscii;
     try {
       renderer = new GpuAscii(canvasRef.current);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "The ASCII renderer could not start.");
+    } catch {
+      setError(t("ascii.error.renderer"));
       return;
     }
 
@@ -172,7 +173,7 @@ export function AsciiLive() {
       cancelAnimationFrame(frame);
       renderer.dispose();
     };
-  }, [stream]);
+  }, [stream, t]);
 
   useEffect(() => () => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -184,96 +185,94 @@ export function AsciiLive() {
   };
 
   const startButton = (tone: "on-blue" | "on-white") =>
-    <Cta tone={tone} onClick={() => void startCamera()} disabled={starting}>{starting ? "Starting…" : "Start camera"}</Cta>;
+    <Cta tone={tone} onClick={() => void startCamera()} disabled={starting}>{starting ? t("ascii.starting") : t("ascii.start")}</Cta>;
 
-  return <BrandTheme>
-    <SiteHeader />
-    <main className="ascii-live">
+  return <>
+    <main id="main" className="ascii-live">
       <Section tone="blue" density="compact">
         <div className="ascii-live-header">
           <div>
-            <BrandEyebrow>Experimental / on-device</BrandEyebrow>
+            <BrandEyebrow>{t("ascii.eyebrow")}</BrandEyebrow>
             <h1>ASCII Live</h1>
           </div>
-          <p className="ascii-live-privacy">Your camera stays in this browser. No frames are uploaded or saved.</p>
+          <p className="ascii-live-privacy">{t("ascii.privacy")}</p>
         </div>
       </Section>
 
       <Section tone="white" density="compact">
         {error && <p className="ascii-live-error" role="alert">{error}</p>}
 
-        {engineMissing && <div className="ascii-live-workspace ascii-live-workspace--single" role="region" aria-label="ASCII engine unavailable">
+        {engineMissing && <div className="ascii-live-workspace ascii-live-workspace--single" role="region" aria-label={t("ascii.missing.label")}>
           <div className="ascii-live-stage">
             <div className="ascii-live-empty">
               <span aria-hidden="true">.:+*#@</span>
-              <h2>Not available in this build</h2>
-              <p>The ASCIIGen engine is a private, optional dependency. It isn&apos;t installed here, so this page can&apos;t render the camera effect. The rest of the app is unaffected.</p>
+              <h2>{t("ascii.missing.title")}</h2>
+              <p>{t("ascii.missing.body")}</p>
             </div>
           </div>
         </div>}
 
-        {!engineMissing && <div className="ascii-live-workspace" role="region" aria-label="Live ASCII camera studio">
+        {!engineMissing && <div className="ascii-live-workspace" role="region" aria-label={t("ascii.studio")}>
           <div className="ascii-live-stage" ref={stageRef}>
             <video ref={videoRef} muted playsInline aria-hidden="true" />
-            <canvas ref={canvasRef} aria-label="Live camera rendered as ASCII art" />
+            <canvas ref={canvasRef} aria-label={t("ascii.canvas")} />
             {!stream && <div className="ascii-live-empty">
               <span aria-hidden="true">.:+*#@</span>
-              <h2>Camera is off</h2>
-              <p>Permission is requested only after you press start.</p>
+              <h2>{t("ascii.off.title")}</h2>
+              <p>{t("ascii.off.body")}</p>
               {startButton("on-blue")}
             </div>}
             {stream && <div className="ascii-live-readout" aria-live="polite">{grid.columns} × {grid.rows} / {fps} FPS</div>}
           </div>
 
-          <aside className="ascii-live-controls" aria-label="ASCII controls">
+          <aside className="ascii-live-controls" aria-label={t("ascii.controls")}>
             <div className="ascii-live-control-heading">
-              <span>01</span><h2>Capture</h2>
+              <span>01</span><h2>{t("ascii.capture")}</h2>
             </div>
             {cameras.length > 1 && <label>
-              Camera
+              {t("ascii.camera")}
               <select value={cameraId} onChange={(event) => changeCamera(event.target.value)}>
-                <option value="">Default camera</option>
-                {cameras.map((camera, index) => <option key={camera.deviceId} value={camera.deviceId}>{camera.label || `Camera ${index + 1}`}</option>)}
+                <option value="">{t("ascii.defaultCamera")}</option>
+                {cameras.map((camera, index) => <option key={camera.deviceId} value={camera.deviceId}>{camera.label || t("ascii.cameraN", { n: index + 1 })}</option>)}
               </select>
             </label>}
             <label className="ascii-live-check">
               <input type="checkbox" checked={settings.mirror} onChange={(event) => setSettings((value) => ({ ...value, mirror: event.target.checked }))} />
-              Mirror preview
+              {t("ascii.mirror")}
             </label>
 
             <div className="ascii-live-control-heading">
-              <span>02</span><h2>Character set</h2>
+              <span>02</span><h2>{t("ascii.charsetHeading")}</h2>
             </div>
-            <PillGroup as="toggle" label="Character set" tone="on-white">
-              {CHARSETS.map((option) => <PillToggle key={option.id} pressed={settings.charset === option.id} onClick={() => setSettings((value) => ({ ...value, charset: option.id }))}>{option.label}</PillToggle>)}
+            <PillGroup as="toggle" label={t("ascii.charsetHeading")} tone="on-white">
+              {CHARSETS.map((id) => <PillToggle key={id} pressed={settings.charset === id} onClick={() => setSettings((value) => ({ ...value, charset: id }))}>{t(`ascii.charset.${id}`)}</PillToggle>)}
             </PillGroup>
 
             <div className="ascii-live-control-heading">
-              <span>03</span><h2>Image</h2>
+              <span>03</span><h2>{t("ascii.image")}</h2>
             </div>
             <label>
-              <span>Columns <output>{settings.columns}</output></span>
+              <span>{t("ascii.columns")} <output>{settings.columns}</output></span>
               <input type="range" min="48" max="160" step="8" value={settings.columns} onChange={(event) => setSettings((value) => ({ ...value, columns: Number(event.target.value) }))} />
             </label>
             <label>
-              <span>Background cut <output>{settings.threshold}</output></span>
+              <span>{t("ascii.threshold")} <output>{settings.threshold}</output></span>
               <input type="range" min="0" max="128" step="4" value={settings.threshold} onChange={(event) => setSettings((value) => ({ ...value, threshold: Number(event.target.value) }))} />
             </label>
             <label className="ascii-live-check">
               <input type="checkbox" checked={settings.color} onChange={(event) => setSettings((value) => ({ ...value, color: event.target.checked }))} />
-              Source color
+              {t("ascii.color")}
             </label>
 
             <div className="ascii-live-actions">
               {stream
-                ? <Cta tone="on-white" onClick={stopCamera}>Stop camera</Cta>
+                ? <Cta tone="on-white" onClick={stopCamera}>{t("ascii.stop")}</Cta>
                 : startButton("on-white")}
             </div>
-            <p className="ascii-live-engine">Rendered locally with the pinned ASCIIGen WebGL2 engine.</p>
+            <p className="ascii-live-engine">{t("ascii.engine")}</p>
           </aside>
         </div>}
       </Section>
     </main>
-    <SiteFooter />
-  </BrandTheme>;
+  </>;
 }

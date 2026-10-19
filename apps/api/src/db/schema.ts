@@ -27,12 +27,24 @@ const id = () => uuid("id").primaryKey().defaultRandom();
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 const updatedAt = () => timestamp("updated_at", { withTimezone: true }).notNull().defaultNow();
 
+/**
+ * Given and family name next to the full display `name` (#170). `name_reviewed`
+ * stays false while the split is a guess (migration 0005 backfill, or an admin
+ * create with only a full name; rules in @grad/contract `splitPersonName`).
+ */
+const personNameColumns = () => ({
+  givenName: text("given_name").notNull(),
+  familyName: text("family_name"),
+  nameReviewed: boolean("name_reviewed").notNull().default(false),
+});
+
 /** Graduates and admins (internal). Graduates do not sign in; admin sign-in access lives in `admin_accounts`. */
 export const users = pgTable(
   "users",
   {
     id: id(),
     name: text("name").notNull(),
+    ...personNameColumns(),
     email: text("email").notNull().unique(),
     role: text("role", { enum: ["graduate", "admin"] })
       .notNull()
@@ -71,6 +83,7 @@ export const adminAccounts = pgTable(
 export const guests = pgTable("guests", {
   id: id(),
   name: text("name").notNull(),
+  ...personNameColumns(),
   email: text("email"),
   phone: text("phone"),
   createdAt: createdAt(),
@@ -140,6 +153,34 @@ export const rsvp = pgTable(
 );
 
 /**
+ * Accessibility needs stated with an RSVP (#176). Sensitive (health-adjacent):
+ * read only by the guest (GET /rsvp) and admins (GET /admin/rsvp/accessibility),
+ * never logged, never in audit metadata. A row exists only while at least one
+ * need or a note is set; clearing deletes it. Retention: principles.md §8.
+ */
+export const rsvpAccessibility = pgTable(
+  "rsvp_accessibility",
+  {
+    rsvpId: uuid("rsvp_id")
+      .primaryKey()
+      .references(() => rsvp.id, { onDelete: "cascade" }),
+    wheelchair: boolean("wheelchair").notNull().default(false),
+    stepFreeAccess: boolean("step_free_access").notNull().default(false),
+    captions: boolean("captions").notNull().default(false),
+    seatNearSpeakers: boolean("seat_near_speakers").notNull().default(false),
+    largePrint: boolean("large_print").notNull().default(false),
+    visionAssistance: boolean("vision_assistance").notNull().default(false),
+    seatNearFront: boolean("seat_near_front").notNull().default(false),
+    aisleSeat: boolean("aisle_seat").notNull().default(false),
+    companion: boolean("companion").notNull().default(false),
+    note: text("note"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [check("rsvp_accessibility_note_length_check", sql`char_length(${t.note}) <= 500`)],
+);
+
+/**
  * Guest photos. The original lives in `grad-originals` under `originalKey`
  * and is never served; derivatives are addressed by the random `publicId`
  * so URLs cannot be guessed. Photos are shown without pre-review: admins
@@ -164,11 +205,14 @@ export const photos = pgTable(
     moderationStatus: text("moderation_status", { enum: ["visible", "hidden", "removed"] })
       .notNull()
       .default("visible"),
+    /** In the curated public gallery (#75). Set by moderators on visible photos only; listed only while visible. */
+    isPublic: boolean("is_public").notNull().default(false),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t) => [
     check("photos_size_bytes_check", sql`${t.sizeBytes} > 0`),
+    index("idx_photos_public").on(t.createdAt).where(sql`${t.isPublic}`),
     check(
       "photos_processing_status_check",
       sql`${t.processingStatus} IN ('pending', 'ready', 'failed')`,
@@ -196,11 +240,14 @@ export const wishes = pgTable(
       .notNull()
       .default("visible"),
     displayedAt: timestamp("displayed_at", { withTimezone: true }),
+    /** In the curated public set (#75). Set by moderators on visible wishes only; listed only while visible. */
+    isPublic: boolean("is_public").notNull().default(false),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t) => [
     check("wishes_body_length_check", sql`char_length(${t.body}) BETWEEN 1 AND 1000`),
+    index("idx_wishes_public").on(t.createdAt).where(sql`${t.isPublic}`),
     check(
       "wishes_moderation_status_check",
       sql`${t.moderationStatus} IN ('visible', 'hidden', 'removed')`,
@@ -273,17 +320,21 @@ export const eventConfig = pgTable(
   {
     id: integer("id").primaryKey().default(1),
     name: text("name").notNull(),
+    // Vietnamese versions of the prose fields (#9, ADR-010); null shows the English field.
+    nameVi: text("name_vi"),
     startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
     endsAt: timestamp("ends_at", { withTimezone: true }),
     timeZone: text("time_zone").notNull(),
     timeConfirmed: boolean("time_confirmed").notNull().default(false),
     venueName: text("venue_name").notNull(),
     venueAddress: text("venue_address").notNull(),
+    venueAddressVi: text("venue_address_vi"),
     venueMapUrl: text("venue_map_url").notNull(),
     contactName: text("contact_name"),
     contactEmail: text("contact_email"),
     contactPhone: text("contact_phone"),
     arrivalInfo: text("arrival_info"),
+    arrivalInfoVi: text("arrival_info_vi"),
     sequence: integer("sequence").notNull().default(0),
     updatedAt: updatedAt(),
   },
@@ -338,5 +389,95 @@ export const audit = pgTable(
   (t) => [
     index("idx_audit_created_at").on(t.createdAt),
     index("idx_audit_target").on(t.targetType, t.targetId),
+  ],
+);
+
+/**
+ * Print queue (#72, experimental). Durable, so jobs survive restarts and wait
+ * while the venue printer daemon is away. The daemon claims the oldest
+ * `queued` job with `FOR UPDATE SKIP LOCKED` under a lease; a lease that runs
+ * out puts the job back to `queued` until `attempts` reaches the cap. Separate
+ * from `jobs`: the daemon pulls over HTTP, the worker never runs these.
+ */
+export const printJobs = pgTable(
+  "print_jobs",
+  {
+    id: id(),
+    photoId: uuid("photo_id")
+      .notNull()
+      .references(() => photos.id, { onDelete: "restrict" }),
+    copies: integer("copies").notNull().default(1),
+    status: text("status", { enum: ["queued", "printing", "done", "failed"] })
+      .notNull()
+      .default("queued"),
+    /** Admin handle when an admin asked; null for a guest request. */
+    requestedByAdmin: text("requested_by_admin"),
+    /** The guest's invitation for a guest request (rate limit); null for an admin. */
+    requestedByInvitationId: uuid("requested_by_invitation_id").references(() => invitations.id, {
+      onDelete: "set null",
+    }),
+    attempts: integer("attempts").notNull().default(0),
+    leaseExpiresAt: timestamp("lease_expires_at", { withTimezone: true }),
+    /** What the daemon reported on failure, or why the queue gave up. Never guest data. */
+    error: text("error"),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    check("print_jobs_status_check", sql`${t.status} IN ('queued', 'printing', 'done', 'failed')`),
+    check("print_jobs_copies_check", sql`${t.copies} BETWEEN 1 AND 5`),
+    check("print_jobs_attempts_check", sql`${t.attempts} >= 0`),
+    check("print_jobs_error_length_check", sql`char_length(${t.error}) <= 500`),
+    index("idx_print_jobs_queue").on(t.status, t.createdAt),
+    index("idx_print_jobs_invitation").on(t.requestedByInvitationId, t.createdAt),
+  ],
+);
+
+/**
+ * Guest guide-book catalogue (#140): places and things to do around campus.
+ * Seeded in migration 0005 with drafts marked TODO(owner) for review.
+ */
+export const guideItems = pgTable(
+  "guide_items",
+  {
+    id: id(),
+    title: text("title").notNull(),
+    category: text("category", { enum: ["photo-spot", "food-drink", "explore", "relax", "practical"] }).notNull(),
+    description: text("description").notNull().default(""),
+    mapUrl: text("map_url"),
+    timeHint: text("time_hint"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    active: boolean("active").notNull().default(true),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    check(
+      "guide_items_category_check",
+      sql`${t.category} IN ('photo-spot', 'food-drink', 'explore', 'relax', 'practical')`,
+    ),
+    check("guide_items_title_check", sql`char_length(${t.title}) BETWEEN 1 AND 120`),
+    check("guide_items_description_check", sql`char_length(${t.description}) <= 500`),
+    check("guide_items_time_hint_check", sql`char_length(${t.timeHint}) <= 80`),
+    check("guide_items_map_url_check", sql`${t.mapUrl} IS NULL OR ${t.mapUrl} LIKE 'https://%'`),
+  ],
+);
+
+/** The guide items picked for one invitation. None picked means the defaults (every active item). */
+export const invitationGuideItems = pgTable(
+  "invitation_guide_items",
+  {
+    invitationId: uuid("invitation_id")
+      .notNull()
+      .references(() => invitations.id, { onDelete: "cascade" }),
+    guideItemId: uuid("guide_item_id")
+      .notNull()
+      .references(() => guideItems.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.invitationId, t.guideItemId] }),
+    index("idx_invitation_guide_items_item").on(t.guideItemId),
   ],
 );

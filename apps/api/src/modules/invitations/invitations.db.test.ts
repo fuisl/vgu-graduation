@@ -131,4 +131,79 @@ describe("invitations admin flow (real Postgres)", () => {
     expect(dump).not.toContain("Secret Guest");
     expect(dump).not.toContain(created.token);
   });
+
+  it("splits given and family names, exposes the given name to the guest, and lets admins review it (#170)", async (ctx) => {
+    if (!admin) return ctx.skip();
+    const { items: grads } = await graduates.listGraduates();
+    const inviterUserIds = [grads[0]!.id];
+
+    const vietnamese = await invitations.issueInvitation({ guestName: "Nguyễn Văn An", inviterUserIds }, "tester");
+    expect(vietnamese.guest).toMatchObject({ givenName: "An", familyName: "Nguyễn" });
+    const me = await invitations.resolveByToken(vietnamese.token);
+    expect(me).toMatchObject({ status: "ok", invitation: { guest: { name: "Nguyễn Văn An", givenName: "An" } } });
+
+    const western = await invitations.issueInvitation({ guestName: "John Smith", inviterUserIds, maxPlusOnes: 2 }, "tester");
+    expect(western.guest).toMatchObject({ givenName: "John", familyName: "Smith" });
+
+    const explicit = await invitations.issueInvitation(
+      { guestName: "Bà Lê Thị Hoa", guestGivenName: "Hoa", guestFamilyName: "Lê", inviterUserIds },
+      "tester",
+    );
+    const rowOf = async (id: string) => (await invitations.listInvitations()).items.find((r) => r.id === id)!;
+    expect((await rowOf(explicit.invitationId)).guest).toMatchObject({ givenName: "Hoa", nameReviewed: true });
+    expect((await rowOf(vietnamese.invitationId)).guest.nameReviewed).toBe(false);
+
+    // Confirm the guess; then fix a name, which stays reviewed.
+    expect((await invitations.updateInvitation(vietnamese.invitationId, { nameReviewed: true }, "tester"))?.guest).toMatchObject({
+      givenName: "An",
+      nameReviewed: true,
+    });
+    const fixed = await invitations.updateInvitation(
+      western.invitationId,
+      { guestGivenName: "Johnny", guestEmail: "john@example.com", maxPlusOnes: 1 },
+      "tester",
+    );
+    expect(fixed).toMatchObject({ maxPlusOnes: 1, guest: { givenName: "Johnny", familyName: "Smith", email: "john@example.com", nameReviewed: true } });
+
+    // A new full name alone is re-split and needs review again.
+    const renamed = await invitations.updateInvitation(western.invitationId, { guestName: "Trần Minh Khoa" }, "tester");
+    expect(renamed?.guest).toMatchObject({ name: "Trần Minh Khoa", givenName: "Khoa", familyName: "Trần", nameReviewed: false });
+
+    expect(await invitations.updateInvitation("3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e6f", { maxPlusOnes: 1 }, "tester")).toBeNull();
+
+    const { rows } = await pool!.query("SELECT target_id, metadata FROM audit WHERE action = 'invitation.update' ORDER BY id");
+    expect(rows.map((r) => r.metadata)).toEqual([
+      { fields: ["nameReviewed"] },
+      { fields: ["guestEmail", "guestGivenName", "maxPlusOnes"] },
+      { fields: ["guestName"] },
+    ]);
+    const dump = JSON.stringify(rows);
+    expect(dump).not.toContain("john@example.com");
+    expect(dump).not.toContain("Johnny");
+  });
+
+  it("refuses to lower maxPlusOnes below the plus-ones a guest already confirmed", async (ctx) => {
+    if (!admin) return ctx.skip();
+    const { items: grads } = await graduates.listGraduates();
+    const created = await invitations.issueInvitation({ guestName: "Plus Guest", inviterUserIds: [grads[0]!.id], maxPlusOnes: 2 }, "tester");
+    await pool!.query("INSERT INTO rsvp (invitation_id, attending, plus_ones_count) VALUES ($1, true, 2)", [created.invitationId]);
+    await expect(invitations.updateInvitation(created.invitationId, { maxPlusOnes: 1 }, "tester")).rejects.toThrow("plus-ones");
+    expect((await invitations.updateInvitation(created.invitationId, { maxPlusOnes: 3 }, "tester"))?.maxPlusOnes).toBe(3);
+  });
+
+  it("splits graduate names and edits them with audit by field name only", async (ctx) => {
+    if (!admin) return ctx.skip();
+    const created = await graduates.createGraduate({ name: "Phạm Thu Trang", email: "trang@example.com" }, "tester");
+    expect(created).toMatchObject({ givenName: "Trang", familyName: "Phạm", nameReviewed: false });
+    const explicit = await graduates.createGraduate({ name: "Mai Tran", givenName: "Mai", familyName: "Tran", email: "mai@example.com" }, "tester");
+    expect(explicit).toMatchObject({ givenName: "Mai", nameReviewed: true });
+
+    const updated = await graduates.updateGraduate(created.id, { familyName: "Phạm Thị", email: "thu.trang@example.com" }, "tester");
+    expect(updated).toMatchObject({ givenName: "Trang", familyName: "Phạm Thị", email: "thu.trang@example.com", nameReviewed: true });
+    await expect(graduates.updateGraduate(created.id, { email: "mai@example.com" }, "tester")).rejects.toThrow("already exists");
+    expect(await graduates.updateGraduate("3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e6f", { name: "Nobody" }, "tester")).toBeNull();
+
+    const { rows } = await pool!.query("SELECT metadata FROM audit WHERE action = 'graduate.update'");
+    expect(rows).toEqual([{ metadata: { fields: ["email", "familyName"] } }]);
+  });
 });

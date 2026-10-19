@@ -89,4 +89,52 @@ describe("POST /admin/graduates", () => {
     expect(res.statusCode).toBe(409);
     expect(res.json()).toMatchObject({ error: "Conflict" });
   });
+
+  it("passes given and family names through (#170)", async () => {
+    const { app, created } = build();
+    await app.inject({
+      method: "POST",
+      url: "/admin/graduates",
+      headers: await adminHeaders(),
+      payload: { ...payload, givenName: "Ann", familyName: "Nguyen" },
+    });
+    expect(created[0]?.[0]).toMatchObject({ givenName: "Ann", familyName: "Nguyen" });
+  });
+});
+
+describe("PATCH /admin/graduates/:id", () => {
+  const url = `/admin/graduates/${graduate.id}`;
+
+  it("requires an admin session", async () => {
+    const { app } = build();
+    expect((await app.inject({ method: "PATCH", url, payload: { givenName: "Ann" } })).statusCode).toBe(401);
+  });
+
+  it("updates with a normalised body and the admin as actor", async () => {
+    const calls: unknown[][] = [];
+    const { app } = build({
+      updateGraduate: async (...args: unknown[]) => {
+        calls.push(args);
+        return { ...graduate, givenName: "Ann", familyName: "Nguyen", nameReviewed: true };
+      },
+    });
+    const res = await app.inject({ method: "PATCH", url, headers: await adminHeaders(), payload: { givenName: "Ann", email: "ANN@example.com " } });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["cache-control"]).toBe("no-store");
+    expect(graduateSchema.parse(res.json())).toMatchObject({ givenName: "Ann", nameReviewed: true });
+    expect(calls).toEqual([[graduate.id, { givenName: "Ann", email: "ann@example.com" }, "tester"]]);
+  });
+
+  it("maps an empty body to 400, unknown to 404 and a taken email to 409", async () => {
+    const headers = await adminHeaders();
+    const { app } = build({ updateGraduate: async () => null });
+    expect((await app.inject({ method: "PATCH", url, headers, payload: {} })).statusCode).toBe(400);
+    expect((await app.inject({ method: "PATCH", url, headers, payload: { name: "X" } })).statusCode).toBe(404);
+    const taken = build({
+      updateGraduate: async () => {
+        throw new DuplicateGraduateError();
+      },
+    });
+    expect((await taken.app.inject({ method: "PATCH", url, headers, payload: { email: "b@example.com" } })).statusCode).toBe(409);
+  });
 });

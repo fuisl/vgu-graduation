@@ -12,11 +12,14 @@ post {
 
 headers {
   Content-Type: application/json
+  Authorization: Bearer {{adminSessionToken}}
 }
 
 body:json {
   {
     "guestName": "Jane Doe",
+    "guestGivenName": "Jane",
+    "guestFamilyName": "Doe",
     "guestEmail": "jane@example.com",
     "inviterUserIds": ["{{adminInviterUserId}}"],
     "maxPlusOnes": 1
@@ -27,5 +30,7 @@ docs {
   `adminInviterUserId` must be a real user id from the local Postgres
   (see docker/postgres/init/). The response's `token` is the raw
   bearer token, shown once — copy it into the `invitationToken`
-  secret var to use "Get My Invitation".
+  secret var to use "Get My Invitation". `guestGivenName` and
+  `guestFamilyName` are optional (#170): without them the API splits
+  `guestName` and marks it for review. Needs `adminSessionToken`.
 }

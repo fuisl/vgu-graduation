@@ -4,9 +4,9 @@
 
 Unchanged in role. It gains:
 
-- Guest routes: `/invite/[token]` performs the cookie exchange and redirects to `/invite`; `/invite`, `/rsvp`, `/pass`, `/gallery`, `/wishes`, `/live`, `/display` render from API data.
+- Guest routes: `/invite/[token]` performs the cookie exchange and redirects to `/invite`; `/invite`, `/rsvp`, `/pass`, `/gallery`, `/wishes`, `/memories`, `/memories/timeline`, `/live`, `/display` render from API data.
 - Admin routes under `/admin`, protected by an application session. Admins sign in with GitHub; a first sign-in files a pending request that an owner approves on `/admin/admins` (#119). The API checks approval in `admin_accounts` on every `/admin` request, so a revoke applies immediately. Owners are fixed in `apps/api/src/modules/admin/owners.ts`.
-- A thin BFF layer: route handlers and server actions that call the API with the forwarded invitation credential, use `fetch` caching with revalidation on reads, and map API failures to explicit page states. No domain logic lives here.
+- A thin BFF layer: route handlers and server actions that call the API with the forwarded invitation credential, use `fetch` caching with revalidation on shared reads (never on personal ones), and map API failures to explicit page states. No domain logic lives here.
 - Function region pinned to Singapore (`sin1`) so the hop to a homelab in Ho Chi Minh City stays short.
 
 Caching policy for the Vercel layer:
@@ -14,9 +14,10 @@ Caching policy for the Vercel layer:
 | Data | Cache | Reason |
 | --- | --- | --- |
 | Event configuration, venue info | Revalidate every 5 minutes | Rarely changes, must survive outages |
-| Invitation and RSVP state | Revalidate every 60 seconds, tagged per invitation | Stale pass beats no pass; RSVP write revalidates the tag |
+| Invitation, guide-book and RSVP state | No cache (`no-store`); the last good invitation and guide per token hash are kept in process memory for 6 hours and served only on a network error or 5xx | A stale-while-revalidate copy kept a revoked, rotated or expired invitation working indefinitely (QA P0-1). A 401, 403, 404 or 410 deletes the copy and shows the invalid or expired page; an admin revoke or rotate deletes it too (per web process). There is no per-invitation tag any more; after an RSVP save the server action calls `revalidatePath("/invite")` only so Next returns the re-rendered page with the action |
 | Gallery listing | Revalidate every 60 seconds | Moderator changes appear within a minute |
 | Wishes | Revalidate every 30 seconds | Same |
+| Curated gallery and wishes (`/memories`, #75) | Same cadences, tags `gallery-public` and `wishes-public` | Static pages; admin public-flag and moderation writes revalidate the tags |
 | Admin views | No cache | Must be current |
 
 ## 4.2 apps/docs (Vercel)
@@ -35,7 +36,7 @@ One Node 22 process built with a small HTTP framework that supports WebSockets n
 | pass | Signed pass payload for QR | `GET /pass` |
 | media | Upload originals, list gallery, serve derivatives, moderation | `POST /media`, `GET /gallery`, `GET /media/{id}/{variant}`, `POST /admin/media/{id}/moderate` |
 | wishes | Submit and list wishes with moderation | `POST /wishes`, `GET /wishes`, `GET /admin/wishes`, `POST /admin/wishes/{id}/moderate` |
-| live | WebSocket fan-out for translation and display | `WS /live/translation`, `WS /live/display`, `GET /live/display/feed` |
+| live | WebSocket fan-out for translation and display | `WS /live/translation`, `GET /live/translation/segments`, `WS /live/display`, `GET /live/display/feed` |
 | translation | Ingest segments from the GPU service; authenticate venue audio and proxy it to the GPU service | `POST /internal/translation/segments`, `WS /live/ingest` |
 | print | Print job queue | `POST /print/jobs`, `GET /internal/print/jobs/next`, `POST /internal/print/jobs/{id}/done` |
 | admin | Cross-cutting admin queries | `GET /admin/overview` |
@@ -59,18 +60,25 @@ Configuration is environment-only:
 | `S3_BUCKET_ORIGINALS`, `S3_BUCKET_DERIVATIVES` | ConfigMap |
 | `PUBLIC_ORIGIN`, `API_ORIGIN`, `COOKIE_DOMAIN` | ConfigMap |
 | `SERVICE_TOKEN_TRANSLATION`, `SERVICE_TOKEN_PRINTER` | SOPS-encrypted Secret `api-service-tokens` |
+| `SERVICE_TOKEN_INGEST` (capture client, optional) | SOPS-encrypted Secret `api-service-tokens` |
+| `TRANSLATION_INGEST_URL`, `LIVE_TRANSLATION_MAX_CLIENTS` (optional) | ConfigMap |
 | `ADMIN_SESSION_SECRET` | SOPS-encrypted Secret, shared with the web app on Vercel |
 | `LOG_LEVEL` | ConfigMap |
+| `PRINT_GUEST_REQUESTS_ENABLED` | ConfigMap; `true` lets guests queue prints (#72), default off |
 
 ## 4.4 apps/translation (k3s, GPU)
 
-Python service. It exposes one WebSocket ingest endpoint for audio, reachable only from the API over the cluster network, and pushes finished segments to the API with its service token. It has no Ingress and no public hostname. It never touches the database or storage and can be absent without the API noticing. A small capture client running on the AV laptop at the mixer connects to `WS /live/ingest` on the API with a service token, and the API proxies the audio to the translation service (decided 2026-09-27). Where the GPU machine physically sits on ceremony day is an open item (section 11).
+Python service. It exposes one WebSocket ingest endpoint for audio, reachable only from the API over the cluster network, and pushes finished segments to the API with its service token. It has no Ingress and no public hostname. It never touches the database or storage and can be absent without the API noticing. A small capture client running on the AV laptop at the mixer connects to `WS /live/ingest` on the API with a service token, and the API proxies the audio to the translation service (decided 2026-09-27). The audio is raw PCM, 16 kHz mono s16le, in binary WebSocket frames, with optional JSON control messages; the full protocol is in `packages/contract/src/translation.ts` and `use-cases.md` §6.2. Implemented in #67 and #69 (`apps/translation/README.md`): speech recognition and translation sit behind provider interfaces chosen by environment (`ASR_PROVIDERS` is an ordered failover chain, `MT_PROVIDER`), with faster-whisper and NLLB-200 on CTranslate2 as the local GPU providers and deterministic mocks for development and tests; the capture client is a second entrypoint of the same Python package, `grad-capture`, and resends unacknowledged audio after a drop. Where the GPU machine physically sits on ceremony day is an open item (section 11).
+
+## 4.4a apps/printer (venue only)
+
+Node/TypeScript daemon (#73), tooling like `apps/api` plus ESLint. It polls `GET /internal/print/jobs/next` with the printer's service token, downloads the photo's `display` derivative, prints it with CUPS `lp` (or writes it to a directory in dry-run mode) and reports `POST /internal/print/jobs/{id}/done`. A journal on its own volume makes printing at most once per job across crashes; `apps/printer/README.md` has the exact semantics. It runs only on the venue cluster, and when it is absent the queue simply waits.
 
 ## 4.5 packages/contract (new)
 
 Request and response schemas shared by apps/web and apps/api, written once as runtime validators with inferred TypeScript types. A change to an endpoint fails the web app's typecheck instead of failing at the venue.
 
-Zod schemas live in `packages/contract/src`, one file per module: `invitations`, `rsvp`, `event`, `pass`, `media`, `wishes`, `live` (WebSocket messages), `translation`, `print` and `admin`, plus `common` (errors, timestamps, moderation, pagination). Conventions: JSON fields are camelCase; timestamps are ISO 8601 with offset; photos are addressed only by their random `publicId`; every listing is cursor-paginated (`pageQuerySchema`); every error is `{ error, message }`. Endpoints that don't speak JSON (`POST /media` multipart, `GET /event/calendar.ics`, the `WS /live/ingest` audio stream) are documented next to the schema of their JSON parts and have no schema of their own.
+Zod schemas live in `packages/contract/src`, one file per module: `invitations`, `graduates`, `rsvp`, `event`, `pass`, `media`, `wishes`, `live` (WebSocket messages), `translation`, `print`, `guide` and `admin`, plus `common` (errors, timestamps, moderation, pagination, cache tags) and `names` (the given/family name split, #170). Conventions: JSON fields are camelCase; timestamps are ISO 8601 with offset; photos are addressed only by their random `publicId`; every listing is cursor-paginated (`pageQuerySchema`); every error is `{ error, message }`. Endpoints that don't speak JSON (`POST /media` multipart, `GET /event/calendar.ics`, the `WS /live/ingest` audio stream) are documented next to the schema of their JSON parts and have no schema of their own.
 
 Translation shapes reflect the live-translation intent (#18): speech is `en` or `vi`, captions are `de`, `en` or `vi`, and every translation carries a `draft`, `final` or `failed` status and the `provider` that produced it, so local-GPU and cloud providers stay swappable.
 
@@ -87,6 +95,7 @@ deploy/
       infra-configs.yaml      Flux Kustomization, dependsOn infra-controllers
       apps.yaml               Flux Kustomization, dependsOn infra-configs
     venue/                    open item, same shape with the venue overlay
+                              (as deployed: clusters/venue/printer.yaml, Flux Kustomization `printer`)
   infra/
     controllers/              cert-manager, cloudnative-pg, plugin-barman-cloud, nvidia-device-plugin
     configs/                  namespaces, ClusterIssuer, RuntimeClass, Traefik middlewares, NetworkPolicies
@@ -105,8 +114,8 @@ Secrets are committed only as SOPS-encrypted files named `*.sops.yaml`. The `.so
 | Image | Built from | Registry | Notes |
 | --- | --- | --- | --- |
 | `ghcr.io/<owner>/grad-api` | `apps/api`, pruned workspace | GHCR, private | Contains no secrets; no private dependencies |
-| `ghcr.io/<owner>/grad-translation` | `apps/translation` | GHCR, private | CUDA runtime base |
+| `ghcr.io/fuisl/grad-translation` | `apps/translation` | GHCR, public (decided 2026-10-19) | CUDA runtime base; `.github/workflows/docker-translation.yml` |
 | `ghcr.io/<owner>/grad-web` | `apps/web`, standalone output | GHCR, private | Bundles the private ASCII dependency, so it must stay private; only used by the venue overlay |
-| `ghcr.io/<owner>/grad-printer` | `apps/printer` or a subfolder of api | GHCR, private | CUPS plus a job poller |
+| `ghcr.io/fuisl/grad-printer` | `apps/printer`, pruned workspace | GHCR, public (decided 2026-10-19) | CUPS client plus the job poller; `.github/workflows/docker-printer.yml` |
 
 GitHub Actions builds on push to `main` with tags of the form `main-<YYYYMMDDHHmmss>-<7-char sha>` (UTC build time, e.g. `main-20260930134501-7c646bf`); `latest` and `sha-<short>` are pushed alongside but never deployed. The API image is currently `docker.io/fuisl/grad26-api` (public, Docker Hub), built by `.github/workflows/docker-api.yml`. The Flux ImagePolicy filters `^main-(?P<ts>[0-9]{14})-[a-f0-9]{7}$`, extracts `$ts` and sorts numerically ascending, so the newest build wins. The web image build receives the GitHub read token as a BuildKit secret mount, never as a build argument or layer. Flux image automation watches the registry, picks the newest timestamp, and commits the tag bump straight to the infrastructure repository's `main`, so each build deploys on its own (auto-deploy, #52; kubernetes-workloads.md §7.6 has how to freeze deploys). Actions minutes are conserved by building on a self-hosted runner on the homelab if the free quota runs short.

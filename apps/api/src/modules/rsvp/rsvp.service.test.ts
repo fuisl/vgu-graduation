@@ -1,22 +1,26 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ResolveResult } from "../invitations/invitations.service.js";
-import type { StoredRsvp, StoredRsvpRow } from "./rsvp.repository.js";
+import type { StoredGuestRsvp, StoredRsvpRow } from "./rsvp.repository.js";
 import { RsvpService } from "./rsvp.service.js";
 
 const INVITATION_ID = "3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e6f";
-const stored: StoredRsvp = {
+const stored: StoredGuestRsvp = {
   id: "3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e71",
   attending: true,
   plusOnesCount: 1,
   dietaryRequirements: null,
   notes: null,
   updatedAt: new Date("2026-10-01T00:00:00.000Z"),
+  accessibility: null,
 };
 
 function setup(resolved: ResolveResult, rows: StoredRsvpRow[] = []) {
   const upsert = vi.fn(async () => stored);
   const listAll = vi.fn(async () => rows);
-  const service = new RsvpService({ resolveByToken: async () => resolved }, { upsert, listAll });
+  const service = new RsvpService(
+    { resolveByToken: async () => resolved },
+    { upsert, listAll, findForInvitation: vi.fn(async () => null), listAccessibility: vi.fn(async () => []) },
+  );
   return { service, upsert, listAll };
 }
 

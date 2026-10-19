@@ -28,6 +28,11 @@
   height: 100%;
   max-height: 100cqw;
 }
+/* LazySculpture's slot: the fallback and then the canvas fill the stage as one box. */
+[data-theme="brand"] .home-visual .sculpture-slot {
+  width: 100%;
+  height: 100%;
+}
 [data-theme="brand"] .home-visual .sculpture {
   height: 100%;
   min-height: 0;
@@ -65,6 +70,13 @@
   text-transform: uppercase;
   white-space: nowrap;
 }
+/* Larger text (#176): on phones the two nowrap columns no longer fit side by side, so stack them. */
+@media (max-width: 960px) {
+  html[data-text-size] [data-theme="brand"] .home-hero-meta {
+    grid-auto-flow: row;
+    grid-template-rows: none;
+  }
+}
 [data-theme="brand"] .home-hero-meta__cell {
   margin: 0;
   font-variant-numeric: tabular-nums;
@@ -74,6 +86,9 @@
   display: inline-flex;
   align-items: center;
   gap: 0.45em;
+  /* A 44px tap target (QA P1-7) that keeps the mono block's rhythm: the extra height hangs into negative margins. */
+  min-height: var(--brand-tap);
+  margin-block: calc((1.2em - var(--brand-tap)) / 2);
   color: inherit;
   text-decoration: none;
 }

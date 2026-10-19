@@ -1,0 +1,198 @@
+/*
+ * Guest profile (/me, #139) and the shared guest-page pieces /guide reuses (hero, blocks, links).
+ * Brand tokens only; no hex, gradients, blur or shadows. One breakpoint at 960px.
+ */
+[data-theme="brand"] .profile-main {
+  min-height: 100svh;
+  background: var(--brand-white);
+}
+
+/* Hero: avatar beside the name on desktop, above it on phones. */
+[data-theme="brand"] .profile-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-5);
+}
+[data-theme="brand"] .profile-hero__avatar svg {
+  width: clamp(7rem, 32vw, 11rem);
+  height: auto;
+}
+[data-theme="brand"] .profile-hero__placeholder {
+  display: block;
+  width: clamp(7rem, 32vw, 11rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--brand-blue-deep);
+}
+[data-theme="brand"] .profile-hero__text {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+[data-theme="brand"] .profile-name {
+  margin: 0;
+  font-size: var(--brand-text-h1);
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: var(--brand-tracking-display);
+  overflow-wrap: anywhere;
+}
+[data-theme="brand"] .profile-fullname {
+  margin: 0;
+  font-size: var(--brand-text-lead);
+  color: var(--brand-muted);
+  overflow-wrap: anywhere;
+}
+[data-theme="brand"] .profile-lead {
+  max-width: var(--brand-measure);
+  margin: 0;
+  font-size: var(--brand-text-lead);
+  line-height: 1.35;
+}
+[data-theme="brand"] .profile-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--brand-tracking-label);
+  text-transform: uppercase;
+  color: var(--brand-muted);
+}
+[data-theme="brand"] .profile-hero__action {
+  margin-top: var(--space-2);
+}
+@media (min-width: 961px) {
+  [data-theme="brand"] .profile-hero {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-7);
+  }
+}
+
+/* Body: one column on phones, two from 961px. */
+[data-theme="brand"] .profile-grid {
+  display: grid;
+  gap: var(--space-6);
+  align-items: start;
+}
+[data-theme="brand"] .profile-stack {
+  display: grid;
+  gap: var(--space-6);
+  min-width: 0;
+}
+@media (min-width: 961px) {
+  [data-theme="brand"] .profile-grid {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: var(--space-7);
+  }
+}
+[data-theme="brand"] .profile-block {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+[data-theme="brand"] .profile-block > .brand-pills {
+  justify-self: start;
+}
+[data-theme="brand"] .profile-block p {
+  max-width: var(--brand-measure);
+  margin: 0;
+}
+[data-theme="brand"] .profile-heading {
+  margin: 0;
+  font-size: var(--brand-text-h3);
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+[data-theme="brand"] .profile-note {
+  max-width: var(--brand-measure);
+  margin: 0;
+  color: var(--brand-muted);
+}
+
+/* Who invited the guest: still blobatars beside names. */
+[data-theme="brand"] .profile-inviters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+[data-theme="brand"] .profile-inviter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--brand-tap);
+  font-weight: 500;
+}
+
+/* Quick links: large rows between hairlines, the whole row is the target. */
+[data-theme="brand"] .profile-links {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--brand-line);
+}
+[data-theme="brand"] .profile-links li {
+  border-bottom: 1px solid var(--brand-line);
+}
+[data-theme="brand"] .profile-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: var(--brand-tap);
+  padding: var(--space-3) var(--space-2);
+  color: var(--brand-fg);
+  text-decoration: none;
+  transition: background-color var(--motion-fast) var(--ease);
+}
+[data-theme="brand"] .profile-link:hover {
+  background: var(--brand-blue-soft);
+}
+[data-theme="brand"] .profile-link:hover .brand-arrow {
+  transform: translate(1px, -1px);
+}
+[data-theme="brand"] .profile-link:focus-visible,
+[data-theme="brand"] .profile-inline-link:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 2px;
+}
+[data-theme="brand"] .profile-link__text {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+[data-theme="brand"] .profile-link__title {
+  font-weight: 500;
+}
+[data-theme="brand"] .profile-link__description {
+  font-size: var(--text-sm);
+  color: var(--brand-muted);
+}
+[data-theme="brand"] .profile-link__arrow {
+  flex: none;
+  color: var(--brand-blue);
+}
+[data-theme="brand"] .profile-inline-link {
+  /* A 44px target (QA P1-7), centred on its line. */
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--brand-tap);
+  max-width: 100%;
+  color: var(--brand-blue);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  overflow-wrap: anywhere;
+}
+
+/* How to open an invitation: numbered steps. */
+[data-theme="brand"] .profile-steps {
+  display: grid;
+  gap: var(--space-3);
+  max-width: var(--brand-measure);
+  margin: 0;
+  padding-left: var(--space-5);
+}

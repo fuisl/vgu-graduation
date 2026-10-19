@@ -1,6 +1,7 @@
 import fastifyCookie from "@fastify/cookie";
 import fastifyCors from "@fastify/cors";
 import fastifyWebsocket from "@fastify/websocket";
+import { INGEST_MAX_FRAME_BYTES } from "@grad/contract";
 import Fastify, { type FastifyInstance } from "fastify";
 import { type Config, config as defaultConfig } from "./config.js";
 import {
@@ -20,11 +21,11 @@ import { invitationsRoutes } from "./modules/invitations/invitations.routes.js";
 import type { InvitationsService } from "./modules/invitations/invitations.service.js";
 import { passRoutes } from "./modules/pass/pass.routes.js";
 import type { PassSigner } from "./modules/pass/pass.signer.js";
-import { rsvpRoutes } from "./modules/rsvp/rsvp.routes.js";
-import type { RsvpService } from "./modules/rsvp/rsvp.service.js";
+import { guideRoutes, type GuideRoutesOptions } from "./modules/guide/guide.routes.js";
+import { printRoutes, type PrintRoutesOptions } from "./modules/print/print.routes.js";
+import { rsvpRoutes, type RsvpRoutesOptions } from "./modules/rsvp/rsvp.routes.js";
 import { systemRoutes } from "./modules/system/system.routes.js";
-import { wishesRoutes } from "./modules/wishes/wishes.routes.js";
-import type { WishesService } from "./modules/wishes/wishes.service.js";
+import { wishesRoutes, type WishesRoutesOptions } from "./modules/wishes/wishes.routes.js";
 
 /** Logger paths whose values are replaced with "[Redacted]". */
 export const LOG_REDACT_PATHS = [
@@ -35,6 +36,9 @@ export const LOG_REDACT_PATHS = [
   "token",
   "*.token_hash",
   "token_hash",
+  // Accessibility needs (#176) are sensitive: nothing logs them, and this catches a slip.
+  "*.accessibility",
+  "accessibility",
 ];
 
 export interface BuildServerOptions {
@@ -50,13 +54,17 @@ export interface BuildServerOptions {
   /** Override for tests; defaults to the database-backed event repository. */
   eventStore?: EventStore;
   /** Override for tests; defaults to the database-backed service. */
-  rsvpService?: Pick<RsvpService, "putByToken" | "listAll">;
+  rsvpService?: RsvpRoutesOptions["service"];
   /** Override for tests; defaults to the database-backed service. */
-  wishesService?: Pick<WishesService, "createByToken" | "listVisible" | "listAll" | "moderate">;
+  wishesService?: WishesRoutesOptions["service"];
+  /** Override for tests; defaults to the database-backed service. */
+  printService?: PrintRoutesOptions["service"];
+  /** Override for tests; defaults to the database-backed service. */
+  guideService?: GuideRoutesOptions["service"];
   /** Override for tests; defaults to the database- and Garage-backed service. */
   mediaService?: MediaRoutesOptions["service"];
-  /** Overrides for tests: the display feed's data source and timings. */
-  live?: Pick<LiveRoutesOptions, "displaySource" | "feed">;
+  /** Overrides for tests: the display feed's data source and timings, and the translation module's. */
+  live?: Pick<LiveRoutesOptions, "displaySource" | "feed" | "translation">;
   /** Log destination; defaults to stdout. Tests pass a stream to inspect output. */
   logStream?: { write(line: string): void };
 }
@@ -105,8 +113,8 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
   app.register(fastifyCookie);
 
   // WebSockets (/live/*). Registered before any route so it can handle upgrades.
-  // Clients only listen, so inbound frames are capped small.
-  app.register(fastifyWebsocket, { options: { maxPayload: 1024 } });
+  // Listeners send nothing; the cap is the largest audio frame on /live/ingest.
+  app.register(fastifyWebsocket, { options: { maxPayload: INGEST_MAX_FRAME_BYTES } });
 
   // Admin approval, read by requireAdmin on every /admin request (#119)
   app.decorate("adminAccounts", options.adminAccounts ?? new AdminAccountsRepository());
@@ -129,6 +137,8 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
   app.register(wishesRoutes, { service: options.wishesService });
   app.register(mediaRoutes, { service: options.mediaService });
   app.register(liveRoutes, { config, invitationsService: options.invitationsService, ...options.live });
+  app.register(printRoutes, { config, service: options.printService });
+  app.register(guideRoutes, { service: options.guideService });
 
   return app;
 }

@@ -20,7 +20,11 @@ import {
   toPath,
   toPercent,
 } from "./campus-figure";
+import type { I18n, MessageId } from "../../lib/i18n/dictionary";
 import { FigureReveal } from "./FigureReveal";
+
+/** Figure words that are not names (#9). Building, road, bridge and river names are proper nouns and stay as drawn. */
+const TRANSLATED: Partial<Record<string, MessageId>> = { Entrance: "venue.fig.entrance", Parking: "venue.fig.parking" };
 
 const prisms = BUILDINGS.map(extrude).sort((a, b) => a.depth - b.depth);
 
@@ -68,7 +72,12 @@ const leaders = LABELS.map((label) => {
  * grid, single-weight strokes, one solid highlight, dashed route, mono labels on leader arrows.
  * Decorative SVG; the figcaption carries the description for screen readers.
  */
-export function CampusFigure() {
+export function CampusFigure({ i18n }: { i18n: I18n }) {
+  const { t } = i18n;
+  const text = (label: string) => {
+    const id = TRANSLATED[label];
+    return id ? t(id) : label;
+  };
   return (
     <FigureReveal>
       <figure className="campus-fig" aria-labelledby="campus-fig-caption">
@@ -175,7 +184,7 @@ export function CampusFigure() {
               style={{ ...at, ["--i" as string]: i }}
               aria-hidden="true"
             >
-              {label.text}
+              {text(label.text)}
             </span>
           ))}
           {INLINE_LABELS.map((label) => {
@@ -205,11 +214,7 @@ export function CampusFigure() {
         <span className="campus-fig__meta campus-fig__meta--title" aria-hidden="true">[ VGU CAMPUS · CEREMONY HALL ]</span>
         <span className="campus-fig__meta campus-fig__meta--year" aria-hidden="true">(C) 2026</span>
 
-        <figcaption id="campus-fig-caption" className="brand-sr-only">
-          Map of the VGU campus around Sunrise River. The Ceremony Hall, where the ceremony takes place, is
-          highlighted on the north bank beside the library. From the main entrance off Ring Road 4, walk north over
-          the West Bridge to reach it.
-        </figcaption>
+        <figcaption id="campus-fig-caption" className="brand-sr-only">{t("venue.fig.caption")}</figcaption>
       </figure>
     </FigureReveal>
   );

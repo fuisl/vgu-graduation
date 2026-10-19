@@ -41,7 +41,7 @@ describe("/", () => {
     expect(out).toContain("Photos are temporarily unavailable");
     expect(out).toContain("Wishes are temporarily unavailable");
     expect(out.match(/<h1/g)).toHaveLength(1);
-    expect(out).toContain('href="/invite"');
+    expect(out).toContain('href="/me"');
   });
 
   it("shows event, empty gallery and populated wishes", async () => {
@@ -54,7 +54,12 @@ describe("/", () => {
     const out = await render();
     expect(out).toContain("VGU Campus");
     expect(out).toContain("webcal");
+    // Hero primary action (#148) plus every calendar option in "When and where" (QA P1-3).
+    expect(out).toContain('class="home-hero-cta"');
+    expect(out).toContain("calendar.google.com");
+    expect(out).toContain("outlook.live.com");
     expect(out).toContain("First photos appear on ceremony day.");
+    expect(out).toContain('href="/memories"');
     expect(out).toContain("Congrats!");
     expect(out).toContain("Jane");
   });

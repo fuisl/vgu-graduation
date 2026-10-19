@@ -1,0 +1,67 @@
+name: Printer image
+
+# Builds and pushes the apps/printer container image to GHCR, only when
+# something it is built from merges to main. Modelled on docker-api.yml: pull
+# requests never build it (CI still lints, typechecks and tests apps/printer),
+# so a fork PR can't reach the registry token. Build locally with
+# `docker build -f apps/printer/Dockerfile .` when changing the Dockerfile.
+#
+# The image is experimental (#19, #73) and runs only in the venue overlay of
+# fuisl/vgu-graduation-deployment. It goes to ghcr.io/fuisl/grad-printer with
+# the workflow's own GITHUB_TOKEN; set the package's visibility to public once
+# so the cluster pulls it without a secret. Flux's ImagePolicy grad-printer
+# follows the main-<YYYYMMDDHHmmss UTC>-<7-char sha> tag, exactly as for the API.
+on:
+  push:
+    branches: [main]
+    paths:
+      - apps/printer/**
+      - packages/contract/**
+      - pnpm-lock.yaml
+      - .github/workflows/docker-printer.yml
+  # Rebuild by hand (Actions tab -> Run workflow) without a code change.
+  workflow_dispatch:
+
+concurrency:
+  group: docker-printer-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: build-and-push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/fuisl/grad-printer
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
+            type=raw,value=main-{{date 'YYYYMMDDHHmmss' tz='UTC'}}-{{sha}}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/printer/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=printer
+          cache-to: type=gha,mode=max,scope=printer

@@ -130,6 +130,8 @@ Experimental workloads are their own Flux Kustomizations under `apps` so they ca
 flux suspend kustomization translation   # ceremony-day switch, reversible with resume
 ```
 
+> **As deployed (2026-10-19, #71, #73):** the infrastructure repository's paths differ from the sketch above (`clusters/home`, `infrastructure/*`, `workloads/home`; Flux Kustomizations `infra-controllers`, `infra-configs`, `workloads-home`). Live translation is the Flux Kustomization `translation` (`clusters/home/translation.yaml` → `workloads/translation`, depends only on `infra-configs`, nothing depends on it). Suspending only stops reconciliation; to free the GPU also run `kubectl -n grad scale deploy/translation --replicas=0`, which Flux leaves alone while suspended and restores on resume. The printer is the Flux Kustomization `printer` on the venue cluster only (`clusters/venue/printer.yaml` → `workloads/venue`); nothing under `clusters/home` or `workloads/home` references it. Image automation covers `./workloads`, so the home cluster also bumps the printer's tag in git.
+
 ## 7.4 Namespaces
 
 | Namespace | Contents | Notes |
@@ -137,10 +139,11 @@ flux suspend kustomization translation   # ceremony-day switch, reversible with 
 | `flux-system` | Flux controllers, GitRepository, image automation | Created by bootstrap |
 | `cert-manager` | cert-manager | Helm |
 | `cnpg-system` | CloudNativePG operator and Barman Cloud plugin | Helm; plugin must share the operator's namespace |
-| `nvidia-device-plugin` | Device plugin DaemonSet | Helm |
+| `nvidia-device-plugin` | Device plugin DaemonSet | Helm; part of the `translation` Flux Kustomization, so a broken GPU stack never blocks `infra-controllers` |
 | `garage` | Garage StatefulSet | Helm, vendored chart |
 | `edge` | static fallback | Ingress-facing helpers. No `cloudflared` (ADR-009): the router forwards ports 80/443 straight to Traefik in `kube-system` |
-| `grad` | api, worker, Postgres cluster, translation, print | Application namespace |
+| `grad` | api, worker, Postgres cluster, translation | Application namespace |
+| `print` | printer daemon | Venue cluster only; the containment exception, alone in its namespace with default-deny |
 | `kube-system` | Traefik, CoreDNS, ServiceLB, local-path | Packaged with k3s |
 
 ## 7.5 Workload catalogue
@@ -150,7 +153,7 @@ flux suspend kustomization translation   # ceremony-day switch, reversible with 
 | cert-manager | cert-manager | HelmRelease | `oci://quay.io/jetstack/charts` chart `cert-manager` | v1.21.2 | none | none | infra-controllers |
 | cloudnative-pg | cnpg-system | HelmRelease | `https://cloudnative-pg.github.io/charts` chart `cloudnative-pg` | latest 1.26+ | none | none | infra-controllers |
 | plugin-barman-cloud | cnpg-system | HelmRelease | same repo, chart `plugin-barman-cloud` | 0.15.0 | none | none | infra-controllers |
-| nvidia-device-plugin | nvidia-device-plugin | HelmRelease | `https://nvidia.github.io/k8s-device-plugin` chart `nvidia-device-plugin` | 0.17.1 | none | none | infra-controllers |
+| nvidia-device-plugin | nvidia-device-plugin | HelmRelease | `https://nvidia.github.io/k8s-device-plugin` chart `nvidia-device-plugin` | 0.19.3 | none | none | translation, suspendable |
 | ClusterIssuer, RuntimeClass, NetworkPolicies, Middlewares, namespaces | various | plain manifests | this repo | n/a | none | none | infra-configs |
 | garage | garage | HelmRelease | vendored `charts/garage` from the Garage repository | Garage v2.4.1 (chart 0.10.2) | 2 PVCs: meta 5 Gi, data sized to the archive | ClusterIP 3900 | apps |
 | grad-db | grad | CNPG Cluster | operator | Postgres 17 | PVC 20 Gi | ClusterIP 5432 | apps |
@@ -159,8 +162,8 @@ flux suspend kustomization translation   # ceremony-day switch, reversible with 
 | worker | grad | Deployment | same image | image automation | none | none | apps |
 | ddns | grad | CronJob | `docker.io/curlimages/curl` + `update.sh` (ConfigMap) | pinned | none | outbound only (TCP 443, public ranges) | apps |
 | fallback | edge | Deployment, Service, ConfigMap | static server image | pinned | none | via Traefik errors middleware | apps |
-| translation | grad | Deployment, Service | `ghcr.io/<owner>/grad-translation` | image automation | emptyDir for model cache or PVC | none, reached only from the API | apps, suspendable |
-| printer | grad | Deployment | `ghcr.io/<owner>/grad-printer` | image automation | none | none | venue overlay only |
+| translation | grad | Deployment, Service | `ghcr.io/fuisl/grad-translation` (public) | image automation | PVC `translation-models` 20 Gi | none, reached only from the API on 8000 | translation, suspendable |
+| printer | print | Deployment | `ghcr.io/fuisl/grad-printer` (public) | image automation | PVC `printer-state` (journal); host CUPS socket | none, polls the API | venue cluster only (`printer`) |
 | web-mirror | grad | Deployment, Service, Ingress | `ghcr.io/<owner>/grad-web` | image automation | none | LAN hostname | venue overlay only |
 | offsite-mirror | garage | CronJob | `rclone/rclone` | pinned | none | outbound only | apps |
 
@@ -574,9 +577,13 @@ spec:
 
 Model weights are cached on a small PVC so a pod restart does not re-download them during the ceremony. The service is its own Flux Kustomization so it can be suspended.
 
+> **As deployed (2026-10-19, #71):** `workloads/translation/app` in the infrastructure repository. Differences from the sketch: labels are `app.kubernetes.io/name: translation`; the Service listens on 8000 (not 80); the image is public, so there is no `imagePullSecrets`; the pod is pinned with `nodeSelector: nvidia.com/gpu.present: "true"` (labelled by hand on the GPU node, which the device plugin chart also requires) and runs non-root with a read-only root filesystem. Env follows `apps/translation`'s config: `API_INTERNAL_URL=http://api-service.grad.svc.cluster.local:4000`, `SERVICE_TOKEN` from `api-secrets/SERVICE_TOKEN_TRANSLATION`, `ASR_PROVIDERS=faster-whisper`, `MT_PROVIDER=nllb` (`mock` for both runs without a GPU), `MODEL_CACHE=/models`. Probes are TCP with a ten-minute startup window for model loading. The api reaches it through `TRANSLATION_INGEST_URL=ws://translation.grad.svc.cluster.local:8000/ingest`; guests and the capture client reach `/live/*` only through the api, on a second Ingress `api-service-live` with a wider per-IP rate limit (venue guests share one NAT address) and without the fallback page. The capture client's token is `SERVICE_TOKEN_INGEST` in the SOPS Secret `api-ingest`, mounted optional.
+
 **Printer daemon (venue overlay only)**
 
-Runs only where a label marks the venue node, needs the USB bus, and is the one pod that breaks the clean containment model. It is confined to its own overlay and never present at home.
+Runs only where a label marks the venue node, needs the printer, and is the one pod that breaks the clean containment model. It is confined to its own overlay and never present at home.
+
+> **As deployed (2026-10-19, #73), superseding the sketch below:** cupsd runs on the venue host and owns the USB printer and its model-specific driver; the pod mounts only the host's CUPS socket (`hostPath` `/run/cups/cups.sock`, type `Socket`) and runs `lp` from the image's CUPS client. No privileged mode, no `/dev/bus/usb`; non-root, read-only root filesystem, no capabilities. It lives alone in the `print` namespace (default-deny, egress to DNS and the api only) on the venue cluster (`clusters/venue`, `workloads/venue/printer`), polls `https://api.grad26.fuisloy.dev` with its service token (Secret `printer-token`, SOPS), and keeps a journal on the `printer-state` PVC so a restart never prints a job twice (`apps/printer/README.md`).
 
 ```yaml
 apiVersion: apps/v1
@@ -607,6 +614,8 @@ spec:
 **Static fallback**
 
 A tiny static server with one HTML page from a ConfigMap: event name, date, venue address, a map link, and the fallback QR codes the runbook asks for. Traefik serves it whenever the API is unreachable.
+
+> **As deployed (#53):** `workloads/home/fallback` in the infrastructure repository: a pinned `nginx-unprivileged` serving one brand-styled page (under 8 KB, no scripts, no external requests, two generated inline-SVG QR codes for the site and the map link). The Middleware `edge/fallback` catches 502–504 on the api Ingress; Traefik's `allowEmptyServices` (set explicitly in `infrastructure/configs/traefik-config.yaml`) turns an api with no ready pod into a 503, so a stopped or crash-looping api shows the page too. The original status code is kept. Its event facts mirror `event_config` and must be updated by hand when those change.
 
 **Offsite mirror**
 
@@ -697,6 +706,8 @@ spec:
 
 Label selectors for Traefik and Garage pods must be checked against the deployed charts before the policies are committed, because a wrong label silently blocks traffic.
 
+> **As deployed:** the `grad` namespace denies both ingress and egress by default, and workloads are selected by `app.kubernetes.io/name`. `translation-from-api`, `allow-api-translation` (api egress to 8000), `allow-translation-api` (segment posts back to the api on 4000) and `allow-translation-model-downloads` (HTTPS to public addresses) ship with the `translation` Kustomization.
+
 ## 7.8 Resource budget
 
 | Workload | CPU request | Memory request | Memory limit |
@@ -710,6 +721,7 @@ Label selectors for Traefik and Garage pods must be checked against the deployed
 | cert-manager, cnpg operator, plugin, flux, device plugin | 500m | 700 Mi | 1.5 Gi |
 | fallback | 10m | 16 Mi | 32 Mi |
 | translation | 1 | 4 Gi | 8 Gi, plus GPU |
+| printer (venue cluster only) | 10m | 64 Mi | 128 Mi |
 | Total without translation | about 1.7 | about 2.5 Gi | about 5.5 Gi |
 | Total with translation | about 2.7 | about 6.5 Gi | about 13.5 Gi |
 

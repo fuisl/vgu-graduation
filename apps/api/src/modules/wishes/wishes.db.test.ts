@@ -121,8 +121,14 @@ describe("wishes (real Postgres)", () => {
     const { items } = await service.listVisible({ limit: 100 });
     const target = items.find((w) => w.body === "first")!;
 
-    expect(await service.moderate(target.id, "hidden", "tester")).toEqual({ status: "ok", wish: { id: target.id, status: "hidden" } });
-    expect(await service.moderate(target.id, "hidden", "tester")).toEqual({ status: "ok", wish: { id: target.id, status: "hidden" } });
+    expect(await service.moderate(target.id, "hidden", "tester")).toEqual({
+      status: "ok",
+      wish: { id: target.id, status: "hidden", isPublic: false, revalidateTags: ["wishes"] },
+    });
+    expect(await service.moderate(target.id, "hidden", "tester")).toEqual({
+      status: "ok",
+      wish: { id: target.id, status: "hidden", isPublic: false, revalidateTags: [] },
+    });
     expect((await service.listVisible({ limit: 100 })).items.map((w) => w.id)).not.toContain(target.id);
 
     await service.moderate(target.id, "removed", "tester");
@@ -136,5 +142,33 @@ describe("wishes (real Postgres)", () => {
     const all = await service.listAll({ limit: 100 });
     expect(all.items.find((w) => w.id === target.id)?.status).toBe("removed");
     expect(await service.moderate("3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e6f", "hidden", "tester")).toEqual({ status: "not_found" });
+  });
+
+  it("lists only flagged, visible wishes publicly; unflagged ones never appear (#75)", async (ctx) => {
+    if (!admin) return ctx.skip();
+    expect((await service.listPublic({ limit: 100 })).items).toEqual([]);
+    const { items } = await service.listVisible({ limit: 100 });
+    const [flagged, other] = items;
+
+    expect(await service.setPublic(flagged!.id, true, "tester")).toMatchObject({
+      status: "ok",
+      wish: { isPublic: true, revalidateTags: ["wishes-public"] },
+    });
+    expect((await service.listPublic({ limit: 100 })).items.map((w) => w.id)).toEqual([flagged!.id]);
+
+    // Hidden: off the public list (flag kept), and a hidden wish can't be newly flagged.
+    expect((await service.moderate(flagged!.id, "hidden", "tester")).status).toBe("ok");
+    expect((await service.listPublic({ limit: 100 })).items).toEqual([]);
+    await service.moderate(other!.id, "removed", "tester");
+    expect(await service.setPublic(other!.id, true, "tester")).toEqual({ status: "not_eligible", moderationStatus: "removed" });
+    await service.moderate(flagged!.id, "visible", "tester");
+    expect((await service.listPublic({ limit: 100 })).items.map((w) => w.id)).toEqual([flagged!.id]);
+
+    const filtered = await service.listAll({ limit: 100, isPublic: true });
+    expect(filtered.items).toEqual([expect.objectContaining({ id: flagged!.id, isPublic: true, status: "visible" })]);
+    expect((await service.listAll({ limit: 100, status: "removed" })).items.map((w) => w.id)).toContain(other!.id);
+
+    const { rows } = await pool!.query("SELECT actor, metadata FROM audit WHERE action = 'wish.public'");
+    expect(rows).toEqual([{ actor: "tester", metadata: { from: false, to: true } }]);
   });
 });

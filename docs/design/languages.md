@@ -6,7 +6,7 @@ The guest-facing site reads in English or Vietnamese (#9). English is the source
 
 - First visit: the browser's `Accept-Language` (any `vi*` tag ranked above English gives Vietnamese), else English.
 - After choosing: the `lang` cookie, for a year. The URL never changes; invitation links keep working as they are.
-- The switch is a small mono **EN | VI** pill: next to the guest chip on desktop, above it in the mobile menu sheet, and in the footer's meta row. It is a form posting to `/api/locale`, so it also works before or without JavaScript, and it reloads the same page in the new language. Each option is named in its own language (`aria-label="Tiếng Việt"`, `lang="vi"`), the current one has `aria-current="true"`, and each is a 44px target.
+- The switch is a small mono **EN | VI** pill: next to the guest chip on desktop, above it in the mobile menu sheet, and in the footer's meta row. It is a form posting to `/api/locale`, so it also works before or without JavaScript, and it reloads the same page in the new language. Each option is named by its code and then in its own language (`aria-label="VI, Tiếng Việt"`, `lang="vi"`; the name starts with the visible text), the current one has `aria-current="true"`, and each is a 44px target.
 
 ## Writing copy
 

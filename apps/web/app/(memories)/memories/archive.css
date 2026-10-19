@@ -4,7 +4,7 @@
  */
 
 [data-theme="brand"] .arc-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-5); }
-[data-theme="brand"] .arc-h2 { margin: var(--space-3) 0 var(--space-6); font-size: var(--brand-text-h2); font-weight: 500; line-height: 1.1; letter-spacing: var(--brand-tracking-display); }
+[data-theme="brand"] .arc-h2 { margin: 0 0 var(--space-6); font-size: var(--brand-text-h2); font-weight: 500; line-height: 1.1; letter-spacing: var(--brand-tracking-display); }
 [data-theme="brand"] .arc-count { font-family: var(--font-mono); font-size: var(--text-sm); letter-spacing: var(--brand-tracking-label); color: var(--brand-muted); vertical-align: super; }
 [data-theme="brand"] .arc-state { margin: 0 0 var(--space-5); max-width: var(--brand-measure); color: var(--brand-muted); }
 [data-theme="brand"] .arc-state--note { margin-top: var(--space-5); font-size: var(--text-sm); }

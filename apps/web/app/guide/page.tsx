@@ -83,9 +83,6 @@ function PersonalGuide({ invitation, guide, i18n }: { invitation: Invitation; gu
             </div>
           </div>
         )}
-        <p className="guide-back">
-          <a className="profile-inline-link" href="/me">{t("guide.back")}</a>
-        </p>
       </Section>
     </>
   );

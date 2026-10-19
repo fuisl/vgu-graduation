@@ -12,11 +12,17 @@ import { submitRsvp } from "./rsvp-actions";
 export function RsvpForm({
   invitation,
   savedNeeds,
+  status,
+  allowance,
   messages,
   noteMaxLength,
 }: {
   invitation: Invitation;
   savedNeeds: SavedNeeds;
+  /** The saved answer in a sentence (`summarizeRsvp`), or null before the guest has answered. */
+  status: string | null;
+  /** Who the invitation covers (`invite.plusOnes` / `invite.plusOnesNone`), formatted on the server. */
+  allowance: string;
   /** ACCESSIBILITY_NOTE_MAX_LENGTH, passed from the server so the contract (and zod) stay out of this bundle (QA P2-2). */
   noteMaxLength: number;
   /** `pickMessages(locale, ...RSVP_MESSAGES)`: the form's strings in the guest's language (#9). */
@@ -60,9 +66,10 @@ export function RsvpForm({
   const showPlusOnes = maxPlusOnes > 0 && attending === "yes";
 
   return (
-    <form onSubmit={onSubmit} aria-busy={pending} aria-labelledby="rsvp-form-heading">
+    <form onSubmit={onSubmit} aria-busy={pending} aria-labelledby="rsvp-form-heading" className="invite-body">
       <h2 id="rsvp-form-heading" className="invite-heading">{rsvp ? t("rsvp.form.change") : t("rsvp.form.respond")}</h2>
-      <p>{t("rsvp.form.anyTime")}</p>
+      {status ? <p className="invite-rsvp-status">{status}</p> : null}
+      <p>{allowance} {t("rsvp.form.anyTime")}</p>
 
       <fieldset disabled={pending} className="invite-fieldset">
         <fieldset className="invite-field invite-choices">

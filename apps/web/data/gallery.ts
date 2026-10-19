@@ -12,6 +12,11 @@ export interface GalleryItem {
   timestamp: string;
   /** Photos only: the API's `publicId`, used to request a print (#74). */
   publicId?: string;
+  /**
+   * The guest's own photo, shown from its local preview while the API still
+   * processes it (ADR-014); `content` is then a data URL. Absent for listed items.
+   */
+  pending?: "developing";
 }
 
 export function buildGalleryItems(

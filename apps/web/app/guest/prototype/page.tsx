@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import { BrandEyebrow, BrandTheme } from "@grad/ui";
 import { getI18n } from "../../../lib/i18n/server";
+import { demoBadgeCard, demoBadgeLabels } from "../../../lib/profile/badge";
 import { SiteFooter } from "../../site/SiteFooter";
 import { SiteHeader } from "../../site/SiteHeader";
-import { BadgeScene } from "./BadgeScene";
+import { BadgeStage } from "../badge/BadgeStage";
+import { NameBadge } from "../badge/NameBadge";
+import "../badge/badge.css";
 import "./prototype.css";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -11,6 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("badge.metaTitle"), description: t("badge.metaDescription") };
 }
 
+/** The name badge with demo data (#152): the same component the guest portal (/me) prints the guest's name on. */
 export default async function GuestPrototype() {
   const i18n = await getI18n();
   const { t } = i18n;
@@ -18,19 +22,17 @@ export default async function GuestPrototype() {
     <BrandTheme>
       <SiteHeader i18n={i18n} />
       <main id="main" className="guest-prototype">
-        {/* Plain brand-blue stage; the canvas spans it so drags can reach the edges. */}
-        <section className="guest-stage" aria-labelledby="guest-stage-title">
+        <BadgeStage
+          className="badge-stage--full"
+          labelledBy="guest-stage-title"
+          badge={<NameBadge card={demoBadgeCard(i18n)} labels={demoBadgeLabels(i18n)} />}
+        >
           {/* The page's one heading (QA P2-17); the badge itself is the visual title. */}
           <h1 id="guest-stage-title" className="brand-sr-only">{t("badge.stage")}</h1>
-          <div className="guest-object-scene">
-            <BadgeScene labels={{ interactive: t("badge.interactive"), static: t("badge.static") }}>
-              <p className="guest-badge-placeholder mono">{t("badge.placeholder")}</p>
-            </BadgeScene>
-          </div>
           <div className="guest-stage-footer">
             <BrandEyebrow>{t("badge.previewOnly")} <span aria-hidden="true">—</span> {t("badge.story")}</BrandEyebrow>
           </div>
-        </section>
+        </BadgeStage>
       </main>
       <SiteFooter i18n={i18n} />
     </BrandTheme>

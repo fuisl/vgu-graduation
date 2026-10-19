@@ -16,8 +16,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /**
  * About and credits (#7): who built the site, as ASCII portraits that print once on scroll-in.
- * Fully static; the only client code is PortraitReveal. Linked from the footer, not the header
- * nav, which keeps its four event links (docs/design/landing.md, About page).
+ * Fully static; the only client code is PortraitReveal. Linked from the footer ("Credits"), not
+ * the menubar, which keeps to the event (docs/design/landing.md, About page).
  */
 export default async function AboutPage() {
   const grid = { "--portrait-cols": PORTRAIT_COLS } as CSSProperties;

@@ -15,8 +15,8 @@ Caching policy for the Vercel layer:
 | --- | --- | --- |
 | Event configuration, venue info | Revalidate every 5 minutes | Rarely changes, must survive outages |
 | Invitation, guide-book and RSVP state | No cache (`no-store`); the last good invitation and guide per token hash are kept in process memory for 6 hours and served only on a network error or 5xx | A stale-while-revalidate copy kept a revoked, rotated or expired invitation working indefinitely (QA P0-1). A 401, 403, 404 or 410 deletes the copy and shows the invalid or expired page; an admin revoke or rotate deletes it too (per web process). There is no per-invitation tag any more; after an RSVP save the server action calls `revalidatePath("/invite")` only so Next returns the re-rendered page with the action |
-| Gallery listing | Revalidate every 60 seconds | Moderator changes appear within a minute |
-| Wishes | Revalidate every 30 seconds | Same |
+| Gallery listing | Revalidate every 10 seconds; `/api/gallery` edge `s-maxage=5, stale-while-revalidate=10` | First paint only: the page then follows `WS /live/gallery` from the API (ADR-014), so new items and takedowns show within about a second. Kept short rather than `no-store` so a crowd is absorbed and the gallery still paints during a homelab outage |
+| Wishes | Revalidate every 10 seconds | Same |
 | Curated gallery and wishes (`/memories`, #75) | Same cadences, tags `gallery-public` and `wishes-public` | Static pages; admin public-flag and moderation writes revalidate the tags |
 | Admin views | No cache | Must be current |
 
@@ -36,7 +36,7 @@ One Node 22 process built with a small HTTP framework that supports WebSockets n
 | pass | Signed pass payload for QR | `GET /pass` |
 | media | Upload originals, list gallery, serve derivatives, moderation | `POST /media`, `GET /gallery`, `GET /media/{id}/{variant}`, `POST /admin/media/{id}/moderate` |
 | wishes | Submit and list wishes with moderation | `POST /wishes`, `GET /wishes`, `GET /admin/wishes`, `POST /admin/wishes/{id}/moderate` |
-| live | WebSocket fan-out for translation and display | `WS /live/translation`, `GET /live/translation/segments`, `WS /live/display`, `GET /live/display/feed` |
+| live | WebSocket fan-out for translation, display and gallery (ADR-014) | `WS /live/translation`, `GET /live/translation/segments`, `WS /live/display`, `GET /live/display/feed`, `WS /live/gallery`, `GET /live/gallery/feed` |
 | translation | Ingest segments from the GPU service; authenticate venue audio and proxy it to the GPU service | `POST /internal/translation/segments`, `WS /live/ingest` |
 | print | Print job queue | `POST /print/jobs`, `GET /internal/print/jobs/next`, `POST /internal/print/jobs/{id}/done` |
 | admin | Cross-cutting admin queries | `GET /admin/overview` |
@@ -45,7 +45,7 @@ One Node 22 process built with a small HTTP framework that supports WebSockets n
 Runtime behavior:
 
 - Migrations run in an init container of the API Deployment using an advisory lock, so a rollout never races itself.
-- The worker is the same image started with a worker entrypoint. It polls a `jobs` table in Postgres for derivative generation, moderation notifications and print job dispatch. No message broker.
+- The worker is the same image started with a worker entrypoint. It polls a `jobs` table in Postgres for derivative generation, moderation notifications and print job dispatch, and a `LISTEN grad_jobs` wakes it as soon as a job is queued (ADR-014). No message broker.
 - Authentication: invitation tokens arrive as `Authorization: Bearer` from Vercel or as an `HttpOnly` cookie scoped to `.grad26.fuisloy.dev` from browsers on path B. Tokens are 128-bit random values; only a SHA-256 hash is stored; comparison is constant-time. Service calls on path C use static bearer tokens from Secrets. Admin calls carry a session token signed by the web app.
 - Logging: structured JSON; `Authorization`, `Cookie` and any field named `token` are redacted at the logger. Request paths never contain tokens.
 - CORS: allows `https://grad26.fuisloy.dev` with credentials, nothing else.
@@ -62,6 +62,7 @@ Configuration is environment-only:
 | `SERVICE_TOKEN_TRANSLATION`, `SERVICE_TOKEN_PRINTER` | SOPS-encrypted Secret `api-service-tokens` |
 | `SERVICE_TOKEN_INGEST` (capture client, optional) | SOPS-encrypted Secret `api-service-tokens` |
 | `TRANSLATION_INGEST_URL`, `LIVE_TRANSLATION_MAX_CLIENTS` (optional) | ConfigMap |
+| `LIVE_GALLERY_MAX_CLIENTS` (optional, default 1000) | ConfigMap |
 | `ADMIN_SESSION_SECRET` | SOPS-encrypted Secret, shared with the web app on Vercel |
 | `LOG_LEVEL` | ConfigMap |
 | `PRINT_GUEST_REQUESTS_ENABLED` | ConfigMap; `true` lets guests queue prints (#72), default off |

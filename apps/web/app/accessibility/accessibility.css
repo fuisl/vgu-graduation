@@ -2,8 +2,7 @@
 [data-theme="brand"] .a11y-main {
   background: var(--brand-white);
 }
-[data-theme="brand"] .a11y-hero,
-[data-theme="brand"] .a11y-site {
+[data-theme="brand"] .a11y-hero {
   display: grid;
   justify-items: start;
   gap: var(--space-4);
@@ -70,9 +69,4 @@
 }
 [data-theme="brand"] .a11y-actions {
   margin-top: var(--space-2);
-}
-[data-theme="brand"] .a11y-note {
-  max-width: var(--brand-measure);
-  margin: 0;
-  color: var(--brand-muted);
 }

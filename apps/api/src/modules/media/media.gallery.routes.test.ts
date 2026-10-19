@@ -165,7 +165,7 @@ describe("GET /gallery", () => {
     add(6);
     const res = await server(service).inject({ method: "GET", url: "/gallery", headers: auth });
     expect(res.statusCode).toBe(200);
-    expect(res.headers["cache-control"]).toBe("public, s-maxage=60");
+    expect(res.headers["cache-control"]).toBe("public, s-maxage=10");
     const body = galleryResponseSchema.parse(res.json());
     expect(body.items.map((i) => i.publicId)).toEqual(["pub0000000000000000006", "pub0000000000000000001"]);
     expect(body.nextCursor).toBeNull();
@@ -315,7 +315,7 @@ describe("GET /gallery/public (curated, #75)", () => {
     add(3);
     const res = await server(service).inject({ method: "GET", url: "/gallery/public" });
     expect(res.statusCode).toBe(200);
-    expect(res.headers["cache-control"]).toBe("public, s-maxage=60");
+    expect(res.headers["cache-control"]).toBe("public, s-maxage=10");
     const body = publicGalleryResponseSchema.parse(res.json());
     expect(body.items.map((i) => i.publicId)).toEqual(["pub0000000000000000002"]);
   });

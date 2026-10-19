@@ -1,7 +1,10 @@
-import { BrandEyebrow, BrandTheme, Section } from "@grad/ui";
+import { BrandEyebrow, BrandTheme } from "@grad/ui";
 import { getI18n } from "../../lib/i18n/server";
+import { BadgePlaceholder } from "../guest/badge/BadgeFallback";
+import { BadgeStage } from "../guest/badge/BadgeStage";
 import { SiteFooter } from "../site/SiteFooter";
 import { SiteHeader } from "../site/SiteHeader";
+import "../guest/badge/badge.css";
 import "./profile.css";
 
 export default async function Loading() {
@@ -10,15 +13,10 @@ export default async function Loading() {
     <BrandTheme>
       <SiteHeader i18n={i18n} />
       <main id="main" className="profile-main">
-        <Section tone="blue">
-          <div className="profile-hero">
-            <span className="profile-hero__placeholder" aria-hidden="true" />
-            <div className="profile-hero__text">
-              <BrandEyebrow>{i18n.t("header.guestPortal")}</BrandEyebrow>
-              <p className="profile-name" role="status">{i18n.t("profile.loading")}</p>
-            </div>
-          </div>
-        </Section>
+        <BadgeStage labelledBy="profile-loading" badge={<BadgePlaceholder />}>
+          <BrandEyebrow>{i18n.t("profile.eyebrow")}</BrandEyebrow>
+          <p id="profile-loading" className="profile-status" role="status">{i18n.t("profile.loading")}</p>
+        </BadgeStage>
       </main>
       <SiteFooter i18n={i18n} />
     </BrandTheme>

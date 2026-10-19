@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
 import { BrandEyebrow, BrandTheme, Cta, Section } from "@grad/ui";
 import { getEvent } from "../../lib/api/event";
-import { pickMessages } from "../../lib/i18n/dictionary";
 import { getI18n } from "../../lib/i18n/server";
 import { SiteFooter } from "../site/SiteFooter";
 import { SiteHeader } from "../site/SiteHeader";
-import { TextSizeControl } from "../text-size/TextSizeControl";
 import "./accessibility.css";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -19,7 +17,7 @@ export const dynamic = "force-dynamic";
 /**
  * Accessibility and assistance (#176), linked from the footer. Plain information, no overlay widget
  * (anti-patterns): the site itself is built to work with screen readers, keyboards, zoom and reduced
- * motion, and the one site-wide setting it adds is text size.
+ * motion. Its one site-wide setting, text size, is in the menubar.
  */
 export default async function AccessibilityPage() {
   const [event, i18n] = await Promise.all([getEvent(), getI18n()]);
@@ -51,9 +49,6 @@ export default async function AccessibilityPage() {
                 <li>{t("a11y.venue.toilet")}</li>
                 <li>{t("a11y.venue.dropOff")}</li>
               </ul>
-              <p>
-                <a className="a11y-link" href="/venue">{t("a11y.venue.link")}</a>
-              </p>
             </section>
 
             <section aria-labelledby="captions-heading" className="a11y-block">
@@ -108,18 +103,15 @@ export default async function AccessibilityPage() {
               )}
               {/* TODO(owner): name a dedicated accessibility contact (name, phone, email) for the day. */}
             </section>
+
+            {/* Text size itself lives in the menubar (owner brief, 2026-10); this only points to it. */}
+            <section aria-labelledby="site-heading" className="a11y-block">
+              <h2 id="site-heading" className="a11y-heading">{t("a11y.site.eyebrow")}</h2>
+              <p>{t("a11y.site.note")}</p>
+            </section>
           </div>
         </Section>
 
-        <Section tone="blue" density="compact" aria-labelledby="site-heading">
-          <div className="a11y-site">
-            <BrandEyebrow>{t("a11y.site.eyebrow")}</BrandEyebrow>
-            <h2 id="site-heading" className="a11y-heading">{t("textSize.label")}</h2>
-            <p className="a11y-lead">{t("a11y.site.lead")}</p>
-            <TextSizeControl tone="on-blue" messages={pickMessages(i18n.locale, "textSize.")} />
-            <p className="a11y-note">{t("a11y.site.note")}</p>
-          </div>
-        </Section>
       </main>
       <SiteFooter i18n={i18n} />
     </BrandTheme>

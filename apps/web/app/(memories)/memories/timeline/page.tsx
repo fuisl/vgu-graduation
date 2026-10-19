@@ -7,7 +7,7 @@ import { publicApiOrigin } from "../../../../lib/calendar/links";
 import type { I18n } from "../../../../lib/i18n/dictionary";
 import { formatRich } from "../../../../lib/i18n/format";
 import { getI18n } from "../../../../lib/i18n/server";
-import { buildTimeline, formatClock, formatDay, type TimelineChapter } from "../../../../lib/memories/timeline";
+import { buildTimeline, formatClock, type TimelineChapter } from "../../../../lib/memories/timeline";
 import { SiteFooter } from "../../../site/SiteFooter";
 import { SiteHeader } from "../../../site/SiteHeader";
 import { MemoryPhoto } from "../MemoryPhoto";
@@ -59,18 +59,11 @@ export default async function TimelinePage() {
       <main id="main">
         <Section tone="blue" aria-labelledby="timeline-title">
           <div className="mem-hero">
-            <BrandEyebrow ellipsis>{t("timeline.eyebrow")}</BrandEyebrow>
             <h1 id="timeline-title" className="mem-title">{t("timeline.title")}</h1>
-            <p className="mem-lead">
-              {event ? `${t("timeline.when", { day: formatDay(event.startsAt, timeZone, i18n.intl), venue: event.venue.name })} ` : null}
-              {t("timeline.lead")}
-            </p>
-            <Cta tone="on-blue" variant="secondary" href="/memories">{t("timeline.back")}</Cta>
           </div>
         </Section>
 
         <Section tone="white" density="compact" aria-labelledby="timeline-chapters-title">
-          <BrandEyebrow>{t("timeline.chapters")}</BrandEyebrow>
           <h2 id="timeline-chapters-title" className="arc-h2">
             {chapters.length > 0 ? t.plural("timeline.chapterCount", chapters.length) : t("memories.empty.title")}
           </h2>
@@ -84,10 +77,7 @@ export default async function TimelinePage() {
           ) : chapters.length === 0 ? (
             <div className="tl-empty">
               <p className="arc-state">{t("timeline.empty")}</p>
-              <div className="arc-actions">
-                <Cta tone="on-white" variant="secondary" href="/gallery">{t("memories.eventGallery")}</Cta>
-                <a className="arc-link arc-link--tap" href="/wishes">{t("memories.guestbook")}</a>
-              </div>
+              <Cta tone="on-white" variant="secondary" href="/gallery">{t("memories.openGallery")}</Cta>
             </div>
           ) : (
             <>

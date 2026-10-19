@@ -26,6 +26,29 @@ export const liveTranslationMessageSchema = z.discriminatedUnion("type", [
 ]);
 export type LiveTranslationMessage = z.infer<typeof liveTranslationMessageSchema>;
 
+const liveWishMessageSchema = z.object({ type: z.literal("wish"), wish: wishSchema });
+const livePhotoMessageSchema = z.object({ type: z.literal("photo"), photo: galleryItemSchema });
+const liveHiddenMessageSchema = z.object({ type: z.literal("hidden"), kind: z.enum(["wish", "photo"]), id: z.string().min(1) });
+const liveKeepaliveMessageSchema = z.object({ type: z.literal("keepalive"), until: timestampSchema });
+
+/**
+ * Server-to-client messages on `WS /live/gallery` (the public gallery and the
+ * guest's own pages, ADR-014): the same wish and photo changes the event
+ * display gets, without captions. `wish`/`photo` add or update an item that is
+ * visible (and, for a photo, processed); `hidden` takes one away (moderated,
+ * removed, or a photo not processed yet; a photo's `id` is its `publicId`).
+ * Nothing that is not visible is ever sent. Apply them idempotently by id.
+ * `keepalive` arrives every ~25 s with `until`, the cursor for
+ * `GET /live/gallery/feed?since=` after a reconnect.
+ */
+export const liveGalleryMessageSchema = z.discriminatedUnion("type", [
+  liveWishMessageSchema,
+  livePhotoMessageSchema,
+  liveHiddenMessageSchema,
+  liveKeepaliveMessageSchema,
+]);
+export type LiveGalleryMessage = z.infer<typeof liveGalleryMessageSchema>;
+
 /**
  * Server-to-client messages on `WS /live/display` (event kiosk): visible wishes,
  * visible processed photos and translation captions. `segment` carries every
@@ -39,11 +62,11 @@ export type LiveTranslationMessage = z.infer<typeof liveTranslationMessageSchema
  * after a reconnect.
  */
 export const liveDisplayMessageSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("wish"), wish: wishSchema }),
-  z.object({ type: z.literal("photo"), photo: galleryItemSchema }),
+  liveWishMessageSchema,
+  livePhotoMessageSchema,
   z.object({ type: z.literal("segment"), segment: translationSegmentSchema }),
-  z.object({ type: z.literal("hidden"), kind: z.enum(["wish", "photo"]), id: z.string().min(1) }),
-  z.object({ type: z.literal("keepalive"), until: timestampSchema }),
+  liveHiddenMessageSchema,
+  liveKeepaliveMessageSchema,
 ]);
 export type LiveDisplayMessage = z.infer<typeof liveDisplayMessageSchema>;
 
@@ -62,3 +85,20 @@ export const liveDisplayFeedResponseSchema = z.object({
   until: timestampSchema,
 });
 export type LiveDisplayFeedResponse = z.infer<typeof liveDisplayFeedResponseSchema>;
+
+/**
+ * GET /live/gallery/feed: the public twin of the display catch-up, and the
+ * polling fallback when `WS /live/gallery` can't connect. Without `since`, the
+ * newest 100 visible wishes and 100 visible, processed photos (what
+ * `GET /wishes` and `GET /gallery` list); with `since`, every change after it.
+ * Never cached.
+ */
+export const liveGalleryFeedQuerySchema = liveDisplayFeedQuerySchema;
+export type LiveGalleryFeedQuery = z.infer<typeof liveGalleryFeedQuerySchema>;
+
+export const liveGalleryFeedResponseSchema = z.object({
+  messages: z.array(liveGalleryMessageSchema),
+  /** Server time the response is complete up to; pass it back as `since`. */
+  until: timestampSchema,
+});
+export type LiveGalleryFeedResponse = z.infer<typeof liveGalleryFeedResponseSchema>;

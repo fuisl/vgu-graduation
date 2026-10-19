@@ -228,7 +228,7 @@ describe("curated public wishes (#75)", () => {
     expect(setWishPublicResponseSchema.parse(res.json())).toEqual({ id, status: "visible", isPublic: true, revalidateTags: ["wishes-public"] });
 
     const listed = await app.inject({ method: "GET", url: "/wishes/public" });
-    expect(listed.headers["cache-control"]).toBe("public, s-maxage=30, stale-while-revalidate=30");
+    expect(listed.headers["cache-control"]).toBe("public, s-maxage=10");
     expect(publicWishesResponseSchema.parse(listed.json()).items.map((w) => w.body)).toEqual(["flagged"]);
 
     // Hiding a public wish names both tags and drops it from the public list.

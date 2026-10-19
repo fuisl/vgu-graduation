@@ -16,19 +16,11 @@ export function selectGuestPageState(hasToken: boolean, invitation: ApiResult<In
   return state.kind === "missing" ? { kind: "signed-out" } : state;
 }
 
-export type GuestLinkId = "invite" | "venue" | "guide" | "live" | "gallery" | "wishes" | "polaroid" | "accessibility";
+export type GuestLinkId = "guide";
 
 /**
- * Where a guest goes from their profile. Public pages work signed out too (`public`).
- * Title and description are the `profile.link.<id>.title` / `.description` messages (#9).
+ * The guest's own pages on their profile that the site menu does not already link (the menu has
+ * the venue, gallery, wishes, camera, live captions and accessibility; the invitation is the
+ * profile's action). The title is the `profile.link.<id>.title` message (#9).
  */
-export const GUEST_LINKS: ReadonlyArray<{ id: GuestLinkId; href: string; public: boolean }> = [
-  { id: "invite", href: "/invite", public: false },
-  { id: "venue", href: "/venue", public: true },
-  { id: "guide", href: "/guide", public: false },
-  { id: "live", href: "/live", public: true },
-  { id: "gallery", href: "/gallery", public: true },
-  { id: "wishes", href: "/wishes", public: true },
-  { id: "polaroid", href: "/polaroid", public: false },
-  { id: "accessibility", href: "/accessibility", public: true },
-];
+export const GUEST_LINKS: ReadonlyArray<{ id: GuestLinkId; href: string }> = [{ id: "guide", href: "/guide" }];

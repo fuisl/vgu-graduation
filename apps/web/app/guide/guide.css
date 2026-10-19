@@ -75,6 +75,3 @@
   text-transform: uppercase;
   color: var(--brand-muted);
 }
-[data-theme="brand"] .guide-back {
-  margin: var(--space-6) 0 0;
-}

@@ -42,7 +42,8 @@ export default async function InvitePage() {
   return (
     <BrandTheme>
       <SiteHeader i18n={i18n} />
-      <main id="main" className="invite-main">
+      {/* A notice is one blue band; the page stays blue down to the footer. */}
+      <main id="main" className={state.kind === "personal" ? "invite-main" : "invite-main invite-main--notice"}>
         {state.kind === "personal" ? (
           <PersonalInvitation i18n={i18n} invitation={state.invitation} event={event} savedNeeds={savedNeedsFrom(saved)} />
         ) : (

@@ -1,58 +1,36 @@
-/* Guest badge prototype (#152). Brand tokens only; scoped under the brand theme. */
+/*
+ * Guest badge prototype (#152): the shared badge stage (app/guest/badge/badge.css) at full height,
+ * with a mono line at its foot. Brand tokens only; scoped under the brand theme.
+ */
 [data-theme="brand"] .guest-prototype {
   display: block;
   overflow: hidden;
   background: var(--brand-blue);
-  color: var(--brand-white);
-  /* Text on this page sits on blue. */
-  --brand-fg: var(--brand-white);
-  --brand-muted: var(--brand-muted-on-blue);
-  --brand-line: var(--brand-line-on-blue);
 }
-[data-theme="brand"] .guest-stage {
-  position: relative;
+[data-theme="brand"] .badge-stage--full {
   min-height: max(690px, 100svh);
-  max-width: 1800px;
-  margin: auto;
-  isolation: isolate;
-  background: var(--brand-blue);
 }
-[data-theme="brand"] .guest-object-scene { position: absolute; inset: 0; isolation: isolate; }
-[data-theme="brand"] .guest-badge-view { position: absolute; inset: 0; z-index: 1; }
-[data-theme="brand"] .guest-badge-canvas { position: absolute !important; inset: 0; touch-action: none; }
-[data-theme="brand"] .guest-badge-fallback {
+[data-theme="brand"] .badge-stage--full .badge-stage__scene {
   position: absolute;
   inset: 0;
-  display: grid;
-  grid-template-columns: 72% 28%;
-  place-items: center;
-  pointer-events: none;
+  height: auto;
 }
-[data-theme="brand"] .guest-badge-fallback.is-hidden { visibility: hidden; }
-[data-theme="brand"] .guest-badge-placeholder {
-  grid-column: 2;
-  margin: 0;
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--brand-line-on-blue);
-  border-radius: var(--brand-radius);
-  background: var(--brand-white);
-  color: var(--brand-blue);
-  font-size: var(--text-xs);
-  letter-spacing: var(--brand-tracking-label);
+[data-theme="brand"] .badge-stage--full .badge-stage__content {
+  position: static;
+  padding: 0;
 }
-[data-theme="brand"] .guest-stage-footer {
+[data-theme="brand"] .badge-stage--full .guest-stage-footer {
   position: absolute;
   z-index: 2;
   right: var(--gutter);
   bottom: var(--space-5);
   width: 42%;
+  max-width: none;
   text-align: center;
   pointer-events: none;
 }
 [data-theme="brand"] .guest-stage-footer span { margin: 0 var(--space-2); }
-@media (max-width: 700px) {
-  [data-theme="brand"] .guest-stage { min-height: max(750px, 100svh); }
-  [data-theme="brand"] .guest-badge-fallback { grid-template-columns: 1fr; }
-  [data-theme="brand"] .guest-badge-placeholder { grid-column: 1; }
-  [data-theme="brand"] .guest-stage-footer { right: var(--gutter); left: var(--gutter); bottom: var(--space-4); width: auto; line-height: 1.5; }
+@media (max-width: 960px) {
+  [data-theme="brand"] .badge-stage--full { min-height: max(750px, 100svh); }
+  [data-theme="brand"] .badge-stage--full .guest-stage-footer { right: var(--gutter); left: var(--gutter); bottom: var(--space-4); width: auto; line-height: 1.5; }
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import QRCode from "qrcode";
 import { encodePassQr, type PassResponse } from "@grad/contract";
-import { renderPassQrSvg } from "./qr";
+import { passQrModules, renderPassQrSvg } from "./qr";
 
 const pass: PassResponse = {
   payload: {
@@ -34,5 +34,17 @@ describe("renderPassQrSvg", () => {
         color: { dark: "#000000", light: "#ffffff" },
       }),
     );
+  });
+});
+
+describe("passQrModules", () => {
+  it("is the SVG's symbol as a square matrix of modules", async () => {
+    const { size, bits } = passQrModules(pass);
+    expect(bits).toHaveLength(size * size);
+    expect(bits).toMatch(/^[01]+$/);
+    // The SVG's viewBox is the symbol plus a four-module quiet zone on each side.
+    expect(await renderPassQrSvg(pass)).toContain(`viewBox="0 0 ${size + 8} ${size + 8}"`);
+    // Finder pattern: the top-left module is dark.
+    expect(bits[0]).toBe("1");
   });
 });

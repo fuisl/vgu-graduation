@@ -1,36 +1,28 @@
 import type {Metadata} from "next";
-import {BrandEyebrow, BrandTheme, Cta, Section} from "@grad/ui";
+import {BrandTheme} from "@grad/ui";
 import {pickMessages} from "../../../lib/i18n/dictionary";
 import {getI18n} from "../../../lib/i18n/server";
 import {SiteFooter} from "../../site/SiteFooter";
 import {SiteHeader} from "../../site/SiteHeader";
-import {GalleryView} from "./GalleryView";
+import {Locket} from "./Locket";
 
 export async function generateMetadata(): Promise<Metadata> {
   const {t} = await getI18n();
   return {title: t("gallery.metaTitle")};
 }
 
+/**
+ * The Digital Locket: the camera opens on entry, everyone's photos are one scroll below.
+ * No hero and no explanatory copy: event facts, language and text size live in the site header.
+ * /polaroid redirects here.
+ */
 export default async function GalleryPage() {
   const i18n = await getI18n();
-  const {t} = i18n;
   return (
     <BrandTheme>
       <SiteHeader i18n={i18n} current="gallery" />
-      <main id="main">
-        <Section tone="blue" aria-labelledby="gallery-title">
-          <div className="mem-hero">
-            <BrandEyebrow ellipsis>{t("gallery.eyebrow")}</BrandEyebrow>
-            <h1 id="gallery-title" className="mem-title">{t("gallery.title")}</h1>
-            <div className="gal-hero-actions">
-              <Cta tone="on-blue" variant="secondary" href="/polaroid">{t("gallery.takePhoto")}</Cta>
-              <Cta tone="on-blue" variant="secondary" href="/memories">{t("landing.gallery.archive")}</Cta>
-            </div>
-          </div>
-        </Section>
-        <Section tone="white" density="compact">
-          <GalleryView messages={pickMessages(i18n.locale, "gallery.", "print.")} intl={i18n.intl} />
-        </Section>
+      <main id="main" className="lk-camera-main">
+        <Locket messages={pickMessages(i18n.locale, "camera.", "gallery.", "print.")} intl={i18n.intl} />
       </main>
       <SiteFooter i18n={i18n} />
     </BrandTheme>

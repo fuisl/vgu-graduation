@@ -3,12 +3,12 @@ import { WEB_CACHE_TAGS } from "./cache-tags";
 import { apiFetch } from "./client";
 import { type ApiResult, errorResult, ok } from "./result";
 
-/** GET /gallery — public photo listing, revalidated on the API's 60-second cadence. */
+/** GET /gallery: public photo listing for first paint, revalidated every 10 s; pages then go live (ADR-014). */
 export async function getGallery(): Promise<ApiResult<GalleryResponse>> {
   let response: Response;
   try {
     response = await apiFetch("/gallery?limit=100", {
-      cache: { mode: "revalidate", seconds: 60, tags: [WEB_CACHE_TAGS.gallery] },
+      cache: { mode: "revalidate", seconds: 10, tags: [WEB_CACHE_TAGS.gallery] },
     });
   } catch {
     return errorResult("network", "Could not reach the server");

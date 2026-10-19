@@ -96,7 +96,7 @@ describe("translators", () => {
 
   it("slices only the requested prefixes", () => {
     const slice = pickMessages("vi", "nav.");
-    expect(Object.keys(slice).sort()).toEqual(["nav.gallery", "nav.home", "nav.venue", "nav.wishes"]);
+    expect(Object.keys(slice).sort()).toEqual(["nav.camera", "nav.home", "nav.venue", "nav.wishes"]);
     expect(slice["nav.home"]).toBe("Trang chủ");
   });
 });

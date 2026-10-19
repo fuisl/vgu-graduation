@@ -1,3 +1,4 @@
+import type { ChangeNotifier } from "../db/notify.js";
 import type { Job, JobQueue } from "./queue.js";
 
 /**
@@ -28,18 +29,27 @@ export interface WorkerOptions {
   signal: AbortSignal;
   /** Idle wait between polls when the queue is empty. */
   pollIntervalMs?: number;
+  /**
+   * Wakes the idle wait when a job is queued (Postgres NOTIFY on `grad_jobs`,
+   * ADR-014), so an upload's derivatives start at once instead of up to one
+   * poll interval later. A hint only: the poll still runs without it.
+   */
+  wake?: ChangeNotifier;
 }
 
-function sleep(ms: number, signal: AbortSignal): Promise<void> {
+/** Waits `ms`, or less when `signal` aborts or the function handed to `onWake` is called. */
+function sleep(ms: number, signal: AbortSignal, onWake?: (wake: () => void) => void): Promise<void> {
   return new Promise((resolve) => {
     if (signal.aborted) return resolve();
     const timer = setTimeout(done, ms);
     function done() {
       clearTimeout(timer);
       signal.removeEventListener("abort", done);
+      onWake?.(() => {});
       resolve();
     }
     signal.addEventListener("abort", done, { once: true });
+    onWake?.(done);
   });
 }
 
@@ -74,15 +84,33 @@ export async function runOnce(options: Omit<WorkerOptions, "signal" | "pollInter
 
 /** Polls until `signal` aborts. One job at a time per process; scale with replicas. */
 export async function runWorker(options: WorkerOptions): Promise<void> {
-  const { signal, pollIntervalMs = 1000, logger } = options;
-  while (!signal.aborted) {
-    let worked = false;
-    try {
-      worked = await runOnce(options);
-    } catch (err) {
-      // Claim or bookkeeping failed (e.g. Postgres briefly unreachable): back off and keep polling.
-      logger.error({ error: err instanceof Error ? err.message : String(err) }, "worker poll failed");
+  const { signal, pollIntervalMs = 1000, logger, wake } = options;
+  // A notification that lands while a claim is in flight is remembered, so the
+  // next idle wait is skipped instead of missing the job by one interval.
+  let woken = false;
+  let wakeSleeper: () => void = () => {};
+  const onNotify = () => {
+    woken = true;
+    wakeSleeper();
+  };
+  wake?.start({ onNotify, onReconnect: onNotify });
+  try {
+    while (!signal.aborted) {
+      woken = false;
+      let worked = false;
+      try {
+        worked = await runOnce(options);
+      } catch (err) {
+        // Claim or bookkeeping failed (e.g. Postgres briefly unreachable): back off and keep polling.
+        logger.error({ error: err instanceof Error ? err.message : String(err) }, "worker poll failed");
+      }
+      if (!worked && !woken) {
+        await sleep(pollIntervalMs, signal, (done) => {
+          wakeSleeper = done;
+        });
+      }
     }
-    if (!worked) await sleep(pollIntervalMs, signal);
+  } finally {
+    await wake?.stop();
   }
 }

@@ -21,3 +21,4 @@ Date: YYYY-MM-DD
 - [ADR-008: Separate infrastructure repository](008-infrastructure-repository.md)
 - [ADR-009: Direct home network exposure, no Cloudflare Tunnel](009-direct-home-network-exposure.md)
 - [ADR-010: Site languages without locale URLs](010-site-languages.md)
+- [ADR-011: No service worker for guest pages in v1](011-no-service-worker.md)

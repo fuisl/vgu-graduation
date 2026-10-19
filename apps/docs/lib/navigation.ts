@@ -117,6 +117,7 @@ export const navGroups: readonly NavGroup[] = [
           ["adr/008-infrastructure-repository", "ADR-008 Infrastructure repository"],
           ["adr/009-direct-home-network-exposure", "ADR-009 Direct network exposure"],
           ["adr/010-site-languages", "ADR-010 Site languages"],
+          ["adr/011-no-service-worker", "ADR-011 No service worker"],
         ],
       },
     ],

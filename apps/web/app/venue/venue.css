@@ -167,11 +167,15 @@
 
 /* FIG_001 campus blueprint (CampusFigure). White line work on the hero blue, after the
    technical figures of makingsoftware.com: dot grid (an SVG pattern, not a gradient), dotted
-   frame, single-weight non-scaling strokes, one solid highlight, mono labels on leaders. */
+   frame, single-weight non-scaling strokes, one solid highlight, mono labels on leaders.
+   The plate's padding, tag insets and label sizes are in px (the default values of the space
+   tokens): the drawing has a fixed viewBox, so text size Large and Largest (#176) must not grow
+   the labels or squeeze the stage, or they clip and collide (#78). The figcaption carries the
+   content at any text size. */
 [data-theme="brand"] .campus-fig {
   position: relative;
   margin: var(--space-7) 0 0;
-  padding: var(--space-6) var(--space-7);
+  padding: 32px 48px;
   border: 1px dotted color-mix(in srgb, var(--brand-white) 40%, transparent);
   isolation: isolate;
 }
@@ -230,7 +234,7 @@
 [data-theme="brand"] .campus-fig__label {
   position: absolute;
   font-family: var(--font-mono);
-  font-size: clamp(10px, 0.5rem + 0.35vw, 13px);
+  font-size: clamp(10px, 8px + 0.35vw, 13px);
   line-height: 1;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -266,9 +270,9 @@
   writing-mode: vertical-rl;
   white-space: nowrap;
 }
-[data-theme="brand"] .campus-fig__meta--fig { top: var(--space-4); left: var(--space-3); }
-[data-theme="brand"] .campus-fig__meta--title { top: var(--space-4); right: var(--space-3); }
-[data-theme="brand"] .campus-fig__meta--year { bottom: var(--space-4); right: var(--space-3); }
+[data-theme="brand"] .campus-fig__meta--fig { top: 16px; left: 12px; }
+[data-theme="brand"] .campus-fig__meta--title { top: 16px; right: 12px; }
+[data-theme="brand"] .campus-fig__meta--year { bottom: 16px; right: 12px; }
 /* Motion (figures.md): walkers on the route, the river's current, and a one-time label reveal. */
 [data-theme="brand"] .campus-fig__walker { fill: var(--brand-white); stroke: none; }
 [data-theme="brand"] .campus-fig__current { fill: color-mix(in srgb, var(--brand-white) 75%, transparent); stroke: none; }
@@ -307,7 +311,7 @@
   [data-theme="brand"] .campus-fig-reveal .campus-fig__head { transition: none; }
 }
 @media (max-width: 640px) {
-  [data-theme="brand"] .campus-fig { padding: var(--space-6) var(--space-5); }
+  [data-theme="brand"] .campus-fig { padding: 32px 24px; }
   [data-theme="brand"] .campus-fig .is-minor,
   [data-theme="brand"] .campus-fig__meta--title { display: none; }
 }

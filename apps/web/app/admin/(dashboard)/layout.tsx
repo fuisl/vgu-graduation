@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Container, Eyebrow, Rule } from "@grad/ui";
 import { getAdminMe } from "../../../lib/api/admin";
 import { redirectIfNotAdmin, requireAdminSession } from "../../../lib/admin/session";
+import { SkipLink } from "../../site/SkipLink";
 import { AdminNav } from "../_components/AdminNav";
 import "../admin.css";
 
@@ -28,6 +29,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   return (
     // Admin is internal and English-only (#9), whatever the site language on <html>.
     <div className="admin" lang="en">
+      {/* Ten nav links on a phone: let keyboard users jump past them (#78). */}
+      <SkipLink label="Skip to content" target="admin-main" className="admin-skip-link" />
       <Container>
         <header className="admin-header">
           <div>

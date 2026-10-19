@@ -32,7 +32,7 @@ describe("pages in Vietnamese", () => {
     expect(out).toContain(">Lời chúc<");
     expect(out).toContain("Cổng khách mời");
     expect(out).toContain("Lễ tốt nghiệp VGU · Khóa 2026");
-    expect(out).toMatch(/<button[^>]*value="vi"[^>]*lang="vi"[^>]*aria-label="Tiếng Việt"[^>]*aria-current="true"/);
+    expect(out).toMatch(/<button[^>]*value="vi"[^>]*lang="vi"[^>]*aria-label="VI, Tiếng Việt"[^>]*aria-current="true"/);
     expect(out).not.toMatch(/value="en"[^>]*aria-current/);
     expect(out).not.toContain("Leave a memory.");
   });

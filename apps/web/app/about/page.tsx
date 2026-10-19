@@ -27,7 +27,7 @@ export default async function AboutPage() {
   return (
     <BrandTheme>
       <SiteHeader i18n={i18n} />
-      <main className="about-main">
+      <main id="main" className="about-main">
         <Section tone="blue" aria-labelledby="about-heading">
           <BrandEyebrow ellipsis>{t("about.eyebrow")}</BrandEyebrow>
           <h1 id="about-heading" className="about-title">{t("about.title")}</h1>

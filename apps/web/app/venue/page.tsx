@@ -31,7 +31,7 @@ export default async function VenuePage() {
     return (
       <BrandTheme>
         <SiteHeader i18n={i18n} current="venue" />
-        <main className="venue-main">
+        <main id="main" className="venue-main">
           <Section tone="blue" aria-labelledby="venue-heading">
             <BrandEyebrow>{t("nav.venue")}</BrandEyebrow>
             <h1 id="venue-heading" className="venue-title">{t("venue.title")}</h1>
@@ -62,7 +62,7 @@ export default async function VenuePage() {
   return (
     <BrandTheme>
       <SiteHeader i18n={i18n} current="venue" />
-      <main className="venue-main">
+      <main id="main" className="venue-main">
         <Section tone="blue" aria-labelledby="venue-heading">
           {/* Desktop: everything on one screen, facts on the left and FIG_001 on the right. */}
           <div className={drawn ? "venue-split" : "venue-split venue-split--solo"}>

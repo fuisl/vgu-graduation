@@ -49,7 +49,8 @@ export function GuideItemActions({
           <SubmitButton
             pendingLabel={active ? "Hiding…" : "Showing…"}
             variant="outline"
-            accessibleLabel={`${active ? "Hide" : "Show"} ${title} ${active ? "from" : "to"} guests`}
+            // The name starts with the visible text, so voice control can say what it sees (WCAG 2.5.3).
+            accessibleLabel={`${active ? "Hide from guests" : "Show to guests"}: ${title}`}
           >
             {active ? "Hide from guests" : "Show to guests"}
           </SubmitButton>

@@ -7,7 +7,8 @@ import { LOCALES, LOCALE_NAMES, type Locale } from "../../lib/i18n/config";
  * EN | VI switch (#9): a small mono pill in the header, the mobile sheet and the footer. A plain
  * form POST to /api/locale, so it works before or without JavaScript; the server sets the `lang`
  * cookie and redirects back here. `next` is the path only (server-rendered by usePathname), so a
- * query string or token never travels. Each option is named in its own language (`lang`), and the
+ * query string or token never travels. Each option is named by its code and then its language in that
+ * language ("VI, Tiếng Việt", with `lang`), so the name starts with the visible text (WCAG 2.5.3); the
  * current one carries aria-current. Only client code: usePathname.
  */
 export function LanguageSwitch({ locale, label, className }: { locale: Locale; label: string; className?: string }) {
@@ -24,7 +25,7 @@ export function LanguageSwitch({ locale, label, className }: { locale: Locale; l
             value={code}
             className="brand-lang__option"
             lang={code}
-            aria-label={LOCALE_NAMES[code]}
+            aria-label={`${code.toUpperCase()}, ${LOCALE_NAMES[code]}`}
             aria-current={code === locale ? "true" : undefined}
           >
             {code.toUpperCase()}

@@ -84,7 +84,7 @@ function Needs({ summary, items }: { summary: AccessibilitySummary; items: Admin
         {attending.length === 0 ? (
           <p>None of the guests with stated needs is attending.</p>
         ) : (
-          <NeedsTable rows={attending} labelledBy="needs-attending" />
+          <NeedsTable rows={attending} label="Attending guests' needs, table" />
         )}
       </section>
 
@@ -95,7 +95,7 @@ function Needs({ summary, items }: { summary: AccessibilitySummary; items: Admin
               <span id="needs-declined">Declined, but stated needs ({declined.length})</span>
             </summary>
             <p className="admin-muted">Kept in case they change their answer. Not counted above.</p>
-            <NeedsTable rows={declined} labelledBy="needs-declined" />
+            <NeedsTable rows={declined} label="Declined guests' needs, table" />
           </details>
         </section>
       ) : null}
@@ -123,9 +123,10 @@ function PlanningSummary({ summary }: { summary: AccessibilitySummary }) {
   );
 }
 
-function NeedsTable({ rows, labelledBy }: { rows: AdminAccessibilityRow[]; labelledBy: string }) {
+/** `label` names the scroll region; it differs from the section heading so the two landmarks stay distinct. */
+function NeedsTable({ rows, label }: { rows: AdminAccessibilityRow[]; label: string }) {
   return (
-    <div className="admin-table-wrap" role="region" aria-labelledby={labelledBy} tabIndex={0}>
+    <div className="admin-table-wrap" role="region" aria-label={label} tabIndex={0}>
       <table className="admin-table admin-table--print">
         <thead>
           <tr>

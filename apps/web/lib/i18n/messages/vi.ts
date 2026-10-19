@@ -632,4 +632,7 @@ export const vi: Messages = {
   "rsvp.a11y.noteHint": "Tối đa {max} ký tự. Để xóa toàn bộ, hãy bỏ chọn các ô, xóa ghi chú này rồi lưu.",
   "rsvp.a11y.noteLength": "Ghi chú về hỗ trợ tiếp cận tối đa {max} ký tự.",
   "rsvp.a11y.more": "Cách chúng tôi hỗ trợ trong ngày lễ",
+
+  // Site shell: skip link (#78). Draft, covered by the native-speaker review at the top.
+  "shell.skipToContent": "Chuyển đến nội dung chính",
 };

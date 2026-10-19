@@ -10,7 +10,8 @@ const ADAPTIVE = ".brand-wordmark, .brand-header__nav, .brand-header__action, .b
 
 /**
  * Background colour of the first opaque element at (x, y), skipping the sticky header's own
- * elements (they float over the page). The open mobile sheet is part of the header but opaque.
+ * elements (they float over the page, and once stuck the header's fill is this very colour).
+ * The open mobile sheet is part of the header but opaque.
  */
 function colorAt(header: HTMLElement | null, x: number, y: number): string | null {
   for (const element of document.elementsFromPoint(x, y)) {
@@ -32,11 +33,21 @@ export function isLight(color: string): boolean {
   return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b) > 0.5;
 }
 
+function setSurface(element: HTMLElement, light: boolean) {
+  if (light) element.dataset.surface = "white";
+  else delete element.dataset.surface;
+}
+
 /**
  * Keeps the sticky site header and the browser's own UI matched to what scrolls under them,
  * as the page moves between blue and white bands (#142).
- * - Logo, nav, action and mobile Menu button: each samples behind its own centre and gets
- *   `data-surface="white"` over a light background, so they adapt independently.
+ * - At the top of the page the header is unfilled and its first band runs up behind it. Once it
+ *   is stuck (the zero-height sentinel before it has scrolled out; IntersectionObserver), it gets
+ *   `data-stuck` and a solid fill of the colour under the top edge, `--brand-header-fill`, so
+ *   body text never shows through behind the logo or Menu (#78). Paint only, no layout change.
+ * - Logo, nav, action and mobile Menu button: unstuck, each samples behind its own centre and
+ *   gets `data-surface="white"` over a light background, so they adapt independently. Stuck,
+ *   they all follow the fill.
  * - `<meta name="theme-color">`: Chrome on Android and Safari 15–18.
  * - `body.style.backgroundColor` (inline): Safari 26 ignores theme-color and tints
  *   from the page, re-reading the body colour only when its inline style changes.
@@ -52,21 +63,35 @@ export function ThemeColorSync() {
     const previousBody = document.body.style.backgroundColor;
     let current = "";
     let frame: number | undefined;
+    let stuck = false;
 
     const header = document.querySelector<HTMLElement>(".brand-header");
     const targets = header ? Array.from(header.querySelectorAll<HTMLElement>(ADAPTIVE)) : [];
+    const previous = header?.previousElementSibling;
+    const sentinel = previous?.classList.contains("brand-header-sentinel") ? previous : null;
 
     const sync = () => {
       frame = undefined;
-      for (const target of targets) {
-        const box = target.getBoundingClientRect();
-        if (box.width === 0 || box.height === 0) continue; // hidden at this breakpoint
-        const behind = colorAt(header, box.left + box.width / 2, box.top + box.height / 2);
-        if (behind && isLight(behind)) target.dataset.surface = "white";
-        else delete target.dataset.surface;
+      const color = colorAt(header, Math.round(window.innerWidth / 2), 1) ?? BRAND_THEME_COLOR;
+
+      if (header && stuck) {
+        const light = isLight(color);
+        header.dataset.stuck = "";
+        header.style.setProperty("--brand-header-fill", color);
+        setSurface(header, light);
+        for (const target of targets) setSurface(target, light);
+      } else if (header) {
+        delete header.dataset.stuck;
+        delete header.dataset.surface;
+        header.style.removeProperty("--brand-header-fill");
+        for (const target of targets) {
+          const box = target.getBoundingClientRect();
+          if (box.width === 0 || box.height === 0) continue; // hidden at this breakpoint
+          const behind = colorAt(header, box.left + box.width / 2, box.top + box.height / 2);
+          setSurface(target, !!behind && isLight(behind));
+        }
       }
 
-      const color = colorAt(header, Math.round(window.innerWidth / 2), 1) ?? BRAND_THEME_COLOR;
       if (color === current) return;
       current = color;
       meta.content = color;
@@ -75,6 +100,15 @@ export function ThemeColorSync() {
     const schedule = () => {
       if (frame === undefined) frame = window.requestAnimationFrame(sync);
     };
+
+    // Without the sentinel or IntersectionObserver the header simply stays unfilled.
+    const stuckObserver = sentinel && "IntersectionObserver" in window
+      ? new IntersectionObserver(([entry]) => {
+        stuck = !entry.isIntersecting && entry.boundingClientRect.top < 0;
+        schedule();
+      })
+      : null;
+    if (sentinel) stuckObserver?.observe(sentinel);
 
     sync();
     window.addEventListener("scroll", schedule, { passive: true });
@@ -88,6 +122,7 @@ export function ThemeColorSync() {
       window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", schedule);
       observer.disconnect();
+      stuckObserver?.disconnect();
       document.body.style.backgroundColor = previousBody;
       if (existing) meta.content = BRAND_THEME_COLOR;
       else meta.remove();

@@ -47,9 +47,9 @@ _      ▱▱▱   ▼                                       T   (FIG_00X top le
 
 ### Plate
 
-- `<figure>` with `position: relative`, padding `var(--space-6) var(--space-7)` (`var(--space-6) var(--space-5)` at or below 640px), and `border: 1px dotted` white at 40% (`color-mix(in srgb, var(--brand-white) 40%, transparent)`).
+- `<figure>` with `position: relative`, padding `32px 48px` (`32px 24px` at or below 640px; the default values of `--space-6`, `--space-7` and `--space-5`, in px so the text size setting cannot change the plate, see Labels), and `border: 1px dotted` white at 40% (`color-mix(in srgb, var(--brand-white) 40%, transparent)`).
 - **Dot grid:** an absolutely positioned SVG behind the drawing with **no viewBox**, so dots stay a constant pixel size. Use a `<pattern>` 12×12 user units (CSS px) with one circle `r="0.9"` at its centre, filled white at 22%. Never use a CSS gradient for it, because brand CSS forbids gradients.
-- **Marginal tags:** Geist Mono, 10px, `letter-spacing: 0.08em`, `color: var(--brand-muted)`, `writing-mode: vertical-rl`. Place them inset by `--space-3` from the side and `--space-4` from the top or bottom:
+- **Marginal tags:** Geist Mono, 10px, `letter-spacing: 0.08em`, `color: var(--brand-muted)`, `writing-mode: vertical-rl`. Place them inset by 12px from the side and 16px from the top or bottom:
   - `FIG_00X` at top left;
   - `[ SUBJECT · CONTEXT ]` in capitals at top right (hidden at or below 640px);
   - `(C) YYYY` at bottom right.
@@ -83,7 +83,7 @@ _      ▱▱▱   ▼                                       T   (FIG_00X top le
 
 ### Labels
 
-- **Text:** HTML laid over the SVG, never SVG `<text>`, so they keep a readable size at any width. Geist Mono, `clamp(10px, 0.5rem + 0.35vw, 13px)`, uppercase, `letter-spacing: 0.06em`, `line-height: 1`, white, `white-space: nowrap`. Position each label by percentages of the drawing's viewBox.
+- **Text:** HTML laid over the SVG, never SVG `<text>`, so they keep a readable size at any width. Geist Mono, `clamp(10px, 8px + 0.35vw, 13px)` (px, never rem: the drawing's viewBox is fixed, so labels that grew with text size Large or Largest would clip and collide; the figcaption carries the content at any text size), uppercase, `letter-spacing: 0.06em`, `line-height: 1`, white, `white-space: nowrap`. Position each label by percentages of the drawing's viewBox.
 - **Leaders:** a 1px white line that runs horizontally from the label and then makes one vertical drop onto the anchor, ending in a solid white arrowhead 9 units long and 9 wide. A label level with its anchor gets one straight horizontal arrow. Never draw diagonal or curved leaders, and never more than one bend. When one name applies to several places, one label may fork to up to three anchors: the horizontal runs past each drop, with one arrowhead per drop (like ANODES in the reference, and PARKING in FIG_001).
 - **Label lanes:** labels sit in clear lanes above or below the drawing, or beside it. A label never sits on top of line work. Crossing context strokes with a leader is acceptable. Running a leader through a building is not: move the label, or drop it.
 - **Subject label:** the same text set as a tag, `padding: 4px 6px`, white background and `--brand-blue` text. It is the only boxed label.
@@ -94,7 +94,7 @@ _      ▱▱▱   ▼                                       T   (FIG_00X top le
 
 - **Width:** the drawing stage is centred, `width: 100%` and `max-width: min(1100px, calc(68svh * var(--fig-ratio)))`, so a figure is never taller than about two thirds of the screen. `--fig-ratio` is the viewBox's width divided by its height.
 - **viewBox:** computed from the drawing plus the label points, with 60 units of padding, so nothing is clipped.
-- **Phone check:** at 360px wide, every label must be fully inside the frame and no two labels may touch. Check 390 and 1440 as well, using screenshots.
+- **Phone check:** at 360px wide, every label must be fully inside the frame and no two labels may touch, at every text size (Default, Large, Largest). Check 390 and 1440 as well, using screenshots.
 
 ### Accessibility
 

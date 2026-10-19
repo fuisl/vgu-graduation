@@ -358,6 +358,9 @@ export const en = {
   "gallery.audience.class": "Graduating class",
   "gallery.close": "Close",
   "gallery.view": "View details",
+  // Carousel autoplay control (#78, QA P1-5).
+  "gallery.pause": "Pause slideshow",
+  "gallery.play": "Play slideshow",
   "print.signedOut": "Guests can request a print of this photo at the venue. {link} first.",
   "print.signedOutLink": "Open your invitation",
   "print.request": "Request a print",

@@ -3,10 +3,11 @@
 /* Gallery derivatives are already resized, immutable JPEGs from the media API; a Next image proxy would add an unnecessary hop. */
 /* eslint-disable @next/next/no-img-element */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type SyntheticEvent } from "react";
 import { Cta, PillGroup, PillToggle } from "@grad/ui";
 import type { GalleryItem } from "../../../data/gallery";
 import { sliceTranslator, type MessageSlice, type SliceTranslator } from "../../../lib/i18n/format";
+import { nextTrapIndex } from "../../site/nav";
 import { PrintRequest, usePrintAvailability } from "./PrintRequest";
 import "./gallery.css";
 
@@ -38,6 +39,13 @@ function prefersReducedMotion() {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
+/** What Tab cycles through inside the detail dialog. */
+const DIALOG_FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/** Autoplay advances this often (QA P1-5: it stops for good on any interaction; Play resumes it). */
+const AUTOPLAY_MS = 3000;
+
 export function GalleryView({ messages, intl }: { messages: GalleryMessages; intl: string }) {
   const t = useMemo(() => sliceTranslator(messages), [messages]);
   const [isMounted, setIsMounted] = useState(false);
@@ -51,9 +59,11 @@ export function GalleryView({ messages, intl }: { messages: GalleryMessages; int
   const [loadError, setLoadError] = useState("");
   const [isPartial, setIsPartial] = useState(false);
   const [carouselIndex, setCarouselIndex] = useState(0);
-  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
-  const isAutoPlayingRef = useRef(isAutoPlaying);
-  isAutoPlayingRef.current = isAutoPlaying;
+  // Autoplay is offered only without reduced motion (decided after mount); it starts on and
+  // stops for good on any interaction with the cards. Hover pauses it only while hovering.
+  const [canAutoplay, setCanAutoplay] = useState(false);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(false);
+  const hoveringRef = useRef(false);
 
   const [computedCols, setComputedCols] = useState(3);
   // Guest print requests (#74): hidden unless the web flag is on; the API enforces its own.
@@ -62,10 +72,14 @@ export function GalleryView({ messages, intl }: { messages: GalleryMessages; int
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
   const closeBarRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const lastFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
+    const autoplay = !prefersReducedMotion();
+    setCanAutoplay(autoplay);
+    setIsAutoPlaying(autoplay);
     const controller = new AbortController();
 
     async function loadGallery() {
@@ -111,38 +125,67 @@ export function GalleryView({ messages, intl }: { messages: GalleryMessages; int
     return () => window.removeEventListener("resize", updateCols);
   }, [gridSize]);
 
-  // Autoplay advances the carousel every 3s; never under reduced motion (docs/design/motion.md).
+  // Autoplay advances the carousel while on; never under reduced motion, never in a hidden tab (docs/design/motion.md).
   useEffect(() => {
-    if (viewMode !== "CAROUSEL" || filteredItems.length <= 1 || prefersReducedMotion()) return;
+    if (!isAutoPlaying || viewMode !== "CAROUSEL" || filteredItems.length <= 1) return;
 
     const interval = setInterval(() => {
-      if (isAutoPlayingRef.current) setCarouselIndex((prev) => prev + 1);
-    }, 3000);
+      if (!hoveringRef.current && !document.hidden) setCarouselIndex((prev) => prev + 1);
+    }, AUTOPLAY_MS);
 
     return () => clearInterval(interval);
-  }, [viewMode, filteredItems.length]);
+  }, [isAutoPlaying, viewMode, filteredItems.length]);
 
-  // Dialog: focus the close button on open, close on Escape, return focus on close.
-  useEffect(() => {
+  // Dialog (QA P1-1): a modal <dialog>, so the page behind is inert; Tab is trapped inside,
+  // Escape closes it, the close button takes focus and focus returns to the card on close.
+  useLayoutEffect(() => {
     if (!selectedItem) return;
+    const dialog = dialogRef.current;
+    if (dialog && !dialog.open) {
+      if (typeof dialog.showModal === "function") dialog.showModal();
+      else dialog.setAttribute("open", "");
+    }
     closeBarRef.current?.querySelector("button")?.focus();
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSelectedItem(null);
-    };
-    window.addEventListener("keydown", onKey);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     return () => {
-      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previousOverflow;
       lastFocusRef.current?.focus();
     };
   }, [selectedItem]);
 
+  const closeItem = () => setSelectedItem(null);
+
+  const onDialogKeyDown = (event: KeyboardEvent<HTMLDialogElement>) => {
+    if (event.key !== "Tab") return;
+    const items = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(DIALOG_FOCUSABLE));
+    const next = nextTrapIndex(items.length, items.indexOf(document.activeElement as HTMLElement), event.shiftKey);
+    if (next < 0) return;
+    event.preventDefault();
+    items[next].focus();
+  };
+
+  // Escape: the browser fires `cancel`; close through state so React unmounts the dialog.
+  const onDialogCancel = (event: SyntheticEvent<HTMLDialogElement>) => {
+    event.preventDefault();
+    closeItem();
+  };
+
   const openItem = (item: GalleryItem) => {
     lastFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setIsAutoPlaying(false);
     setSelectedItem(item);
   };
 
-  const handleNext = () => setCarouselIndex((prev) => prev + 1);
-  const handlePrev = () => setCarouselIndex((prev) => prev - 1);
+  const stopAutoplay = () => setIsAutoPlaying(false);
+  const handleNext = () => {
+    stopAutoplay();
+    setCarouselIndex((prev) => prev + 1);
+  };
+  const handlePrev = () => {
+    stopAutoplay();
+    setCarouselIndex((prev) => prev - 1);
+  };
 
   // Clicking a side card spins to it along the shortest path; clicking the front card opens it.
   const handleCardClick = (targetIndex: number) => {
@@ -169,7 +212,7 @@ export function GalleryView({ messages, intl }: { messages: GalleryMessages; int
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.targetTouches[0].clientX;
     touchEndX.current = e.targetTouches[0].clientX;
-    setIsAutoPlaying(false);
+    stopAutoplay();
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -180,7 +223,6 @@ export function GalleryView({ messages, intl }: { messages: GalleryMessages; int
     const distance = touchStartX.current - touchEndX.current;
     if (distance > 50) handleNext();
     else if (distance < -50) handlePrev();
-    setIsAutoPlaying(true);
   };
 
   const formatDate = (isoString: string) => {
@@ -284,64 +326,74 @@ export function GalleryView({ messages, intl }: { messages: GalleryMessages; int
           ))}
         </div>
       ) : (
-        <div
-          className="gal-carousel"
-          role="region"
-          aria-roledescription="carousel"
-          aria-label={t("gallery.carouselLabel")}
-          onMouseEnter={() => setIsAutoPlaying(false)}
-          onMouseLeave={() => setIsAutoPlaying(true)}
-          onFocus={() => setIsAutoPlaying(false)}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-        >
-          <div className="gal-carousel-nav">
-            <Cta tone="on-white" variant="secondary" onClick={handlePrev} aria-label={t("gallery.previous")}>←</Cta>
-            <Cta tone="on-white" variant="secondary" onClick={handleNext} aria-label={t("gallery.next")}>→</Cta>
+        <div className="gal-carousel" role="region" aria-roledescription="carousel" aria-label={t("gallery.carouselLabel")}>
+          <div
+            className="gal-carousel-stage"
+            onMouseEnter={() => { hoveringRef.current = true; }}
+            onMouseLeave={() => { hoveringRef.current = false; }}
+            onFocus={stopAutoplay}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
+            <div className="gal-carousel-nav">
+              <Cta tone="on-white" variant="secondary" onClick={handlePrev} aria-label={t("gallery.previous")}>←</Cta>
+              <Cta tone="on-white" variant="secondary" onClick={handleNext} aria-label={t("gallery.next")}>→</Cta>
+            </div>
+
+            <div className="gal-carousel-track">
+              {filteredItems.map((item, index) => (
+                <div
+                  key={`carousel-${item.id}`}
+                  className="gal-carousel-slot"
+                  style={getCarouselCardStyle(index)}
+                  onClick={() => handleCardClick(index)}
+                  aria-hidden={index !== frontIndex}
+                >
+                  <GalleryCard
+                    item={item}
+                    index={0}
+                    tabIndex={index === frontIndex ? 0 : -1}
+                    onView={(e) => {
+                      e?.stopPropagation();
+                      handleCardClick(index);
+                    }}
+                    formatDate={formatDate}
+                    t={t}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="gal-carousel-track">
-            {filteredItems.map((item, index) => (
-              <div
-                key={`carousel-${item.id}`}
-                className="gal-carousel-slot"
-                style={getCarouselCardStyle(index)}
-                onClick={() => handleCardClick(index)}
-                aria-hidden={index !== frontIndex}
-              >
-                <GalleryCard
-                  item={item}
-                  index={0}
-                  tabIndex={index === frontIndex ? 0 : -1}
-                  onView={(e) => {
-                    e?.stopPropagation();
-                    handleCardClick(index);
-                  }}
-                  formatDate={formatDate}
-                  t={t}
-                />
-              </div>
-            ))}
+          <div className="gal-carousel-bar">
+            {canAutoplay && len > 1 ? (
+              <Cta tone="on-white" variant="secondary" onClick={() => setIsAutoPlaying((on) => !on)}>
+                {isAutoPlaying ? t("gallery.pause") : t("gallery.play")}
+              </Cta>
+            ) : null}
+            {/* Silent while autoplay moves it (QA P1-5); announced when the guest moves it. */}
+            <p className="gal-carousel-count" aria-live={isAutoPlaying ? "off" : "polite"}>
+              {frontIndex + 1} / {len}
+            </p>
           </div>
-
-          <p className="gal-carousel-count" aria-live="polite">
-            {frontIndex + 1} / {len}
-          </p>
         </div>
       )}
 
       {selectedItem && (
-        <div className="gal-dialog-backdrop" onClick={() => setSelectedItem(null)}>
-          <div
-            className="gal-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-label={t(selectedItem.type === "WISH" ? "gallery.wishFrom" : "gallery.photoFrom", { name: senderOf(selectedItem, t) })}
-            onClick={(e) => e.stopPropagation()}
-          >
+        <dialog
+          ref={dialogRef}
+          className="gal-dialog-backdrop"
+          aria-label={t(selectedItem.type === "WISH" ? "gallery.wishFrom" : "gallery.photoFrom", { name: senderOf(selectedItem, t) })}
+          onCancel={onDialogCancel}
+          onKeyDown={onDialogKeyDown}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeItem();
+          }}
+        >
+          <div className="gal-dialog">
             <div className="gal-dialog-bar" ref={closeBarRef}>
-              <Cta tone="on-white" variant="secondary" onClick={() => setSelectedItem(null)}>{t("gallery.close")}</Cta>
+              <Cta tone="on-white" variant="secondary" onClick={closeItem}>{t("gallery.close")}</Cta>
             </div>
 
             <CardMeta item={selectedItem} formatDate={formatDate} t={t} />
@@ -363,7 +415,7 @@ export function GalleryView({ messages, intl }: { messages: GalleryMessages; int
               <PrintRequest key={selectedItem.publicId} publicId={selectedItem.publicId} availability={printAvailability} t={t} />
             ) : null}
           </div>
-        </div>
+        </dialog>
       )}
     </>
   );

@@ -370,6 +370,10 @@ export const vi: Messages = {
   "gallery.audience.class": "Khóa tốt nghiệp",
   "gallery.close": "Đóng",
   "gallery.view": "Xem chi tiết",
+  // Carousel autoplay control (#78, QA P1-5).
+  // TODO(owner): native review of the slideshow pause/play labels.
+  "gallery.pause": "Tạm dừng trình chiếu",
+  "gallery.play": "Phát trình chiếu",
   "print.signedOut": "Khách mời có thể yêu cầu in ảnh này tại buổi lễ. Vui lòng {link} trước.",
   "print.signedOutLink": "mở thư mời của Quý khách",
   "print.request": "Yêu cầu in ảnh",

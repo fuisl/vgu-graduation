@@ -391,6 +391,29 @@
 [data-theme="brand"] .brand-ds-logo { display:inline-block }
 [data-theme="brand"] .brand-ds-logo--compact { width:36px }
 [data-theme="brand"] .brand-ds-logo--full { width:10rem }
+/* The open mobile sheet as a picture (#78): in the flow, phone-sized, never fixed over the page.
+   Two classes, so it wins over the .brand-sheet rule further down. */
+[data-theme="brand"] .brand-sheet.brand-sheet--preview {
+  position: relative;
+  inset: auto;
+  z-index: auto;
+  width: min(100%, 390px);
+  height: 640px;
+  overflow: hidden;
+  border: 1px solid var(--brand-line-on-white);
+  border-radius: var(--brand-radius);
+  animation: none;
+}
+/* Legacy primitives (#144) render on the neutral tokens, as admin shows them. */
+[data-theme="brand"] .brand-ds-legacy {
+  padding-block: var(--space-5);
+  border-radius: var(--brand-radius);
+  background: var(--surface);
+  color: var(--fg);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+[data-theme="brand"] .brand-ds-legacy__text { margin: 0 0 var(--space-4); max-width: var(--brand-measure); font-size: var(--text-sm); }
+[data-theme="brand"] .brand-ds-legacy__row { display: flex; flex-wrap: wrap; gap: var(--space-3); }
 /* end design-system showcase (#153) */
 
 /* site header & footer (#145) ---------------------------------------- */

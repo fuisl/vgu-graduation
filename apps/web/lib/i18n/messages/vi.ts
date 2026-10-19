@@ -431,8 +431,6 @@ export const vi: Messages = {
   "camera.shots.other": "Còn {count} ảnh",
   "camera.switchToRear": "Chuyển sang camera sau",
   "camera.switchToSelfie": "Chuyển sang camera trước",
-  "camera.flipSelfie": "Đổi (Trước)",
-  "camera.flipRear": "Đổi (Sau)",
   "camera.take": "Chụp ảnh",
   "camera.uploading": "Đang tải ảnh lên",
   "camera.empty": "Hết cuộn phim",
@@ -441,7 +439,8 @@ export const vi: Messages = {
     "Ảnh của Quý khách sẽ được công khai: có thể hiển thị trên màn hình sự kiện và thư viện ảnh, và được lưu trong kho lưu trữ tốt nghiệp bốn năm. Vui lòng liên hệ ban tổ chức nếu muốn gỡ bỏ nội dung.",
   "camera.added": "Ảnh đã được thêm vào thư viện.",
   "camera.received": "Đã nhận ảnh. Ảnh sẽ xuất hiện sau khi xử lý xong.",
-  "camera.error.insecure": "Máy ảnh bị chặn. Cần dùng HTTPS hoặc localhost.",
+  // TODO(owner): native review of the reworded camera messages (#78).
+  "camera.error.insecure": "Trình duyệt này không dùng được máy ảnh. Quý khách vui lòng mở trang này bằng Safari hoặc Chrome.",
   "camera.error.denied": "Quyền truy cập máy ảnh bị từ chối. Vui lòng kiểm tra quyền truy cập.",
   "camera.error.starting": "Máy ảnh đang khởi động. Vui lòng đợi một chút rồi thử lại.",
   "camera.error.capture": "Trình duyệt này không chụp được ảnh.",
@@ -449,8 +448,20 @@ export const vi: Messages = {
   "camera.error.invalid": "Thư mời này không còn hiệu lực. Vui lòng liên hệ ban tổ chức.",
   "camera.error.expired": "Thư mời này đã hết hạn. Vui lòng liên hệ ban tổ chức.",
   "camera.error.rollFull": "Cuộn phim của thư mời này đã dùng hết.",
-  "camera.error.tooLarge": "Ảnh này quá lớn để tải lên.",
-  "camera.error.upload": "Chưa tải được ảnh lên. Vui lòng thử lại.",
+  "camera.error.tooLarge": "Ảnh này quá lớn để tải lên. Quý khách vui lòng chụp lại.",
+  "camera.error.upload": "Chưa tải được ảnh lên. Ảnh vẫn được giữ bên dưới; vui lòng thử lại.",
+  // Guest camera upload states (#78, QA P1-2).
+  // TODO(owner): native review of the offline, busy and sign-in camera messages.
+  "camera.error.offline": "Quý khách đang ngoại tuyến nên ảnh chưa được gửi. Ảnh vẫn được giữ bên dưới; hãy thử lại khi có kết nối.",
+  "camera.error.network": "Ảnh chưa đến được thư viện. Quý khách vui lòng kiểm tra kết nối; ảnh vẫn được giữ bên dưới để thử lại.",
+  "camera.error.busy": "Việc tải ảnh đang tạm dừng trong giây lát. Ảnh vẫn được giữ bên dưới; vui lòng thử lại sau ít phút.",
+  "camera.error.unsupported": "Định dạng ảnh này không được hỗ trợ. Quý khách vui lòng chụp lại.",
+  "camera.retry": "Tải lại ảnh",
+  "camera.pendingAlt": "Ảnh của Quý khách, chưa được tải lên",
+  "camera.signedOut.title": "Vui lòng mở thư mời trước",
+  "camera.signedOut.body":
+    "Máy ảnh dành cho khách mời. Quý khách vui lòng mở đường dẫn thư mời cá nhân một lần trên điện thoại này, rồi quay lại đây.",
+  "camera.signedOut.link": "Cách mở thư mời",
 
   // Live captions (/live) ------------------------------------------------------------
   "live.metaTitle": "Phụ đề trực tiếp | GRAD '26",
@@ -475,6 +486,14 @@ export const vi: Messages = {
   "live.size.m": "Chữ tiêu chuẩn",
   "live.size.l": "Chữ lớn",
   "live.size.xl": "Chữ rất lớn",
+  // Offline state and dock landmark (#78, QA P2-16, P1-6).
+  // TODO(owner): native review of the offline captions notice.
+  "live.status.offline": "Ngoại tuyến",
+  "live.offlineTitle": "Quý khách đang ngoại tuyến",
+  "live.offlineBody": "Không kết nối được phụ đề trực tiếp. Quý khách vui lòng kiểm tra Wi-Fi hoặc dữ liệu di động; trang này sẽ tự kết nối lại.",
+  "live.offlineBodyStale":
+    "Không kết nối được phụ đề trực tiếp, nên các dòng bên dưới có thể chưa cập nhật. Quý khách vui lòng kiểm tra Wi-Fi hoặc dữ liệu di động; trang này sẽ tự kết nối lại.",
+  "live.controls": "Cài đặt phụ đề",
 
   // Event display (/display) -----------------------------------------------------------
   "display.metaTitle": "Màn hình sự kiện | GRAD '26",

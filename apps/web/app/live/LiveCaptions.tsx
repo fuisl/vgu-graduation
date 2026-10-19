@@ -22,6 +22,7 @@ import {
   safeStorage,
   segmentsUrl,
   translationView,
+  type Reach,
   type ServiceState,
   type TextSize,
 } from "../../lib/live/translation-feed";
@@ -53,6 +54,9 @@ function useTranslationFeed(onLiveSegment: (segment: TranslationSegment) => void
   const [socketState, setSocketState] = useState<LiveSocketState>({ phase: "connecting", failures: 0, everOpened: false });
   const [service, setService] = useState<ServiceState>("unknown");
   const [polling, setPolling] = useState(false);
+  // Offline vs. translation away (QA P2-16): did the last catch-up get any answer, and does the browser think it is online?
+  const [reach, setReach] = useState<Reach>("unknown");
+  const [online, setOnline] = useState(true);
   const onLiveRef = useRef(onLiveSegment);
 
   useEffect(() => {
@@ -86,7 +90,14 @@ function useTranslationFeed(onLiveSegment: (segment: TranslationSegment) => void
       inflight ??= (async () => {
         try {
           for (let page = 0; page < MAX_CATCH_UP_PAGES; page += 1) {
-            const response = await fetch(segmentsUrl(origin, until), { cache: "no-store", credentials: "omit", signal: controller.signal });
+            let response: Response;
+            try {
+              response = await fetch(segmentsUrl(origin, until), { cache: "no-store", credentials: "omit", signal: controller.signal });
+            } catch (error) {
+              if (!disposed) setReach("unreachable");
+              throw error;
+            }
+            if (!disposed) setReach("reachable");
             if (!response.ok || disposed) return false;
             const body = parseSegmentsPage(await response.json());
             if (!body || disposed) return false;
@@ -159,11 +170,17 @@ function useTranslationFeed(onLiveSegment: (segment: TranslationSegment) => void
     });
     socket.start();
 
-    const online = () => socket.reconnectNow();
+    const online = () => {
+      setOnline(true);
+      socket.reconnectNow();
+    };
+    const offline = () => setOnline(false);
     const visible = () => {
       if (document.visibilityState === "visible") socket.reconnectNow();
     };
+    setOnline(navigator.onLine !== false);
     window.addEventListener("online", online);
+    window.addEventListener("offline", offline);
     document.addEventListener("visibilitychange", visible);
     return () => {
       disposed = true;
@@ -171,11 +188,12 @@ function useTranslationFeed(onLiveSegment: (segment: TranslationSegment) => void
       controller.abort();
       if (pollTimer !== null) clearTimeout(pollTimer);
       window.removeEventListener("online", online);
+      window.removeEventListener("offline", offline);
       document.removeEventListener("visibilitychange", visible);
     };
   }, []);
 
-  return { segments, view: translationView(socketState, service, polling) };
+  return { segments, view: translationView(socketState, service, polling, { online, reach }) };
 }
 
 /** Screen-reader announcements of final lines, throttled through one timer. */
@@ -316,34 +334,48 @@ export function LiveCaptions({ messages, locale }: { messages: MessageSlice<"liv
               <p className="live-notice__body">{t("live.unavailableBody")}</p>
             </div>
           ) : null}
-          {segments.length === 0 && view !== "unavailable" ? (
+          {view === "offline" ? (
+            <div className="live-notice">
+              <p className="live-notice__title">{t("live.offlineTitle")}</p>
+              <p className="live-notice__body">{segments.length > 0 ? t("live.offlineBodyStale") : t("live.offlineBody")}</p>
+            </div>
+          ) : null}
+          {segments.length === 0 && view !== "unavailable" && view !== "offline" ? (
             <p className="live-empty" role="status">{view === "live" ? t("live.waiting") : t("live.connecting")}</p>
           ) : null}
           {segments.length > 0 ? (
-            <ol className={`live-log live-log--${size}`} role="log" aria-live="off" aria-labelledby="live-log-title">
-              {segments.map((segment) => {
-                const caption = captionFor(segment, language);
-                return (
-                  <li key={caption.key} className={`live-line live-line--${caption.tone}`} lang={caption.language}>
-                    {caption.tone === "failed" ? (
-                      <>
-                        <span className="live-line__note" lang={locale}>{t("live.lineFailed")}</span> {caption.text}
-                      </>
-                    ) : (
-                      caption.text
-                    )}
-                    {caption.tone === "draft" || caption.tone === "pending" ? (
-                      <span className="brand-sr-only" lang={locale}> {t("live.lineDraft")}</span>
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ol>
+            // The log role sits on a wrapper so the <ol> stays a list (QA P1-6).
+            <div role="log" aria-live="off" aria-labelledby="live-log-title">
+              <ol className={`live-log live-log--${size}`}>
+                {segments.map((segment) => {
+                  const caption = captionFor(segment, language);
+                  return (
+                    <li key={caption.key} className={`live-line live-line--${caption.tone}`} lang={caption.language}>
+                      {caption.tone === "failed" ? (
+                        <>
+                          <span className="live-line__note" lang={locale}>{t("live.lineFailed")}</span> {caption.text}
+                        </>
+                      ) : (
+                        caption.text
+                      )}
+                      {caption.tone === "draft" || caption.tone === "pending" ? (
+                        <span className="brand-sr-only" lang={locale}> {t("live.lineDraft")}</span>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
           ) : null}
         </Section>
+
+        <div className="brand-sr-only" role="status" aria-live="polite" aria-atomic="true">
+          {announcer.text}
+        </div>
       </main>
 
-      <div className="live-dock">
+      {/* A landmark of its own, so the controls are not stray content (QA P1-6). */}
+      <aside className="live-dock" aria-label={t("live.controls")}>
         {!following && segments.length > 0 ? (
           <div className="live-dock__jump">
             <Cta tone="on-white" onClick={jumpToLive}>{t("live.jump")}</Cta>
@@ -352,7 +384,14 @@ export function LiveCaptions({ messages, locale }: { messages: MessageSlice<"liv
         <div className="live-dock__controls">
           <PillGroup as="toggle" label={t("live.languageLabel")} tone="on-white">
             {LANGUAGES.map((l) => (
-              <PillToggle key={l.code} pressed={language === l.code} onClick={() => chooseLanguage(l.code)} aria-label={l.name} title={l.name}>
+              // The name starts with the visible code, then the language in its own name (QA P1-6).
+              <PillToggle
+                key={l.code}
+                pressed={language === l.code}
+                onClick={() => chooseLanguage(l.code)}
+                aria-label={`${l.label} ${l.name}`}
+                title={l.name}
+              >
                 {l.label}
               </PillToggle>
             ))}
@@ -365,11 +404,7 @@ export function LiveCaptions({ messages, locale }: { messages: MessageSlice<"liv
             ))}
           </PillGroup>
         </div>
-      </div>
-
-      <div className="brand-sr-only" role="status" aria-live="polite" aria-atomic="true">
-        {announcer.text}
-      </div>
+      </aside>
     </>
   );
 }

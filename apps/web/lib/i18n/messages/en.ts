@@ -419,8 +419,6 @@ export const en = {
   "camera.shots.other": "{count} shots remaining",
   "camera.switchToRear": "Switch to rear camera",
   "camera.switchToSelfie": "Switch to selfie camera",
-  "camera.flipSelfie": "Flip (Selfie)",
-  "camera.flipRear": "Flip (Rear)",
   "camera.take": "Take photo",
   "camera.uploading": "Uploading photo",
   "camera.empty": "Film roll empty",
@@ -429,7 +427,7 @@ export const en = {
     "Your photo is public: it may be shown on the event display and gallery, and kept in the four-year graduation archive. Contact an organizer to have something removed.",
   "camera.added": "Photo added to the gallery.",
   "camera.received": "Photo received. It will appear after processing.",
-  "camera.error.insecure": "Camera blocked. HTTPS or localhost is required.",
+  "camera.error.insecure": "The camera isn't available in this browser. Try opening this page in Safari or Chrome.",
   "camera.error.denied": "Camera access denied. Please check permissions.",
   "camera.error.starting": "The camera is still starting. Please wait a moment and try again.",
   "camera.error.capture": "This browser could not capture the photo.",
@@ -437,8 +435,18 @@ export const en = {
   "camera.error.invalid": "This invitation is no longer valid. Please contact an organizer.",
   "camera.error.expired": "This invitation has expired. Please contact an organizer.",
   "camera.error.rollFull": "All shots on this invitation's roll have been used.",
-  "camera.error.tooLarge": "This photo is too large to upload.",
-  "camera.error.upload": "The photo could not be uploaded. Please try again.",
+  "camera.error.tooLarge": "This photo is too large to upload. Please take it again.",
+  "camera.error.upload": "The photo could not be uploaded. It is kept below; please try again.",
+  // Guest camera upload states (#78, QA P1-2).
+  "camera.error.offline": "You are offline, so the photo was not sent. It is kept below; retry when you have a connection.",
+  "camera.error.network": "The photo could not reach the gallery. Check your connection; it is kept below to retry.",
+  "camera.error.busy": "Photo uploads are paused for a moment. Your photo is kept below; try again shortly.",
+  "camera.error.unsupported": "This photo's format is not supported. Please take it again.",
+  "camera.retry": "Retry upload",
+  "camera.pendingAlt": "Your photo, not uploaded yet",
+  "camera.signedOut.title": "Open your invitation first",
+  "camera.signedOut.body": "The camera is for invited guests. Open your personal invitation link once on this phone, then come back here.",
+  "camera.signedOut.link": "How to open your invitation",
 
   // Live captions (/live) ------------------------------------------------------------
   "live.metaTitle": "Live captions | GRAD '26",
@@ -463,6 +471,13 @@ export const en = {
   "live.size.m": "Standard text",
   "live.size.l": "Large text",
   "live.size.xl": "Extra large text",
+  // Offline state and dock landmark (#78, QA P2-16, P1-6).
+  "live.status.offline": "Offline",
+  "live.offlineTitle": "You are offline",
+  "live.offlineBody": "Live captions cannot be reached. Check your Wi-Fi or mobile data; this page reconnects by itself.",
+  "live.offlineBodyStale":
+    "Live captions cannot be reached, so the lines below may be out of date. Check your Wi-Fi or mobile data; this page reconnects by itself.",
+  "live.controls": "Caption settings",
 
   // Event display (/display) -----------------------------------------------------------
   "display.metaTitle": "Event display | GRAD '26",

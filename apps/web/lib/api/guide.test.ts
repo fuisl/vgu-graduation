@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { hashToken } from "./client";
-import { getGuide, guideCacheTag } from "./guide";
+import { forgetGuide, getGuide } from "./guide";
+import { getInvitation } from "./invitations";
+import { resetLastKnownGood } from "./last-known-good";
 
 const guide = {
   tailored: true,
@@ -23,25 +25,23 @@ function mockFetch(response: Partial<Response> & { json?: () => Promise<unknown>
   return fn;
 }
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  resetLastKnownGood();
+});
 
 describe("getGuide", () => {
-  it("sends the bearer token, revalidates every 300s under a hashed tag and parses the guide", async () => {
+  it("sends the bearer token, never uses the Next fetch cache and parses the guide", async () => {
     const fn = mockFetch({ json: async () => guide });
     expect(await getGuide("tok")).toEqual({ status: "ok", data: guide });
     const [url, init] = fn.mock.calls[0]!;
     expect(url).toMatch(/\/invitations\/me\/guide$/);
     expect(init.headers.Authorization).toBe("Bearer tok");
-    expect(init.next).toEqual({ revalidate: 300, tags: [`guide:${await hashToken("tok")}`] });
+    expect(init.cache).toBe("no-store");
+    expect(init.next).toBeUndefined();
   });
 
-  it("never puts the raw token in the cache tag", async () => {
-    const tag = await guideCacheTag("secret-token");
-    expect(tag).toMatch(/^guide:[0-9a-f]{64}$/);
-    expect(tag).not.toContain("secret-token");
-  });
-
-  it.each([401, 404])("is empty on %i", async (status) => {
+  it.each([401, 403, 404])("is empty on %i", async (status) => {
     mockFetch({ ok: false, status });
     expect(await getGuide("tok")).toEqual({ status: "empty" });
   });
@@ -59,5 +59,45 @@ describe("getGuide", () => {
   it("returns a network error when fetch throws", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("fetch failed")));
     expect(await getGuide("tok")).toMatchObject({ status: "error", kind: "network" });
+  });
+});
+
+describe("getGuide after a good answer (last known good, QA P0-1)", () => {
+  function sequence(...answers: (number | "down")[]) {
+    const fn = vi.fn();
+    for (const answer of answers) {
+      if (answer === "down") fn.mockRejectedValueOnce(new TypeError("fetch failed"));
+      else fn.mockResolvedValueOnce({ ok: answer < 300, status: answer, json: async () => guide });
+    }
+    vi.stubGlobal("fetch", fn);
+  }
+
+  it.each(["down", 500, 503] as const)("serves the last good guide when the API is %s", async (outage) => {
+    sequence(200, outage);
+    await getGuide("tok");
+    expect(await getGuide("tok")).toEqual({ status: "ok", data: guide });
+  });
+
+  it.each([401, 403, 404, 410])("drops it for good once the API answers %i", async (status) => {
+    sequence(200, status, "down");
+    await getGuide("tok");
+    expect((await getGuide("tok")).status).not.toBe("ok");
+    expect(await getGuide("tok")).toMatchObject({ status: "error", kind: "network" });
+  });
+
+  it("drops it when getInvitation is refused for the same token", async () => {
+    sequence(200, 404, "down");
+    await getGuide("tok");
+    expect(await getInvitation("tok")).toEqual({ status: "empty" });
+    expect(await getGuide("tok")).toMatchObject({ status: "error", kind: "network" });
+  });
+
+  it("forgetGuide drops only that token's copy", async () => {
+    sequence(200, 200, "down", "down");
+    await getGuide("tok");
+    await getGuide("other");
+    forgetGuide(await hashToken("tok"));
+    expect(await getGuide("tok")).toMatchObject({ status: "error", kind: "network" });
+    expect(await getGuide("other")).toEqual({ status: "ok", data: guide });
   });
 });

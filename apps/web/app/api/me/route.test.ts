@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { resetLastKnownGood } from "../../../lib/api/last-known-good";
 import { GET } from "./route";
 
 const TOKEN = "secret-invitation-token-123";
@@ -36,6 +37,7 @@ function stubApi(status: number, body: unknown = {}) {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
+  resetLastKnownGood();
 });
 
 describe("GET /api/me", () => {
@@ -97,5 +99,35 @@ describe("GET /api/me", () => {
     const text = await response.text();
     expect(JSON.parse(text)).toEqual({ signedIn: false });
     expect(text).not.toContain(TOKEN);
+  });
+});
+
+describe("GET /api/me after the guest was signed in (QA P0-1)", () => {
+  /** Answers each API call in turn: a status, or "down" for a network error. */
+  function sequence(...answers: (number | "down")[]) {
+    const spy = vi.fn();
+    for (const answer of answers) {
+      if (answer === "down") spy.mockRejectedValueOnce(new TypeError("fetch failed"));
+      else spy.mockResolvedValueOnce(new Response(JSON.stringify(answer < 300 ? invitation : { error: "x", message: "y" }), { status: answer }));
+    }
+    vi.stubGlobal("fetch", spy);
+    return spy;
+  }
+  const signedIn = { signedIn: true, givenName: "Linh", avatarSeed: invitation.guest.id };
+
+  it.each([401, 403, 404, 410])("signs out as soon as the API answers %i, and stays out while it is down", async (status) => {
+    const spy = sequence(200, status, "down");
+    expect(await (await GET(request(true))).json()).toEqual(signedIn);
+    expect(await (await GET(request(true))).json()).toEqual({ signedIn: false });
+    expect(await (await GET(request(true))).json()).toEqual({ signedIn: false });
+    // Every request asks the API; nothing is answered from the Next fetch cache.
+    expect(spy).toHaveBeenCalledTimes(3);
+    for (const [, init] of spy.mock.calls) expect(init.cache).toBe("no-store");
+  });
+
+  it.each(["down", 500, 503] as const)("stays signed in when the API is %s", async (outage) => {
+    sequence(200, outage);
+    await GET(request(true));
+    expect(await (await GET(request(true))).json()).toEqual(signedIn);
   });
 });

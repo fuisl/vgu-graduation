@@ -8,7 +8,9 @@ import { guestGivenName } from "../../../lib/invite/guest-name";
  *
  * The invitation cookie is HttpOnly (a bearer credential), so the browser cannot read the guest's name; this BFF route does, server-side, and returns only:
  *   - signed in:  200 `{ signedIn: true, givenName, avatarSeed }` (`givenName` is the name the guest is called by, #170)
- *   - otherwise:  200 `{ signedIn: false }` (no cookie, unknown/expired/revoked invitation, API down)
+ *   - otherwise:  200 `{ signedIn: false }` (no cookie, unknown/expired/revoked/rotated invitation, API down)
+ * getInvitation never caches (QA P0-1): a 401/403/404/410 signs the guest out on the next request. While the API
+ * is down (network error or 5xx) a guest it confirmed earlier stays signed in from the last known good copy.
  * It is always 200 so the header never logs a failed request; the chip simply stays signed out.
  * `avatarSeed` is the guest id (a random UUID, never the token or an email). Responses are `private, no-store`.
  */

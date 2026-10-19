@@ -13,6 +13,8 @@ const api = vi.hoisted(() => ({
   updateGuideItem: vi.fn(),
   deleteGuideItem: vi.fn(),
   putInvitationGuide: vi.fn(),
+  revokeInvitation: vi.fn(),
+  rotateInvitation: vi.fn(),
 }));
 const cache = vi.hoisted(() => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 const session = vi.hoisted(() => ({
@@ -30,6 +32,9 @@ const { confirmNameAction, updateGraduateAction, updateInvitationAction } = awai
 const { deleteGuideItemAction, saveGuideItemAction, saveGuidePicksAction, setGuideItemActiveAction } = await import(
   "./guide-actions"
 );
+const { revokeInvitationAction, rotateInvitationAction } = await import("./actions");
+const { getInvitation } = await import("../../lib/api/invitations");
+const { resetLastKnownGood } = await import("../../lib/api/last-known-good");
 
 const ID = "3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e6f";
 const ITEM = "3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e71";
@@ -224,5 +229,60 @@ describe("guide-book actions", () => {
       status: "error",
       message: expect.stringContaining("Reload the page"),
     });
+  });
+});
+
+describe("invitation revoke and rotate (QA P0-1)", () => {
+  const GUEST_TOKEN = "guest-token-value";
+  const invitation = {
+    id: ID,
+    guest: { id: ITEM, name: "Jane Doe", email: null, phone: null },
+    maxPlusOnes: 0,
+    status: "active",
+    validFrom: null,
+    validUntil: null,
+    inviters: [],
+    rsvp: null,
+  };
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    resetLastKnownGood();
+  });
+
+  /** The guest page saw the invitation once; the API then goes down. */
+  async function rememberedThenApiDown() {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn()
+        .mockResolvedValueOnce({ ok: true, status: 200, json: async () => invitation })
+        .mockRejectedValue(new TypeError("fetch failed")),
+    );
+    expect((await getInvitation(GUEST_TOKEN)).status).toBe("ok");
+    expect((await getInvitation(GUEST_TOKEN)).status).toBe("ok");
+  }
+
+  it("revoking drops the outage copy, so the old link stops working even while the API is down", async () => {
+    await rememberedThenApiDown();
+    api.revokeInvitation.mockResolvedValue(ok({ invitationId: ID, status: "revoked" }));
+
+    expect(await revokeInvitationAction(IDLE, form({ invitationId: ID }))).toEqual({ status: "revoked" });
+    expect(await getInvitation(GUEST_TOKEN)).toMatchObject({ status: "error", kind: "network" });
+  });
+
+  it("rotating drops it too", async () => {
+    await rememberedThenApiDown();
+    api.rotateInvitation.mockResolvedValue(ok({ invitationId: ID, token: "new", inviteUrl: "https://x.test/invite/new" }));
+
+    expect(await rotateInvitationAction(IDLE, form({ invitationId: ID }))).toMatchObject({ status: "rotated" });
+    expect(await getInvitation(GUEST_TOKEN)).toMatchObject({ status: "error", kind: "network" });
+  });
+
+  it("keeps it when the API refused the revoke", async () => {
+    await rememberedThenApiDown();
+    api.revokeInvitation.mockResolvedValue(httpError(500));
+
+    expect(await revokeInvitationAction(IDLE, form({ invitationId: ID }))).toMatchObject({ status: "error" });
+    expect((await getInvitation(GUEST_TOKEN)).status).toBe("ok");
   });
 });

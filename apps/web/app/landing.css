@@ -1,13 +1,24 @@
 /* Landing (#148, owner brief 2026-10). Route-local, brand tokens only. Sculpture and decode internals live beside their components. */
-/* Hero: the sculpture stage, then the headline and one sentence. Not a full screen, so the entry points start in the first view on a phone. */
+/* Hero fills the viewport, including the 72px it runs up behind the overlaid header; the sculpture takes the leftover height. The entry points start below the fold. */
 [data-theme="brand"] .home > .brand-section:first-child {
-  padding-bottom: clamp(var(--space-6), 4vw, var(--space-8));
+  /* Less padding under the hero text than a normal band, so it sits near the bottom edge. */
+  padding-bottom: clamp(var(--space-5), 3vw, var(--space-7));
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100svh;
+}
+[data-theme="brand"] .home > .brand-section:first-child > .brand-section-inner {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
 }
 [data-theme="brand"] .home-stage {
   position: relative;
   display: grid;
   place-items: center;
-  height: clamp(200px, 38svh, 460px);
+  flex: 1 1 auto;
+  min-height: 280px;
   container-type: inline-size;
 }
 /* Never taller than wide: the camera's FOV is vertical, so a portrait canvas would crop the sculpture's sides. */
@@ -108,7 +119,7 @@
   [data-theme="brand"] .home-entries { grid-template-columns: minmax(0, 1fr); }
   [data-theme="brand"] .home-entries li:nth-child(2) { border-top: 0; }
   [data-theme="brand"] .home-visual { max-height: none; }
-  [data-theme="brand"] .home-stage { height: clamp(180px, 34svh, 360px); }
+  [data-theme="brand"] .home-stage { min-height: 160px; }
 }
 @media (prefers-reduced-motion: reduce) {
   [data-theme="brand"] .home-entry { transition: none; }

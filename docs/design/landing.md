@@ -6,13 +6,22 @@ The public root route (`/`) is an event-first page on the blue-and-white brand t
 
 `/` renders inside `BrandTheme` with `SiteHeader current="home"` and `SiteFooter`. Styles are route-local in `apps/web/app/landing.css`, brand tokens only. Sections, in order:
 
-1. **Blue hero** (`Section tone="blue"`, airy). The sculpture fills the stage (`.home-visual`, 320 to 520px high, at most 820px wide, centred). Below it the `Graduation ’26` headline in display size, and beside it the event line (mono, uppercase: date and venue name, from `getEvent`) and the single primary `Cta` "Your invitation" to `/invite`. At 960px and below the headline drops to the h1 size and the foot stacks.
-2. **White "When and where"**. A `BrandEyebrow`, the heading "Join us on the day", then three columns (one column below 960px): **When** (date, time, and a note when `timeConfirmed` is false), **Where** (venue name, address and a secondary external "Directions" `Cta` to the map URL) and the calendar action (a primary "Add to calendar" `Cta` to the webcal feed, and a link to `/venue` for all calendar options and arrival details). If the event API fails, a status line links to `/venue`.
+1. **Blue hero** (`Section tone="blue"`, airy). The sculpture fills the stage (`.home-visual`, 320 to 520px high, at most 820px wide, centred). Below it the `Graduation ’26` headline in display size, and under it the mono meta block (campus, linking to `/venue`; city; date; countdown) and the hero's single primary `Cta`, "Add to calendar" (#148, QA P2-15): the action of the `AddToCalendar` block below, opening the right calendar for the device. It is hidden when the event API fails. At 960px and below the headline drops to the h1 size and the foot stacks.
+2. **White "When and where"**. A `BrandEyebrow`, the heading "Join us on the day", then three columns (one column below 960px): **When** (date, time, and a note when `timeConfirmed` is false), **Where** (venue name, address and a secondary external "Directions" `Cta` to the map URL) and the calendar options (`AddToCalendar show="options"`: Google Calendar, Apple Calendar, Outlook and the `.ics` file as secondary `Cta`s), then a link to `/venue` for arrival details and the map. If the event API fails, a status line links to `/venue`.
 3. **Blue gallery teaser**. "Latest photos": the latest six `thumb` derivatives in a grid (three columns, two below 960px), then "Open gallery". Empty state: "First photos appear on ceremony day." Unavailable state: "Photos are temporarily unavailable." (with `role="status"`).
 4. **White wishes teaser**. "Words for the class of 2026": the latest three wishes as soft-blue quote panels (body clamped to five lines, author in mono), then a "Leave a wish" `Cta` and a "Read all wishes" link. Empty and unavailable states as above.
 5. **Footer** (`SiteFooter`, deep blue).
 
 The page is server-rendered and `force-dynamic`; the event, gallery and wishes calls run in parallel and each section degrades on its own when the API is down. The earlier ASCII graduation chapter (text wall and stock image), the aurora, twinkle field, grid cells, pointer parallax and glow text-shadows, the animated VGU logo and the "Coming soon in November" sweep were removed.
+
+## Add to calendar
+
+`AddToCalendar` (`apps/web/app/calendar/`, QA P1-3) is the one calendar block, on `/`, `/venue` and the personal `/invite` (and its notices). It takes the links from `buildCalendarLinks` (`lib/calendar/links.ts`, built from the localized event) and shows:
+
+- **The action**, "Add to calendar": a `Cta` whose target depends on the device (`lib/calendar/platform.ts`). Android (user agent or `userAgentData.platform`) opens Google Calendar in a new tab, because `webcal://` does nothing in Android Chrome; Apple devices (iPhone, iPad, Mac) subscribe to the `webcal://` feed so a changed time follows; everything else downloads the `.ics` file. The server render and the first client render use the `.ics` file, so it works without JavaScript and hydrates without a mismatch. `emphasis="primary"` where it is the view's main action (the landing hero, `/venue`), `secondary` on `/invite`, where the RSVP is.
+- **The options**, under a mono label ("Or choose your calendar"): Google Calendar and Outlook (external), Apple Calendar (`webcal://`) and "Download .ics file", all secondary `Cta`s that wrap.
+
+`show="action"` renders the action alone (the hero), `show="options"` the options alone under an "Add to calendar" label (the landing's "When and where"). The venue page's "Get the calendar invite by email" form is not rendered until the invite email sends (`CalendarEmailForm.tsx` stays for then).
 
 ## Headline
 

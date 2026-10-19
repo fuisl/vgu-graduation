@@ -13,6 +13,7 @@ import { mediaDerivativeUrl } from "../lib/api/browser-origin";
 import { getWishes } from "../lib/api/wishes";
 import { buildCalendarLinks } from "../lib/calendar/links";
 import { formatEventWhen } from "../lib/invite/format";
+import { AddToCalendar } from "./calendar/AddToCalendar";
 import { Countdown } from "./landing-countdown/Countdown";
 import { DecodeText } from "./landing-title/DecodeText";
 import { LazySculpture } from "./sculpture/LazySculpture";
@@ -39,6 +40,7 @@ export default async function Home() {
   const event = eventResult.status === "ok" ? localizeEvent(eventResult.data, locale) : null;
   const when = event ? formatEventWhen(event, i18n) : null;
   const links = event ? buildCalendarLinks(event, undefined, { directions: t("calendar.directions") }) : null;
+  const calendarMessages = pickMessages(locale, "calendar.");
   // "November 20" in English (as before #9), "20 tháng 11" in Vietnamese.
   const day = event
     ? new Intl.DateTimeFormat(locale === "en" ? "en-US" : i18n.intl, { month: "long", day: "numeric", timeZone: event.timeZone }).format(new Date(event.startsAt))
@@ -79,6 +81,12 @@ export default async function Home() {
                 </>
               ) : null}
             </div>
+            {/* The hero's one primary action (#148, QA P2-15): the right calendar for this phone. */}
+            {links ? (
+              <div className="home-hero-cta">
+                <AddToCalendar links={links} messages={calendarMessages} tone="on-blue" show="action" />
+              </div>
+            ) : null}
           </div>
         </Section>
 
@@ -104,7 +112,7 @@ export default async function Home() {
                 </div>
               </div>
               <div className="home-actions">
-                <Cta tone="on-white" href={links.webcal}>{t("calendar.add")}</Cta>
+                <AddToCalendar links={links} messages={calendarMessages} tone="on-white" show="options" />
                 <a className="home-link" href="/venue">{t("landing.when.more")}</a>
               </div>
             </div>

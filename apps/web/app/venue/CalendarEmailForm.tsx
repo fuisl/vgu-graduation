@@ -13,6 +13,9 @@ type Status = { kind: "idle" } | { kind: "invalid" } | { kind: "pending" };
  * only: it validates the address and says plainly that sending has not started. It never
  * stores, logs or transmits the address. When the email exists, submit to its endpoint here
  * and replace the "pending" copy with a sent confirmation.
+ *
+ * Not rendered for now (QA P1-3): a form that says "not sending yet" only costs the guest a step.
+ * `/venue` shows the `AddToCalendar` block instead; put this back beside it once sending works.
  */
 export function CalendarEmailForm({ icsHref, messages }: { icsHref: string; messages: MessageSlice<"venue.email."> }) {
   const t = sliceTranslator(messages);

@@ -43,6 +43,13 @@ export const vi: Messages = {
   "notFound.home": "Về trang chủ",
   "calendar.add": "Thêm vào lịch",
   "calendar.directions": "Chỉ đường: {url}",
+  // Add to calendar block (#78, QA P1-3): app names stay as they are.
+  // TODO(owner): native review of "Hoặc chọn ứng dụng lịch" and "Tải tệp .ics".
+  "calendar.choose": "Hoặc chọn ứng dụng lịch",
+  "calendar.google": "Google Calendar",
+  "calendar.apple": "Apple Calendar",
+  "calendar.outlook": "Outlook",
+  "calendar.ics": "Tải tệp .ics",
 
   // Landing (/) -------------------------------------------------------------
   "landing.metaTitle": "GRAD '26 · Lễ tốt nghiệp VGU",
@@ -58,7 +65,8 @@ export const vi: Messages = {
   "landing.when.eyebrow": "Thời gian và địa điểm",
   "landing.when.title": "Hẹn gặp Quý khách vào ngày lễ",
   "landing.when.tbc": "Ngày và giờ vẫn có thể thay đổi. Quý khách có thể thêm lịch đăng ký để tự động nhận thông tin cập nhật.",
-  "landing.when.more": "Tất cả lựa chọn lịch và hướng dẫn đến nơi",
+  // TODO(owner): native review (#78: the calendar options moved onto the home page).
+  "landing.when.more": "Hướng dẫn đến nơi và bản đồ khuôn viên",
   "landing.when.unavailable": "Thông tin sự kiện tạm thời chưa hiển thị được. {link} để thử lại.",
   "landing.when.unavailableLink": "Mở trang địa điểm",
   "landing.gallery.title": "Ảnh mới nhất",
@@ -118,6 +126,7 @@ export const vi: Messages = {
   "venue.title": "Địa điểm và lịch",
   "venue.unavailable": "Thông tin sự kiện tạm thời chưa hiển thị được. Vui lòng thử lại sau ít phút hoặc liên hệ ban tổ chức.",
   "venue.tbc": "Ngày và giờ vẫn có thể thay đổi; trang này luôn hiển thị thông tin mới nhất.",
+  "venue.calendar": "Lịch",
   "venue.email.label": "Nhận lời mời lịch qua email",
   "venue.email.send": "Gửi lời mời",
   "venue.email.invalid": "Vui lòng nhập địa chỉ email, ví dụ name@example.com.",

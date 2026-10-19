@@ -40,6 +40,12 @@ export const en = {
   "notFound.home": "Back to home",
   "calendar.add": "Add to calendar",
   "calendar.directions": "Directions: {url}",
+  // Add to calendar block (#78, QA P1-3): app names stay as they are.
+  "calendar.choose": "Or choose your calendar",
+  "calendar.google": "Google Calendar",
+  "calendar.apple": "Apple Calendar",
+  "calendar.outlook": "Outlook",
+  "calendar.ics": "Download .ics file",
 
   // Landing (/) -------------------------------------------------------------
   "landing.metaTitle": "GRAD '26 · VGU graduation",
@@ -54,7 +60,7 @@ export const en = {
   "landing.when.eyebrow": "When and where",
   "landing.when.title": "Join us on the day",
   "landing.when.tbc": "The date and time may still change. Add the calendar feed to get updates automatically.",
-  "landing.when.more": "All calendar options and arrival details",
+  "landing.when.more": "Arrival details and the campus map",
   "landing.when.unavailable": "Event details are temporarily unavailable. {link} to try again.",
   "landing.when.unavailableLink": "Open the venue page",
   "landing.gallery.title": "Latest photos",
@@ -112,7 +118,8 @@ export const en = {
   "venue.title": "Venue and calendar",
   "venue.unavailable": "Event information is temporarily unavailable. Please try again in a moment, or contact an organizer.",
   "venue.tbc": "The date and time may still change; this page always shows the latest.",
-  "venue.email.label": "Get the calendar invite by email",
+  "venue.calendar": "Calendar",
+  "venue.email.label":"Get the calendar invite by email",
   "venue.email.send": "Send invite",
   "venue.email.invalid": "Enter an email address like name@example.com.",
   "venue.email.pending": "Email invites are not sending yet. Use the calendar file below for now.",

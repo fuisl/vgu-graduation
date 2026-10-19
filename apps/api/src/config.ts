@@ -47,6 +47,17 @@ const envSchema = z.object({
     .enum(["true", "false", "1", "0", ""])
     .default("false")
     .transform((v) => v === "true" || v === "1"),
+  /**
+   * Guest email (ADR-012): SMTP submission with STARTTLS, Gmail by default. Mail is
+   * on only when SMTP_USER and SMTP_PASSWORD (a Google app password) are both set;
+   * unset, every email reports `not_configured` and the venue form stays hidden.
+   */
+  SMTP_HOST: z.string().default("smtp.gmail.com"),
+  SMTP_PORT: z.coerce.number().int().positive().default(587),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
+  /** Sender as guests see it, e.g. `GRAD '26 <you@gmail.com>`. Defaults to SMTP_USER. Gmail rewrites any other address to SMTP_USER. */
+  MAIL_FROM: z.string().optional(),
 });
 
 /** Variables with no safe default: a deployed API must not boot without them. */
@@ -114,6 +125,14 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     },
     print: {
       guestRequestsEnabled: parsed.PRINT_GUEST_REQUESTS_ENABLED,
+    },
+    mail: {
+      enabled: Boolean(parsed.SMTP_USER && parsed.SMTP_PASSWORD),
+      host: parsed.SMTP_HOST,
+      port: parsed.SMTP_PORT,
+      user: parsed.SMTP_USER,
+      password: parsed.SMTP_PASSWORD,
+      from: parsed.MAIL_FROM || parsed.SMTP_USER,
     },
   };
 }

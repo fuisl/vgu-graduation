@@ -180,10 +180,15 @@ export function updateInvitation(
   });
 }
 
-/** POST /admin/invitations/:id/rotate: invalidates the old link, returns the new one once. */
-export function rotateInvitation(token: string, id: string): Promise<ApiResult<RotateInvitationResponse>> {
+/** POST /admin/invitations/:id/rotate: invalidates the old link, returns the new one once, optionally emailing it. */
+export function rotateInvitation(
+  token: string,
+  id: string,
+  options: { sendEmail?: boolean } = {}
+): Promise<ApiResult<RotateInvitationResponse>> {
   return adminRequest(token, `/admin/invitations/${encodeURIComponent(id)}/rotate`, {
     method: "POST",
+    ...(options.sendEmail ? { body: { sendEmail: true } } : {}),
     schema: rotateInvitationResponseSchema,
   });
 }

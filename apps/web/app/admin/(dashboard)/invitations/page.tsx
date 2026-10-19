@@ -116,7 +116,11 @@ export default async function InvitationsPage({ searchParams }: { searchParams: 
                             </Link>
                           </div>
                           {invitation.status === "active" ? (
-                            <InvitationActions invitationId={invitation.id} guestName={invitation.guest.name} />
+                            <InvitationActions
+                              invitationId={invitation.id}
+                              guestName={invitation.guest.name}
+                              guestEmail={invitation.guest.email}
+                            />
                           ) : null}
                         </div>
                       </td>

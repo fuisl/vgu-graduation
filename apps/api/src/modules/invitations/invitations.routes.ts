@@ -5,6 +5,7 @@ import {
   errorResponseSchema,
   invitationSchema,
   revokeInvitationResponseSchema,
+  rotateInvitationRequestSchema,
   rotateInvitationResponseSchema,
   updateInvitationRequestSchema,
   updateInvitationResponseSchema,
@@ -82,6 +83,9 @@ export function invitationsRoutes(
       async (request, reply) => {
         try {
           const result = await service.issueInvitation(request.body, request.adminHandle ?? "unknown");
+          if (result.emailStatus) {
+            request.log.info({ invitationId: result.invitationId, emailStatus: result.emailStatus }, "invitation email");
+          }
           return reply.status(201).send(result);
         } catch (error) {
           if (error instanceof UnknownInviterError) {
@@ -101,6 +105,7 @@ export function invitationsRoutes(
         preHandler: requireAdmin,
         schema: {
           params: z.object({ id: z.string().uuid() }),
+          body: rotateInvitationRequestSchema,
           response: {
             200: rotateInvitationResponseSchema,
             401: errorResponseSchema,
@@ -109,7 +114,12 @@ export function invitationsRoutes(
         },
       },
       async (request, reply) => {
-        const result = await service.rotateInvitationToken(request.params.id, request.adminHandle ?? "unknown");
+        const result = await service.rotateInvitationToken(request.params.id, request.adminHandle ?? "unknown", {
+          sendEmail: request.body?.sendEmail,
+        });
+        if (result?.emailStatus) {
+          request.log.info({ invitationId: request.params.id, emailStatus: result.emailStatus }, "invitation email");
+        }
         if (!result) {
           return reply
             .status(404)

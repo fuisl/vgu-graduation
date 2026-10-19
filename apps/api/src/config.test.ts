@@ -53,4 +53,14 @@ describe("loadConfig", () => {
     expect(loadConfig({ PRINT_GUEST_REQUESTS_ENABLED: "true" }).print.guestRequestsEnabled).toBe(true);
     expect(() => loadConfig({ PRINT_GUEST_REQUESTS_ENABLED: "yes" })).toThrow();
   });
+
+  it("turns mail on only with both SMTP credentials, sending as SMTP_USER by default", () => {
+    expect(loadConfig({}).mail).toMatchObject({ enabled: false, host: "smtp.gmail.com", port: 587 });
+    expect(loadConfig({ SMTP_USER: "me@example.com" }).mail.enabled).toBe(false);
+    const mail = loadConfig({ SMTP_USER: "me@example.com", SMTP_PASSWORD: "app-password" }).mail;
+    expect(mail).toMatchObject({ enabled: true, from: "me@example.com" });
+    expect(
+      loadConfig({ SMTP_USER: "me@example.com", SMTP_PASSWORD: "x", MAIL_FROM: "GRAD '26 <me@example.com>" }).mail.from,
+    ).toBe("GRAD '26 <me@example.com>");
+  });
 });

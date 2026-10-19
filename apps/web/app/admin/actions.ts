@@ -81,6 +81,7 @@ export async function createInvitationAction(
     invitationId: result.data.invitationId,
     guestName: result.data.guest.name,
     inviteUrl: result.data.inviteUrl,
+    emailStatus: result.data.emailStatus,
   };
 }
 
@@ -97,14 +98,14 @@ export async function rotateInvitationAction(
   const id = invitationId(form);
   if (!id) return { status: "error", message: "Unknown invitation." };
 
-  const result = await rotateInvitation(token, id);
+  const result = await rotateInvitation(token, id, { sendEmail: form.get("sendEmail") === "on" });
   redirectIfUnauthorized(result);
   if (result.status !== "ok") return { status: "error", message: failureMessage(result) };
 
   // Guest reads are no-store, so no cache tag holds the old token; drop the outage fallback copy too.
   forgetInvitation(id);
   revalidateAdmin();
-  return { status: "rotated", inviteUrl: result.data.inviteUrl };
+  return { status: "rotated", inviteUrl: result.data.inviteUrl, emailStatus: result.data.emailStatus };
 }
 
 export async function revokeInvitationAction(

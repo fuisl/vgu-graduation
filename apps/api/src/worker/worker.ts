@@ -9,7 +9,8 @@ export type JobHandler = (job: Job) => Promise<void>;
 
 /**
  * Handlers by job type. Modules register theirs here as they land: derivative
- * generation (#59), moderation notifications, print dispatch (#72).
+ * generation (#59), moderation notifications, print dispatch (#72), RSVP
+ * confirmation emails (ADR-012).
  */
 export type JobHandlers = Record<string, JobHandler>;
 

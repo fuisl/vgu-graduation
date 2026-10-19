@@ -121,6 +121,7 @@ export function parseInvitationForm(form: FormData): ParseResult<CreateInvitatio
     guestPhone: optionalText(form, "guestPhone"),
     inviterUserIds,
     maxPlusOnes,
+    ...(form.get("sendEmail") === "on" ? { sendEmail: true } : {}),
   });
   if (parsed.success) return { ok: true, data: parsed.data };
   return { ok: false, errors: invitationErrors(parsed.error.issues) };

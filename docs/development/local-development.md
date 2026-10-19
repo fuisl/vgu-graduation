@@ -89,6 +89,8 @@ Request and response bodies are validated with the `@grad/contract` Zod schemas,
 
 **Print queue** (#72, experimental): `POST /print/jobs` queues a print in the `print_jobs` table; the venue daemon claims jobs with `GET /internal/print/jobs/next` and reports with `POST /internal/print/jobs/{id}/done` using `SERVICE_TOKEN_PRINTER`. Guests may request prints only with `PRINT_GUEST_REQUESTS_ENABLED=true` (default off); the gallery shows "Request a print" only when `apps/web/.env.local` sets the same variable (#74). To try it locally, set `SERVICE_TOKEN_PRINTER` in `.env` and use the Bruno "print" folder.
 
+**Guest email** (ADR-012): off unless `.env` sets `SMTP_USER` and `SMTP_PASSWORD`. To see the messages without mailing anyone, run Mailpit (`docker run -p 1025:1025 -p 8025:8025 axllent/mailpit`), set `SMTP_HOST=localhost`, `SMTP_PORT=1025` and any user and password, and open `http://localhost:8025`. RSVP confirmations are `mail.rsvp_confirmation` jobs, so run the worker too; they wait two minutes. Details in `docs/operations/email.md`.
+
 Images are processed with [sharp](https://sharp.pixelplumbing.com) (libvips). It ships prebuilt binaries for macOS and for Linux musl (`node:24-alpine`, x64 and arm64) as optional dependencies, so it needs no build step: `pnpm` reporting "Ignored build scripts: sharp" is expected, and the Dockerfile's `--ignore-scripts` install works unchanged.
 
 ## API configuration

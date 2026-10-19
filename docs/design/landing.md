@@ -21,7 +21,7 @@ The page is server-rendered and `force-dynamic`; the event, gallery and wishes c
 - **The action**, "Add to calendar": a `Cta` whose target depends on the device (`lib/calendar/platform.ts`). Android (user agent or `userAgentData.platform`) opens Google Calendar in a new tab, because `webcal://` does nothing in Android Chrome; Apple devices (iPhone, iPad, Mac) subscribe to the `webcal://` feed so a changed time follows; everything else downloads the `.ics` file. The server render and the first client render use the `.ics` file, so it works without JavaScript and hydrates without a mismatch. `emphasis="primary"` where it is the view's main action (the landing hero, `/venue`), `secondary` on `/invite`, where the RSVP is.
 - **The options**, under a mono label ("Or choose your calendar"): Google Calendar and Outlook (external), Apple Calendar (`webcal://`) and "Download .ics file", all secondary `Cta`s that wrap.
 
-`show="action"` renders the action alone (the hero), `show="options"` the options alone under an "Add to calendar" label (the landing's "When and where"). The venue page's "Get the calendar invite by email" form is not rendered until the invite email sends (`CalendarEmailForm.tsx` stays for then).
+`show="action"` renders the action alone (the hero), `show="options"` the options alone under an "Add to calendar" label (the landing's "When and where"). The venue page's "Get the calendar invite by email" form (`CalendarEmailForm.tsx`) renders under the calendar options only for a guest with an invitation, and only while `GET /mail/status` says mail is on (ADR-012); otherwise the page shows the calendar options alone.
 
 ## Headline
 

@@ -30,6 +30,7 @@ export function InvitationForm({ graduates }: { graduates: Pick<Graduate, "id" |
         <InviteLinkNotice
           title={`Invitation created for ${state.guestName}`}
           inviteUrl={state.inviteUrl}
+          emailStatus={state.emailStatus}
           onDismiss={() => setDismissed(state)}
         />
       ) : null}
@@ -61,6 +62,12 @@ export function InvitationForm({ graduates }: { graduates: Pick<Graduate, "id" |
           defaultValue={valueOf(values, "guestEmail")}
           error={errors.guestEmail}
         />
+        <label className="admin-check">
+          <input type="checkbox" name="sendEmail" defaultChecked={valueOf(values, "sendEmail") === "on"} />
+          <span>
+            Email the link to the guest <span className="admin-muted">(sent from the event&apos;s Gmail account)</span>
+          </span>
+        </label>
         <Field
           id="invitation-guest-phone"
           name="guestPhone"

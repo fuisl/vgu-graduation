@@ -2,6 +2,7 @@ import type {
   AdminInvitationsResponse,
   CreateInvitationRequest,
   CreateInvitationResponse,
+  EmailStatus,
   Invitation,
   RevokeInvitationResponse,
   RotateInvitationResponse,
@@ -10,6 +11,7 @@ import type {
 } from "@grad/contract";
 import { generateToken, hashToken, safeEqual } from "../../auth/tokens.js";
 import { config } from "../../config.js";
+import { MailService } from "../mail/mail.service.js";
 import { InvitationsRepository, type StoredInvitation } from "./invitations.repository.js";
 
 /**
@@ -39,23 +41,33 @@ export class InvitationsService {
   constructor(
     private readonly repository: InvitationsRepository = new InvitationsRepository(),
     private readonly now: () => Date = () => new Date(),
+    private readonly mail: Pick<MailService, "sendInvitation"> = new MailService(),
   ) {}
 
-  /** Creates an invitation with a fresh 128-bit bearer token and returns the raw link once. */
+  /**
+   * Creates an invitation with a fresh 128-bit bearer token and returns the raw link once.
+   * With `sendEmail`, also mails the link to the guest (ADR-012); the invitation is created
+   * and the link returned whatever the email does.
+   */
   async issueInvitation(
     dto: CreateInvitationRequest,
     actor: string,
   ): Promise<CreateInvitationResponse> {
     const token = generateToken();
     const created = await this.repository.createInvitation(dto, hashToken(token), actor);
+    const inviteUrl = `${config.publicOrigin}/invite/${token}`;
+    const emailStatus = dto.sendEmail
+      ? await this.mail.sendInvitation({ to: created.guest.email, givenName: created.guest.givenName, inviteUrl })
+      : undefined;
 
     return {
       invitationId: created.invitationId,
       token,
-      inviteUrl: `${config.publicOrigin}/invite/${token}`,
+      inviteUrl,
       guest: created.guest,
       maxPlusOnes: created.maxPlusOnes,
       inviterUserIds: created.inviterUserIds,
+      ...(emailStatus ? { emailStatus } : {}),
     };
   }
 
@@ -75,16 +87,25 @@ export class InvitationsService {
     return { status: "ok", invitation: toContract(stored) };
   }
 
-  /** Rotates the bearer token of an existing invitation. */
+  /** Rotates the bearer token of an existing invitation, optionally emailing the new link to the guest. */
   async rotateInvitationToken(
     invitationId: string,
     actor: string,
+    options: { sendEmail?: boolean } = {},
   ): Promise<RotateInvitationResponse | null> {
     const token = generateToken();
     const updated = await this.repository.rotateTokenHash(invitationId, hashToken(token), actor);
     if (!updated) return null;
 
-    return { token, inviteUrl: `${config.publicOrigin}/invite/${token}` };
+    const inviteUrl = `${config.publicOrigin}/invite/${token}`;
+    if (!options.sendEmail) return { token, inviteUrl };
+    return { token, inviteUrl, emailStatus: await this.emailGuest(invitationId, inviteUrl) };
+  }
+
+  private async emailGuest(invitationId: string, inviteUrl: string): Promise<EmailStatus> {
+    const [row] = await this.repository.listForAdmin(invitationId);
+    if (!row) return "failed";
+    return this.mail.sendInvitation({ to: row.guest.email, givenName: row.guest.givenName ?? row.guest.name, inviteUrl });
   }
 
   /** Revokes an invitation (idempotent); null when the id is unknown. */

@@ -29,6 +29,19 @@ describe("parseGraduateForm", () => {
 });
 
 describe("parseInvitationForm", () => {
+  it("asks for the link to be emailed only when the box is ticked", () => {
+    const base: [string, string][] = [
+      ["guestName", "Jane Doe"],
+      ["guestEmail", "jane@example.com"],
+      ["inviterUserIds", GRAD_A],
+      ["maxPlusOnes", "0"],
+    ];
+    const ticked = parseInvitationForm(form([...base, ["sendEmail", "on"]]));
+    expect(ticked.ok && ticked.data.sendEmail).toBe(true);
+    const unticked = parseInvitationForm(form(base));
+    expect(unticked.ok && "sendEmail" in unticked.data).toBe(false);
+  });
+
   it("collects every checked inviter and drops empty optional fields", () => {
     const result = parseInvitationForm(
       form([

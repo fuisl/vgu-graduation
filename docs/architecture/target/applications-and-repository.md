@@ -65,6 +65,8 @@ Configuration is environment-only:
 | `ADMIN_SESSION_SECRET` | SOPS-encrypted Secret, shared with the web app on Vercel |
 | `LOG_LEVEL` | ConfigMap |
 | `PRINT_GUEST_REQUESTS_ENABLED` | ConfigMap; `true` lets guests queue prints (#72), default off |
+| `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM` (optional) | SOPS-encrypted Secret `api-mail`, mounted into the API and worker; unset turns guest email off (ADR-012) |
+| `SMTP_HOST`, `SMTP_PORT` (optional) | Defaults `smtp.gmail.com` and `587` |
 
 ## 4.4 apps/translation (k3s, GPU)
 

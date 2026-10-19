@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { emailStatusSchema } from "./mail.js";
 
 /**
  * `name` is the full display name. `givenName` is what the guest is called by
@@ -61,6 +62,8 @@ export const createInvitationRequestSchema = z.object({
   guestPhone: z.string().optional(),
   inviterUserIds: z.array(z.string().uuid()).min(1),
   maxPlusOnes: z.number().int().min(0).optional(),
+  /** Also email the link to `guestEmail` (ADR-012). The token exists only now, so this is the one chance. */
+  sendEmail: z.boolean().optional(),
 });
 export type CreateInvitationRequest = z.infer<typeof createInvitationRequestSchema>;
 
@@ -72,13 +75,20 @@ export const createInvitationResponseSchema = z.object({
   guest: guestSchema,
   maxPlusOnes: z.number().int().min(0),
   inviterUserIds: z.array(z.string().uuid()),
+  /** Present when `sendEmail` was asked for. The link is returned either way, so a failed email loses nothing. */
+  emailStatus: emailStatusSchema.optional(),
 });
 export type CreateInvitationResponse = z.infer<typeof createInvitationResponseSchema>;
+
+/** POST /admin/invitations/{id}/rotate — optional body: also email the new link to the guest's stored address. */
+export const rotateInvitationRequestSchema = z.object({ sendEmail: z.boolean().optional() }).nullish();
+export type RotateInvitationRequest = z.infer<typeof rotateInvitationRequestSchema>;
 
 /** POST /admin/invitations/{id}/rotate — 200 response */
 export const rotateInvitationResponseSchema = z.object({
   token: z.string(),
   inviteUrl: z.string().url(),
+  emailStatus: emailStatusSchema.optional(),
 });
 export type RotateInvitationResponse = z.infer<typeof rotateInvitationResponseSchema>;
 

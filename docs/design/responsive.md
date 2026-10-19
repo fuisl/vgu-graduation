@@ -9,6 +9,7 @@ Design mobile-first. Avoid device-specific layouts when fluid CSS is sufficient.
 - **Vertical rhythm:** `Section density="airy"` is `clamp(4rem, 9vw, 6rem)` and `"compact"` is `clamp(2rem, 5vw, 3rem)`, so both shrink on phones without a media query.
 - **Type:** display and heading sizes are fluid `clamp()` tokens (`--brand-text-display`, `-h1`, `-h2`, `-h3`, `-lead`, `-body`) with explicit minimums and maximums. On the landing the headline drops from display to h1 size at 960px.
 - **Touch targets are at least 44px** (`--brand-tap`): `Cta`, pills (the desktop header pills too), the Menu button, sheet links and inline links.
+- **No render-blocking stylesheets.** Production builds inline each page's CSS into its HTML (`experimental.inlineCss` in `apps/web/next.config.mjs`, #78): the pages are rendered per request anyway, and on a slow venue network the 3 to 4 extra CSS round trips were most of the time to first paint. Keep route stylesheets small; they now travel in every page's HTML.
 - Do not hide essential event information behind hover interactions.
 - 3D/graphics must have a lightweight fallback and respect reduced motion. The sculpture uses a smaller ASCII cell (6x8px) on phones and ships a static ASCII motif when the canvas is unavailable.
 - Wrap long toggle groups (`PillGroup as="toggle"` wraps on narrow screens) instead of scrolling horizontally. No page-level horizontal scroll at 390px.

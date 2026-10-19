@@ -6,6 +6,7 @@ import "@grad/design-tokens/tokens.css";
 import "@grad/design-tokens/brand.css";
 import "./globals.css";
 import { TEXT_SIZE_BOOT_SCRIPT } from "../lib/a11y/text-size";
+import { getI18n, getLocale } from "../lib/i18n/server";
 import { SpeedInsightsReporter } from "./speed-insights/SpeedInsightsReporter";
 
 const interTight = Inter_Tight({
@@ -14,15 +15,17 @@ const interTight = Inter_Tight({
   variable: "--font-inter-tight",
 });
 
-export const metadata: Metadata = {
-  title: "GRAD '26",
-  description: "VGU graduation ceremony companion.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("meta.siteTitle"), description: t("meta.siteDescription") };
+}
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // The site language (#9): `lang` cookie, else Accept-Language. Admin overrides it with lang="en".
+  const locale = await getLocale();
   return (
     // suppressHydrationWarning: the boot script may set data-text-size on <html> before React hydrates.
-    <html className={`${GeistSans.variable} ${GeistMono.variable} ${interTight.variable}`} lang="en" suppressHydrationWarning>
+    <html className={`${GeistSans.variable} ${GeistMono.variable} ${interTight.variable}`} lang={locale} suppressHydrationWarning>
       <head>
         {/* Applies the guest's text size before first paint (#176). Static string, no user data. */}
         <script dangerouslySetInnerHTML={{ __html: TEXT_SIZE_BOOT_SCRIPT }} />

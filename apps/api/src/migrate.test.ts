@@ -17,6 +17,7 @@ const EXPECTED_TABLES = [
   "invitation_inviters",
   "invitations",
   "jobs",
+  "mail_cursors",
   "photos",
   "print_jobs",
   "rsvp",

@@ -1,12 +1,14 @@
 # Guest email
 
-The API sends three emails to guests from the owner's Gmail account (ADR-012):
+The API sends three emails to guests from the owner's Gmail account (ADR-012). Each has a branded HTML part in the site's blue-and-white theme and a plain-text part with the same content (ADR-013):
 
 | Email | When | Goes to | Path |
 | --- | --- | --- | --- |
 | Invitation link | An admin ticks "Email the link to the guest" when creating an invitation, or "Also email the new link" when rotating one | The guest's stored address | Sent by the API before it answers; the admin sees the result next to the link |
 | Calendar invite | A guest with an invitation uses "Get the calendar invite by email" on `/venue` | The address the guest types | Sent by the API; at most 5 per invitation per day |
 | RSVP confirmation | A guest saves an RSVP and their guest record has an address | The guest's stored address | Worker job, two minutes later; only the latest answer is confirmed |
+
+With calendar RSVP on (`MAIL_CALENDAR_RSVP=true`, ADR-013), the invitation email is also a calendar invitation: Gmail, Outlook and Apple Mail show **Yes / Maybe / No**, and the worker reads the replies from the same inbox and records Yes and No as the guest's RSVP. See [Calendar RSVP](#calendar-rsvp) below.
 
 With no SMTP credentials, nothing is sent: the admin notice says email is not set up, the venue form is hidden and RSVPs queue nothing. The rest of the site works the same.
 
@@ -36,6 +38,15 @@ With no SMTP credentials, nothing is sent: the admin notice says email is not se
    Encrypt before `git add`. The plaintext file must never be committed. `MAIL_FROM` must use the same address as `SMTP_USER`; Gmail rewrites any other sender to it. Then add `- api-mail.sops.yaml` to `resources` in `workloads/home/api-service/kustomization.yaml`.
 4. **Merge and let Flux apply.** The `api-service` and `worker` Deployments already list `api-mail` as an optional `envFrom`, and `allow-mail-egress` opens port 587 for both. Flux restarts nothing by itself when a Secret changes, so roll both: `kubectl -n grad rollout restart deployment/api-service deployment/worker`.
 5. **Check:** `curl -s https://api.grad26.fuisloy.dev/mail/status` returns `{"enabled":true}` (the response is cached for up to a minute). Then create a test invitation for yourself with "Email the link to the guest" ticked; the notice should say "Emailed to the guest".
+
+## Calendar RSVP
+
+1. **Turn it on** in the infrastructure repository: `MAIL_CALENDAR_RSVP: "true"` on both the `api-service` and `worker` containers (the API attaches the calendar request, the worker reads replies), and `allow-imap-egress` lets the worker reach `imap.gmail.com:993`. The same app password works for IMAP; Gmail has IMAP on for every account.
+2. **Check:** after the rollout the worker logs `worker started` with `calendarReplies: true`. Send yourself a test invitation from the admin page to an address other than the sending account (for example a second Gmail). It should show the Yes / Maybe / No bar. Tap **Yes**; within about a minute the worker logs `calendar reply` with `outcome: "applied"`, and `/admin/rsvps` shows the guest as attending.
+3. **What counts:** only a reply from the address the invitation was emailed to, signed for that address's domain (DMARC or DKIM pass as recorded by Gmail), for an active invitation. Yes = attending (plus-ones kept), No = not attending (plus-ones cleared), Maybe = no change. If the guest changed their answer on the site after replying, the site answer wins.
+4. **Outcomes in the logs** (`calendar reply`, by invitation id): `applied`, `unchanged`, `maybe`, `stale` (the site answer is newer), `unauthenticated`, `wrong_attendee` (forwarded invitation, or a different address), `inactive` (revoked or expired). `calendar replies polled` counts each pass; `calendar reply poll failed` carries an error code only.
+5. **Keep replies in the inbox.** The worker reads the INBOX only, from the newest message it has seen (its position is in the `mail_cursors` table). A Gmail filter that archives "Accepted:" mail would hide replies. To re-read, `DELETE FROM mail_cursors;` makes the next pass look back 30 days; re-applying a reply changes nothing.
+6. **Turn it off:** set `MAIL_CALENDAR_RSVP` to `false` and roll both. Invitations go out as normal emails again; replies to earlier calendar invitations stay in the inbox unread by the worker.
 
 ## Day to day
 

@@ -50,6 +50,13 @@
       "when": 1792374874744,
       "tag": "0006_event_vietnamese",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792402530600,
+      "tag": "0007_calendar_rsvp_replies",
+      "breakpoints": true
     }
   ]
 }

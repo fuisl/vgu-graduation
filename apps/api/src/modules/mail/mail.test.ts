@@ -50,7 +50,7 @@ describe("MailService", () => {
   it("reports not_configured without an SMTP account and sends nothing", async () => {
     const service = new MailService(null, { get: async () => EVENT }, CONFIG);
     expect(service.enabled).toBe(false);
-    expect(await service.sendInvitation({ to: "guest@example.com", givenName: "An", inviteUrl: INVITE_URL })).toBe(
+    expect(await service.sendInvitation({ to: "guest@example.com", givenName: "An", inviteUrl: INVITE_URL, invitationId: INVITATION_ID, guestName: "Nguyễn An" })).toBe(
       "not_configured",
     );
     expect(await service.sendCalendarInvite({ to: "guest@example.com", locale: "en" })).toBe("not_configured");
@@ -58,7 +58,7 @@ describe("MailService", () => {
 
   it("mails the invitation link in the body only, in Vietnamese then English", async () => {
     const { service, sent } = mailService();
-    expect(await service.sendInvitation({ to: "guest@example.com", givenName: "An", inviteUrl: INVITE_URL })).toBe("sent");
+    expect(await service.sendInvitation({ to: "guest@example.com", givenName: "An", inviteUrl: INVITE_URL, invitationId: INVITATION_ID, guestName: "Nguyễn An" })).toBe("sent");
     expect(sent).toHaveLength(1);
     const [message] = sent;
     expect(message.to).toBe("guest@example.com");
@@ -69,9 +69,9 @@ describe("MailService", () => {
 
   it("says no_address for a guest without email and failed when SMTP refuses", async () => {
     const { service, fail } = mailService();
-    expect(await service.sendInvitation({ to: null, givenName: "An", inviteUrl: INVITE_URL })).toBe("no_address");
+    expect(await service.sendInvitation({ to: null, givenName: "An", inviteUrl: INVITE_URL, invitationId: INVITATION_ID, guestName: "Nguyễn An" })).toBe("no_address");
     fail();
-    expect(await service.sendInvitation({ to: "guest@example.com", givenName: "An", inviteUrl: INVITE_URL })).toBe("failed");
+    expect(await service.sendInvitation({ to: "guest@example.com", givenName: "An", inviteUrl: INVITE_URL, invitationId: INVITATION_ID, guestName: "Nguyễn An" })).toBe("failed");
   });
 
   it("attaches the .ics and the webcal feed to the calendar invite, in the asked language", async () => {
@@ -164,7 +164,13 @@ describe("InvitationsService emails", () => {
     );
     expect(mailed.emailStatus).toBe("sent");
     expect(mailed.inviteUrl).toContain(mailed.token);
-    expect(sendInvitation).toHaveBeenCalledWith({ to: "guest@example.com", givenName: "An", inviteUrl: mailed.inviteUrl });
+    expect(sendInvitation).toHaveBeenCalledWith({
+      to: "guest@example.com",
+      givenName: "An",
+      inviteUrl: mailed.inviteUrl,
+      invitationId: INVITATION_ID,
+      guestName: "Nguyễn An",
+    });
   });
 
   it("mails the rotated link to the stored address", async () => {

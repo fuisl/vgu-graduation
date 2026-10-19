@@ -581,6 +581,9 @@ export const en = {
   "rsvp.a11y.noteHint": "Up to {max} characters. To remove everything, untick the boxes, clear this note and save.",
   "rsvp.a11y.noteLength": "The accessibility note must be at most {max} characters.",
   "rsvp.a11y.more": "How we help on the day",
+
+  // Site shell: skip link (#78) ---------------------------------------------
+  "shell.skipToContent": "Skip to content",
 } satisfies Record<string, string>;
 
 export type MessageId = keyof typeof en;

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
 import { Inter_Tight } from "next/font/google";
@@ -19,6 +19,17 @@ export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
   return { title: t("meta.siteTitle"), description: t("meta.siteDescription") };
 }
+
+/**
+ * viewport-fit=cover (#78): pages draw edge to edge, so the safe-area insets are real and the
+ * paddings that use them (live caption dock, /display, mobile menu sheet, --gutter) take effect.
+ * No themeColor here: SiteHeader's ThemeColorSync owns it on brand pages, and admin keeps the default.
+ */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // The site language (#9): `lang` cookie, else Accept-Language. Admin overrides it with lang="en".

@@ -13,6 +13,6 @@ Specific to the blue-and-white language:
 - **No large radii, drop shadows, blur or gradients** on brand surfaces. Radii are 2px and 4px.
 - **One primary `Cta` per view.** Supporting actions use `variant="secondary"`.
 - **Do not hide event facts behind hover or animation.** `DecodeText` is only for the landing headline, and the page stays readable without it.
-- **Do not widen content past 1200px** inside brand sections, or body text past 70ch.
+- **Do not widen content past `--brand-content` (1600px)** inside brand sections, or body text past 70ch.
 
 A quiet screen with strong typography and spacing is preferable to an over-decorated screen.

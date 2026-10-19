@@ -25,6 +25,12 @@ const nextConfig = {
       process.env.PUBLIC_API_ORIGIN ||
       (process.env.NODE_ENV === "development" ? "http://localhost:4000" : "https://api.grad26.fuisloy.dev"),
   },
+  // Inline each page's CSS into its HTML instead of 3 to 4 render-blocking <link>s (#78, P2-19).
+  // Every page is rendered per request (ADR-010), so the HTML was never cached anyway; it costs
+  // about 9 kB gzipped (50 kB raw) per page and saves those round trips on venue networks. Lab, 390px,
+  // 150ms RTT, 1.6 Mbps, 4x CPU: LCP / 968 -> 364ms, /venue 996 -> 356ms, /me 1144 -> 356ms.
+  // Production builds only; experimental in Next 15, so delete this line if it misbehaves.
+  experimental: { inlineCss: true },
   // ASCIIGen ships TypeScript rather than a compiled browser bundle.
   transpilePackages: asciifyInstalled ? ["asciify"] : [],
   webpack(config) {

@@ -10,7 +10,7 @@ export default async function NotFound() {
   return (
     <BrandTheme>
       <SiteHeader i18n={i18n} />
-      <main>
+      <main id="main">
         <Section tone="blue" aria-labelledby="notfound-title">
           <div className="notfound">
             <BrandEyebrow>{t("notFound.eyebrow")}</BrandEyebrow>

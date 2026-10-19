@@ -103,7 +103,10 @@
 }
 [data-theme="brand"] .display-fullscreen:focus-visible {
   position: static;
+  /* Never squeezed by the top row (QA P1-7): its full label, at least 44px wide. */
+  flex: none;
   width: auto;
+  min-width: var(--brand-tap);
   height: auto;
   clip: auto;
   outline: 2px solid var(--brand-accent);

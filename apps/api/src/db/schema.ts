@@ -223,6 +223,8 @@ export const photos = pgTable(
     ),
     index("idx_photos_gallery").on(t.moderationStatus, t.processingStatus, t.createdAt),
     index("idx_photos_invitation").on(t.invitationId),
+    /** The live feed's change query (ADR-014): rows whose updated_at moved since its cursor. */
+    index("idx_photos_updated_at").on(t.updatedAt),
   ],
 );
 
@@ -254,6 +256,8 @@ export const wishes = pgTable(
     ),
     index("idx_wishes_listing").on(t.moderationStatus, t.createdAt),
     index("idx_wishes_invitation").on(t.invitationId),
+    /** The live feed's change query (ADR-014). */
+    index("idx_wishes_updated_at").on(t.updatedAt),
   ],
 );
 

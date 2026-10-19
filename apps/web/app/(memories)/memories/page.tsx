@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { BrandEyebrow, BrandTheme, Cta, Section } from "@grad/ui";
+import { BrandTheme, Cta, Section } from "@grad/ui";
 import { getPublicGallery, getPublicWishes } from "../../../lib/api/public-memories";
 import { publicApiOrigin } from "../../../lib/calendar/links";
 import type { I18n } from "../../../lib/i18n/dictionary";
@@ -21,7 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
  * GET /wishes/public listings, cached in the fetch cache (tags `gallery-public` and
  * `wishes-public`), so an admin's public-flag or takedown reaches this page too.
  * Rendered per request in the guest's language (#9, ADR-010), so there is no page-level
- * revalidate: the listings themselves stay cached. The event gallery at /gallery stays as it is.
+ * revalidate: the listings themselves stay cached. Kept short: a headline, the timeline, the photos, the wishes.
  */
 
 /** Photos above the fold on a phone (two rows of two) load eagerly. */
@@ -48,37 +48,23 @@ export default async function MemoriesPage() {
       <main id="main">
         <Section tone="blue" aria-labelledby="memories-title">
           <div className="mem-hero">
-            <BrandEyebrow ellipsis>{t("memories.eyebrow")}</BrandEyebrow>
             <h1 id="memories-title" className="mem-title">{t("memories.title")}</h1>
-            <p className="mem-lead">{t("memories.lead")}</p>
-            <div className="arc-actions">
-              {nothingCurated ? (
-                <Cta tone="on-blue" href="/gallery">{t("memories.openGallery")}</Cta>
-              ) : (
-                <>
-                  <Cta tone="on-blue" href="/memories/timeline">{t("memories.walkTimeline")}</Cta>
-                  <Cta tone="on-blue" variant="secondary" href="/gallery">{t("memories.eventGallery")}</Cta>
-                </>
-              )}
-            </div>
+            {nothingCurated ? (
+              <Cta tone="on-blue" href="/gallery">{t("memories.openGallery")}</Cta>
+            ) : (
+              <Cta tone="on-blue" href="/memories/timeline">{t("memories.walkTimeline")}</Cta>
+            )}
           </div>
         </Section>
 
         {nothingCurated ? (
           <Section tone="white" density="compact" aria-labelledby="memories-empty-title">
-            <BrandEyebrow>{t("memories.empty.eyebrow")}</BrandEyebrow>
             <h2 id="memories-empty-title" className="arc-h2">{t("memories.empty.title")}</h2>
-            <p className="arc-state">
-              {formatRich(t("memories.empty.body"), {
-                gallery: <a className="arc-link" href="/gallery">{t("memories.empty.galleryLink")}</a>,
-                guestbook: <a className="arc-link" href="/wishes">{t("memories.empty.guestbookLink")}</a>,
-              })}
-            </p>
+            <p className="arc-state">{t("memories.empty.body")}</p>
           </Section>
         ) : (
           <>
             <Section tone="white" density="compact" aria-labelledby="memories-photos-title">
-              <BrandEyebrow>{t("memories.photos.eyebrow")}</BrandEyebrow>
               <h2 id="memories-photos-title" className="arc-h2">
                 {t("memories.photos.title")}{photos && photos.length > 0 ? <span className="arc-count"> {photos.length}</span> : null}
               </h2>
@@ -112,7 +98,6 @@ export default async function MemoriesPage() {
             </Section>
 
             <Section tone="blue" aria-labelledby="memories-wishes-title">
-              <BrandEyebrow>{t("nav.wishes")}</BrandEyebrow>
               <h2 id="memories-wishes-title" className="arc-h2">{t("memories.wishes.title")}</h2>
               {words === null ? (
                 <p className="arc-state" role="status">
@@ -132,17 +117,6 @@ export default async function MemoriesPage() {
                   ))}
                 </ul>
               )}
-            </Section>
-
-            <Section tone="white" density="compact" aria-labelledby="memories-more-title">
-              <BrandEyebrow>{t("memories.more.eyebrow")}</BrandEyebrow>
-              <h2 id="memories-more-title" className="arc-h2">{t("memories.more.title")}</h2>
-              <p className="arc-state">{t("memories.more.body")}</p>
-              <div className="arc-actions">
-                <Cta tone="on-white" variant="secondary" href="/memories/timeline">{t("memories.openTimeline")}</Cta>
-                <Cta tone="on-white" variant="secondary" href="/gallery">{t("memories.eventGallery")}</Cta>
-                <a className="arc-link arc-link--tap" href="/wishes">{t("memories.guestbook")}</a>
-              </div>
             </Section>
           </>
         )}

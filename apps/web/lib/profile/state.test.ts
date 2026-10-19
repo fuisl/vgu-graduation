@@ -30,11 +30,7 @@ describe("selectGuestPageState", () => {
 });
 
 describe("GUEST_LINKS", () => {
-  it("covers the pages a guest needs, each once", () => {
-    const hrefs = GUEST_LINKS.map((link) => link.href);
-    expect(new Set(hrefs).size).toBe(hrefs.length);
-    for (const href of ["/invite", "/venue", "/guide", "/live", "/gallery", "/wishes", "/polaroid", "/accessibility"]) {
-      expect(hrefs).toContain(href);
-    }
+  it("lists only the guest's own pages that the site menu does not", () => {
+    expect(GUEST_LINKS.map((link) => link.href)).toEqual(["/guide"]);
   });
 });

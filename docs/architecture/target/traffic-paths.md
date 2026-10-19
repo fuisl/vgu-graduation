@@ -37,7 +37,7 @@ Used by the translation service pushing segments, the worker reading and writing
 | Calendar, directions, venue info | Vercel | cached read | event configuration | A |
 | Digital pass | Vercel | render QR | issue pass payload | A |
 | Guest camera upload | apps/api | not involved | store original, enqueue derivatives | B |
-| Gallery page | Vercel | cached listing | listing with derivative URLs | A |
+| Gallery page | Vercel for the page and first paint, then apps/api WebSocket (`/live/gallery`, ADR-014) | cached listing (10 s) | listing with derivative URLs; live feed | A, then B |
 | Gallery images | apps/api, no edge cache (ADR-009); immutable browser cache | not involved | serve derivative from Garage | B |
 | Wishes | Vercel | forward | persist, moderation state | A |
 | Live translation on phones | apps/api WebSocket | page shell only | broadcast segments | B |

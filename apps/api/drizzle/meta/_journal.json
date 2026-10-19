@@ -57,6 +57,13 @@
       "when": 1792402530600,
       "tag": "0007_calendar_rsvp_replies",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792403197038,
+      "tag": "0008_live_notify",
+      "breakpoints": true
     }
   ]
 }

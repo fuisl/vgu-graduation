@@ -4,140 +4,124 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type SyntheticEvent } from "react";
-import { Cta, PillGroup, PillToggle } from "@grad/ui";
+import { Cta } from "@grad/ui";
 import type { GalleryItem } from "../../../data/gallery";
-import { sliceTranslator, type MessageSlice, type SliceTranslator } from "../../../lib/i18n/format";
+import { formatRich, sliceTranslator, type MessageSlice, type SliceTranslator } from "../../../lib/i18n/format";
+import { useLiveGallery } from "../../../lib/live/use-live-gallery";
 import { nextTrapIndex } from "../../site/nav";
+import type { LocalItem, LocalPhoto, LocalWish } from "./local-items";
+import { arrivals, seenFrom, type FeedSeen } from "./locket-logic";
 import { PrintRequest, usePrintAvailability } from "./PrintRequest";
 import "./gallery.css";
 
-/** `pickMessages(locale, "gallery.", "print.")`: the gallery and its print action in the guest's language (#9). */
+/** `pickMessages(locale, "gallery.", "print.")`: the feed and its print action in the guest's language (#9). */
 type GalleryMessages = MessageSlice<"gallery." | "print.">;
 type T = SliceTranslator<keyof GalleryMessages>;
 
-type Filter = "ALL" | "WISHES" | "POLAROIDS";
-type ViewMode = "GRID" | "CAROUSEL";
-type GridSize = "S" | "M" | "L";
-
-const FILTERS: { value: Filter; label: keyof GalleryMessages }[] = [
-  { value: "ALL", label: "gallery.filter.all" },
-  { value: "WISHES", label: "gallery.filter.wishes" },
-  { value: "POLAROIDS", label: "gallery.filter.polaroids" },
-];
-const GRID_SIZES: { value: GridSize; label: keyof GalleryMessages }[] = [
-  { value: "S", label: "gallery.size.s" },
-  { value: "M", label: "gallery.size.m" },
-  { value: "L", label: "gallery.size.l" },
-];
-
-/** "a guest" for a photo, the author's name for a wish. */
-function senderOf(item: GalleryItem, t: T): string {
-  return item.sender ?? t("gallery.anonymous");
-}
-
-function prefersReducedMotion() {
-  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
-/** What Tab cycles through inside the detail dialog. */
+/** What Tab cycles through inside the photo dialog. */
 const DIALOG_FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-/** Autoplay advances this often (QA P1-5: it stops for good on any interaction; Play resumes it). */
-const AUTOPLAY_MS = 3000;
+/** Tiles above the fold on a phone (two rows of three) load eagerly. */
+const EAGER_TILES = 6;
 
-export function GalleryView({ messages, intl }: { messages: GalleryMessages; intl: string }) {
+/** The feed counts as "being read" once its top has scrolled under the 72px header. */
+const READING_OFFSET_PX = 72;
+
+/** The 640px thumb of a photo whose `content` is its display derivative (`/media/{id}/display`). */
+function thumbOf(displayUrl: string): string {
+  return displayUrl.replace(/\/display$/, "/thumb");
+}
+
+/**
+ * The live feed under the locket camera (`kind="photos"`, on /gallery) and under the wish
+ * composer (`kind="wishes"`, on /wishes): newest first, with what this guest just sent on top
+ * (`local`) until the listing includes it. Photos open in a modal dialog that also holds the
+ * experimental print request (#74).
+ */
+export function GalleryView({
+  kind,
+  messages,
+  intl,
+  local = [],
+}: {
+  kind: "photos" | "wishes";
+  messages: GalleryMessages;
+  intl: string;
+  local?: LocalItem[];
+}) {
   const t = useMemo(() => sliceTranslator(messages), [messages]);
   const [isMounted, setIsMounted] = useState(false);
-  const [filter, setFilter] = useState<Filter>("ALL");
-  const [viewMode, setViewMode] = useState<ViewMode>("CAROUSEL");
-  const [gridSize, setGridSize] = useState<GridSize>("M");
   const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
 
-  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState("");
-  const [isPartial, setIsPartial] = useState(false);
-  const [carouselIndex, setCarouselIndex] = useState(0);
-  // Autoplay is offered only without reduced motion (decided after mount); it starts on and
-  // stops for good on any interaction with the cards. Hover pauses it only while hovering.
-  const [canAutoplay, setCanAutoplay] = useState(false);
-  const [isAutoPlaying, setIsAutoPlaying] = useState(false);
-  const hoveringRef = useRef(false);
+  // Live (ADR-014): first paint from the BFF, then every new wish, photo and takedown as it happens,
+  // plus the guest's own posts (a photo shows as "developing" until it is processed).
+  const { items: galleryItems, link, isLoading, failed, isPartial } = useLiveGallery();
 
-  const [computedCols, setComputedCols] = useState(3);
   // Guest print requests (#74): hidden unless the web flag is on; the API enforces its own.
   const printAvailability = usePrintAvailability();
 
-  const touchStartX = useRef(0);
-  const touchEndX = useRef(0);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const feedRef = useRef<HTMLDivElement>(null);
   const closeBarRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const lastFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
-    const autoplay = !prefersReducedMotion();
-    setCanAutoplay(autoplay);
-    setIsAutoPlaying(autoplay);
-    const controller = new AbortController();
+  }, []);
 
-    async function loadGallery() {
-      try {
-        const response = await fetch("/api/gallery", { signal: controller.signal });
-        const body: unknown = await response.json();
-        if (!response.ok || !body || typeof body !== "object" || !("items" in body) || !Array.isArray(body.items)) {
-          throw new Error("Invalid gallery response");
-        }
-        setGalleryItems(body.items as GalleryItem[]);
-        setIsPartial("partial" in body && body.partial === true);
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") return;
-        setLoadError(t("gallery.unavailable"));
-      } finally {
-        if (!controller.signal.aborted) setIsLoading(false);
-      }
+  const type = kind === "photos" ? "POLAROID" : "WISH";
+  const all = useMemo(() => galleryItems.filter((item) => item.type === type), [galleryItems, type]);
+
+  // New arrivals go in at the front. While the guest is reading further down the feed they are
+  // held back behind an "N new" button instead, so nothing moves under their eyes; at the top of
+  // the feed (or back there) they go straight in. Own posts are never held.
+  const [held, setHeld] = useState<ReadonlySet<string>>(() => new Set());
+  const seenRef = useRef<FeedSeen | null>(null);
+  const readingFeed = () => {
+    const feed = feedRef.current;
+    return !!feed && feed.getBoundingClientRect().top < READING_OFFSET_PX;
+  };
+  useEffect(() => {
+    if (isLoading) return;
+    if (!seenRef.current) {
+      seenRef.current = seenFrom(all);
+      return;
     }
-
-    void loadGallery();
-    return () => controller.abort();
-  }, [t]);
-
-  const filteredItems = galleryItems.filter((item) => {
-    if (filter === "WISHES") return item.type === "WISH";
-    if (filter === "POLAROIDS") return item.type === "POLAROID";
-    return true;
-  });
-
+    const { hold } = arrivals(all, seenRef.current, readingFeed());
+    if (hold.length > 0) setHeld((current) => new Set([...current, ...hold]));
+  }, [all, isLoading]);
   useEffect(() => {
-    setCarouselIndex(0);
-  }, [filter]);
-
-  useEffect(() => {
-    const updateCols = () => {
-      if (window.innerWidth < 600) setComputedCols(1);
-      else if (window.innerWidth < 900) setComputedCols(2);
-      else setComputedCols(gridSize === "S" ? 4 : gridSize === "M" ? 3 : 2);
+    if (held.size === 0) return;
+    let frame = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        if (!readingFeed()) setHeld(new Set());
+      });
     };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, [held.size]);
+  const showNew = () => {
+    setHeld(new Set());
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    titleRef.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    titleRef.current?.focus({ preventScroll: true });
+  };
 
-    updateCols();
-    window.addEventListener("resize", updateCols);
-    return () => window.removeEventListener("resize", updateCols);
-  }, [gridSize]);
-
-  // Autoplay advances the carousel while on; never under reduced motion, never in a hidden tab (docs/design/motion.md).
-  useEffect(() => {
-    if (!isAutoPlaying || viewMode !== "CAROUSEL" || filteredItems.length <= 1) return;
-
-    const interval = setInterval(() => {
-      if (!hoveringRef.current && !document.hidden) setCarouselIndex((prev) => prev + 1);
-    }, AUTOPLAY_MS);
-
-    return () => clearInterval(interval);
-  }, [isAutoPlaying, viewMode, filteredItems.length]);
+  const listed = all.filter((item) => !held.has(item.id));
+  // A local item the feed already carries (listed, or as the guest's own developing post) is shown once.
+  const allIds = new Set(all.map((item) => item.id));
+  const mine = local.filter((item) => !(item.serverId && allIds.has(`${item.kind}-${item.serverId}`)));
+  const loadError = failed;
 
   // Dialog (QA P1-1): a modal <dialog>, so the page behind is inert; Tab is trapped inside,
-  // Escape closes it, the close button takes focus and focus returns to the card on close.
+  // Escape closes it, the close button takes focus and focus returns to the tile on close.
   useLayoutEffect(() => {
     if (!selectedItem) return;
     const dialog = dialogRef.current;
@@ -173,218 +157,96 @@ export function GalleryView({ messages, intl }: { messages: GalleryMessages; int
 
   const openItem = (item: GalleryItem) => {
     lastFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    setIsAutoPlaying(false);
     setSelectedItem(item);
   };
 
-  const stopAutoplay = () => setIsAutoPlaying(false);
-  const handleNext = () => {
-    stopAutoplay();
-    setCarouselIndex((prev) => prev + 1);
-  };
-  const handlePrev = () => {
-    stopAutoplay();
-    setCarouselIndex((prev) => prev - 1);
-  };
-
-  // Clicking a side card spins to it along the shortest path; clicking the front card opens it.
-  const handleCardClick = (targetIndex: number) => {
-    const len = filteredItems.length;
-    if (len <= 1) {
-      openItem(filteredItems[targetIndex]);
-      return;
-    }
-
-    const currentMod = ((carouselIndex % len) + len) % len;
-    let diff = targetIndex - currentMod;
-    if (diff > len / 2) diff -= len;
-    else if (diff < -len / 2) diff += len;
-
-    if (diff === 0) {
-      openItem(filteredItems[targetIndex]);
-      return;
-    }
-
-    setCarouselIndex((prev) => prev + diff);
-    setIsAutoPlaying(false);
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.targetTouches[0].clientX;
-    touchEndX.current = e.targetTouches[0].clientX;
-    stopAutoplay();
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    touchEndX.current = e.targetTouches[0].clientX;
-  };
-
-  const handleTouchEnd = () => {
-    const distance = touchStartX.current - touchEndX.current;
-    if (distance > 50) handleNext();
-    else if (distance < -50) handlePrev();
-  };
-
-  const formatDate = (isoString: string) => {
+  const formatTime = (isoString: string) => {
     if (!isMounted) return "--:--";
     return new Date(isoString).toLocaleTimeString(intl, { hour: "2-digit", minute: "2-digit", hour12: false });
   };
 
-  // Linear carousel geometry: computed per card, so it stays inline.
-  const getCarouselCardStyle = (index: number): React.CSSProperties => {
-    const len = filteredItems.length;
-    if (len <= 1) return { transform: "scale(1)", opacity: 1, zIndex: 100 };
+  const photoAlt = (item: GalleryItem) => t("gallery.photoAlt", { time: formatTime(item.timestamp) });
+  const titleId = `feed-${kind}-title`;
+  const k = kind === "photos" ? "gallery.photos" : "gallery.wishes";
 
-    let virtualIndex = index;
-    const halfLen = len / 2;
-    while (virtualIndex < carouselIndex - halfLen) virtualIndex += len;
-    while (virtualIndex > carouselIndex + halfLen) virtualIndex -= len;
-
-    const offset = virtualIndex - carouselIndex;
-    const absOffset = Math.abs(offset);
-    const scale = offset === 0 ? 1 : Math.max(0.75, 1 - absOffset * 0.1);
-    const opacity = offset === 0 ? 1 : Math.max(0.1, 0.6 - absOffset * 0.2);
-
-    return {
-      transform: `translateX(${offset * 260}px) scale(${scale})`,
-      opacity,
-      zIndex: 50 - Math.round(absOffset),
-    };
-  };
-
-  const len = filteredItems.length;
-  const frontIndex = len > 0 ? ((carouselIndex % len) + len) % len : 0;
-
-  const masonryColumns = Array.from({ length: computedCols }, () => [] as GalleryItem[]);
-  filteredItems.forEach((item, i) => {
-    masonryColumns[i % computedCols].push(item);
-  });
+  const body = isLoading ? (
+    <p role="status" className="mem-status">{t(`${k}.loading`)}</p>
+  ) : loadError ? (
+    <p role="alert" className="mem-status mem-status--error">
+      {formatRich(t(`${k}.unavailable`), {
+        retry: <a className="feed-link" href={kind === "photos" ? "/gallery" : "/wishes"}>{t("gallery.tryAgain")}</a>,
+      })}
+    </p>
+  ) : listed.length === 0 && mine.length === 0 ? (
+    <p className="mem-status">{t(`${k}.empty`)}</p>
+  ) : null;
 
   return (
     <>
-      <div className="gal-controls">
-        <PillGroup as="toggle" label={t("gallery.show")} tone="on-white">
-          {FILTERS.map((option) => (
-            <PillToggle key={option.value} pressed={filter === option.value} onClick={() => setFilter(option.value)}>
-              {t(option.label)}
-            </PillToggle>
-          ))}
-        </PillGroup>
+      <h2 id={titleId} ref={titleRef} tabIndex={-1} className="feed-title">{t(`${k}.title`)}</h2>
 
-        <div className="gal-control-group">
-          {viewMode === "GRID" && (
-            <div className="gal-control-group">
-              <span className="mem-label mem-group-label" aria-hidden="true">{t("gallery.size")}</span>
-              <PillGroup as="toggle" label={t("gallery.cardSize")} tone="on-white">
-                {GRID_SIZES.map((option) => (
-                  <PillToggle
-                    key={option.value}
-                    pressed={gridSize === option.value}
-                    onClick={() => setGridSize(option.value)}
-                    aria-label={t(option.label)}
-                    title={t(option.label)}
-                  >
-                    {option.value}
-                  </PillToggle>
-                ))}
-              </PillGroup>
-            </div>
-          )}
+      {/* Only when the live feed is down, never while it works (polling included). */}
+      {link === "offline" && !failed && !isLoading ? <p role="status" className="mem-status feed-offline">{t("gallery.offline")}</p> : null}
+      {isPartial ? <p role="status" className="mem-status mem-status--notice feed-notice">{t("gallery.partial")}</p> : null}
 
-          <PillGroup as="toggle" label={t("gallery.layout")} tone="on-white">
-            <PillToggle pressed={viewMode === "GRID"} onClick={() => setViewMode("GRID")}>{t("gallery.grid")}</PillToggle>
-            <PillToggle pressed={viewMode === "CAROUSEL"} onClick={() => setViewMode("CAROUSEL")}>{t("gallery.carousel")}</PillToggle>
-          </PillGroup>
-        </div>
+      <div className="feed" ref={feedRef}>
+        {held.size > 0 ? (
+          <div className="feed-new">
+            <button type="button" className="feed-new__button" onClick={showNew}>
+              {t.plural(kind === "photos" ? "gallery.newPhotos" : "gallery.newWishes", held.size)}
+            </button>
+          </div>
+        ) : null}
+
+        {kind === "photos" ? (
+          mine.length > 0 || listed.length > 0 ? (
+            <ul className="feed-grid" aria-labelledby={titleId}>
+              {(mine as LocalPhoto[]).map((item) => <LocalTile key={item.key} item={item} />)}
+              {listed.map((item, index) =>
+                item.pending === "developing" ? (
+                  // The guest's own shot, from its local preview, until the processed photo arrives.
+                  <li key={item.id} className="feed-tile feed-tile--developing">
+                    <img src={item.content} alt={t("gallery.developingAlt")} />
+                    <p className="feed-tile__status">{t("gallery.developing")}</p>
+                  </li>
+                ) : (
+                  <li key={item.id} className="feed-tile">
+                    <button type="button" className="feed-tile__open" onClick={() => openItem(item)}>
+                      <img
+                        src={thumbOf(item.content)}
+                        srcSet={`${thumbOf(item.content)} 640w, ${item.content} 2048w`}
+                        sizes="(max-width: 960px) 33vw, 20vw"
+                        alt={photoAlt(item)}
+                        loading={index < EAGER_TILES ? "eager" : "lazy"}
+                        decoding="async"
+                      />
+                    </button>
+                  </li>
+                ),
+              )}
+            </ul>
+          ) : null
+        ) : mine.length > 0 || listed.length > 0 ? (
+          <ul className="feed-wishes" aria-labelledby={titleId}>
+            {(mine as LocalWish[]).map((item) => <LocalWishRow key={item.key} item={item} />)}
+            {listed.map((item) => (
+              <li key={item.id} className="feed-wish">
+                <p className="feed-wish__body">{item.content}</p>
+                <p className="feed-wish__meta">
+                  <span className="feed-wish__author">{item.sender ?? t("gallery.anonymous")}</span>
+                  <time className="feed-wish__time" dateTime={item.timestamp}>{formatTime(item.timestamp)}</time>
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {body}
       </div>
-
-      {isPartial ? (
-        <p role="status" className="mem-status mem-status--notice">{t("gallery.partial")}</p>
-      ) : null}
-
-      {isLoading ? (
-        <p role="status" className="mem-status mem-status--center">{t("gallery.loading")}</p>
-      ) : loadError ? (
-        <p role="alert" className="mem-status mem-status--error mem-status--center">{loadError}</p>
-      ) : len === 0 ? (
-        <p className="mem-status mem-status--center">{t("gallery.empty")}</p>
-      ) : viewMode === "GRID" ? (
-        <div className="gal-masonry">
-          {masonryColumns.map((col, colIndex) => (
-            <div key={colIndex} className="gal-masonry-col">
-              {col.map((item, itemIndex) => (
-                <GalleryCard
-                  key={item.id}
-                  item={item}
-                  index={colIndex * 2 + itemIndex}
-                  onView={() => openItem(item)}
-                  formatDate={formatDate}
-                  t={t}
-                />
-              ))}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="gal-carousel" role="region" aria-roledescription="carousel" aria-label={t("gallery.carouselLabel")}>
-          <div
-            className="gal-carousel-stage"
-            onMouseEnter={() => { hoveringRef.current = true; }}
-            onMouseLeave={() => { hoveringRef.current = false; }}
-            onFocus={stopAutoplay}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-          >
-            <div className="gal-carousel-nav">
-              <Cta tone="on-white" variant="secondary" onClick={handlePrev} aria-label={t("gallery.previous")}>←</Cta>
-              <Cta tone="on-white" variant="secondary" onClick={handleNext} aria-label={t("gallery.next")}>→</Cta>
-            </div>
-
-            <div className="gal-carousel-track">
-              {filteredItems.map((item, index) => (
-                <div
-                  key={`carousel-${item.id}`}
-                  className="gal-carousel-slot"
-                  style={getCarouselCardStyle(index)}
-                  onClick={() => handleCardClick(index)}
-                  aria-hidden={index !== frontIndex}
-                >
-                  <GalleryCard
-                    item={item}
-                    index={0}
-                    tabIndex={index === frontIndex ? 0 : -1}
-                    onView={(e) => {
-                      e?.stopPropagation();
-                      handleCardClick(index);
-                    }}
-                    formatDate={formatDate}
-                    t={t}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="gal-carousel-bar">
-            {canAutoplay && len > 1 ? (
-              <Cta tone="on-white" variant="secondary" onClick={() => setIsAutoPlaying((on) => !on)}>
-                {isAutoPlaying ? t("gallery.pause") : t("gallery.play")}
-              </Cta>
-            ) : null}
-            {/* Silent while autoplay moves it (QA P1-5); announced when the guest moves it. */}
-            <p className="gal-carousel-count" aria-live={isAutoPlaying ? "off" : "polite"}>
-              {frontIndex + 1} / {len}
-            </p>
-          </div>
-        </div>
-      )}
-
       {selectedItem && (
         <dialog
           ref={dialogRef}
           className="gal-dialog-backdrop"
-          aria-label={t(selectedItem.type === "WISH" ? "gallery.wishFrom" : "gallery.photoFrom", { name: senderOf(selectedItem, t) })}
+          aria-label={photoAlt(selectedItem)}
           onCancel={onDialogCancel}
           onKeyDown={onDialogKeyDown}
           onClick={(e) => {
@@ -393,25 +255,11 @@ export function GalleryView({ messages, intl }: { messages: GalleryMessages; int
         >
           <div className="gal-dialog">
             <div className="gal-dialog-bar" ref={closeBarRef}>
+              <time className="gal-dialog-time" dateTime={selectedItem.timestamp}>{formatTime(selectedItem.timestamp)}</time>
               <Cta tone="on-white" variant="secondary" onClick={closeItem}>{t("gallery.close")}</Cta>
             </div>
-
-            <CardMeta item={selectedItem} formatDate={formatDate} t={t} />
-
-            {selectedItem.type === "WISH" ? (
-              <div className="gal-wish gal-wish--full">
-                <span className="gal-quote" aria-hidden="true">&ldquo;</span>
-                {selectedItem.content}
-              </div>
-            ) : (
-              <div className="mem-polaroid">
-                <div className="mem-polaroid-frame">
-                  <img src={selectedItem.content} alt={t("gallery.photoFrom", { name: senderOf(selectedItem, t) })} className="mem-polaroid-img" />
-                </div>
-              </div>
-            )}
-
-            {selectedItem.type === "POLAROID" && selectedItem.publicId ? (
+            <img src={selectedItem.content} alt={photoAlt(selectedItem)} className="gal-dialog-img" />
+            {selectedItem.publicId ? (
               <PrintRequest key={selectedItem.publicId} publicId={selectedItem.publicId} availability={printAvailability} t={t} />
             ) : null}
           </div>
@@ -421,53 +269,36 @@ export function GalleryView({ messages, intl }: { messages: GalleryMessages; int
   );
 }
 
-function CardMeta({ item, formatDate, t }: { item: GalleryItem; formatDate: (d: string) => string; t: T }) {
+/** A photo this guest just sent: the capture itself, its state, and Retry or Remove when it did not go. */
+function LocalTile({ item }: { item: LocalPhoto }) {
+  const action = item.actions[0];
   return (
-    <div className="gal-meta">
-      <p className="gal-meta-list">
-        <span className="gal-meta-label">{t("gallery.from")} <span className="gal-meta-value">{senderOf(item, t)}</span></span>
-        <span className="gal-meta-label">{t("gallery.to")} <span className="gal-meta-value">{t(`gallery.audience.${item.audience}`)}</span></span>
-      </p>
-      <time className="gal-meta-time" dateTime={item.timestamp}>{formatDate(item.timestamp)}</time>
-    </div>
+    <li className={`feed-tile feed-tile--local is-${item.tone}`}>
+      <img src={item.url} alt={item.alt} />
+      <p className="feed-tile__status">{item.status}</p>
+      {action ? (
+        <button type="button" className="feed-tile__action" onClick={action.onClick}>{action.label}</button>
+      ) : null}
+    </li>
   );
 }
 
-function GalleryCard({
-  item,
-  index,
-  onView,
-  formatDate,
-  tabIndex,
-  t,
-}: {
-  item: GalleryItem;
-  index: number;
-  onView: (e?: React.MouseEvent) => void;
-  formatDate: (d: string) => string;
-  tabIndex?: number;
-  t: T;
-}) {
+/** A wish this guest just sent, with its state and Retry or Edit when it did not go. */
+function LocalWishRow({ item }: { item: LocalWish }) {
   return (
-    <article className="gal-card" style={{ animationDelay: `${index * 50}ms` }}>
-      <CardMeta item={item} formatDate={formatDate} t={t} />
-
-      {item.type === "WISH" ? (
-        <div className="gal-wish gal-wish--clamp">
-          <span className="gal-quote" aria-hidden="true">&ldquo;</span>
-          {item.content}
+    <li className={`feed-wish feed-wish--local is-${item.tone}`}>
+      <p className="feed-wish__body">{item.body}</p>
+      <p className="feed-wish__meta">
+        <span className="feed-wish__author">{item.author}</span>
+        <span className="feed-wish__status">{item.status}</span>
+      </p>
+      {item.actions.length > 0 ? (
+        <div className="feed-wish__actions">
+          {item.actions.map((action) => (
+            <Cta key={action.label} tone="on-white" variant="secondary" onClick={action.onClick}>{action.label}</Cta>
+          ))}
         </div>
-      ) : (
-        <div className="mem-polaroid">
-          <div className="mem-polaroid-frame">
-            <img src={item.content} alt={t("gallery.photoFrom", { name: senderOf(item, t) })} className="mem-polaroid-img" loading="lazy" />
-          </div>
-        </div>
-      )}
-
-      <div className="gal-card-footer">
-        <Cta tone="on-white" variant="secondary" onClick={onView} tabIndex={tabIndex}>{t("gallery.view")}</Cta>
-      </div>
-    </article>
+      ) : null}
+    </li>
   );
 }

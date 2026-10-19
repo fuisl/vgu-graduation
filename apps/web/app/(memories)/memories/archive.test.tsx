@@ -38,6 +38,9 @@ function stubApi(routes: Record<string, unknown | number>) {
 
 const page = <T,>(items: T[]) => ({ items, nextCursor: null });
 
+/** Every API path the page read, once each, sorted. */
+const pathsCalled = () => [...new Set(calls.map((call) => new URL(call.url).pathname))].sort();
+
 beforeEach(() => {
   vi.stubEnv("API_ORIGIN", "http://api.internal.test");
   vi.stubEnv("PUBLIC_API_ORIGIN", "https://api.public.test");
@@ -56,7 +59,8 @@ describe("/memories (curated archive, #75)", () => {
     });
     const out = html(await MemoriesPage());
 
-    const paths = calls.map((call) => new URL(call.url).pathname).sort();
+    // The site header may read GET /event for its date and venue; only the listings matter here.
+    const paths = pathsCalled().filter((path) => path !== "/event");
     expect(paths).toEqual(["/gallery/public", "/wishes/public"]);
     expect(calls.every((call) => call.url.startsWith("http://api.internal.test/"))).toBe(true);
     const tags = Object.fromEntries(calls.map((call) => [new URL(call.url).pathname, call.init.next?.tags]));
@@ -67,6 +71,15 @@ describe("/memories (curated archive, #75)", () => {
 
     expect(out).toContain("Congratulations!");
     expect(out).toContain('href="/memories/timeline"');
+  });
+
+  it("keeps the copy short: a headline and one action, no eyebrows or closing link band", async () => {
+    stubApi({ "/gallery/public": page([photo("pub-1", "2026-11-20T03:00:00.000Z")]), "/wishes/public": page([]) });
+    const out = html(await MemoriesPage());
+    const main = out.slice(out.indexOf('<main id="main">'), out.indexOf("</main>"));
+    expect(main).not.toContain("brand-eyebrow");
+    expect(main).not.toContain("memories-more-title");
+    expect(main.match(/class="brand-cta /g)).toHaveLength(1);
   });
 
   it("serves derivatives only, with a srcset from thumb to display", async () => {
@@ -105,8 +118,9 @@ describe("/memories/timeline (#76)", () => {
     });
     const out = html(await TimelinePage());
 
-    expect(calls.map((call) => new URL(call.url).pathname).sort()).toEqual(["/event", "/gallery/public", "/wishes/public"]);
-    expect(calls.find((call) => call.url.includes("/event"))?.init.next?.tags).toEqual(["event"]);
+    // GET /event may also be read by the site header; count each path once.
+    expect(pathsCalled()).toEqual(["/event", "/gallery/public", "/wishes/public"]);
+    expect(calls.filter((call) => call.url.includes("/event")).some((call) => call.init.next?.tags?.includes("event"))).toBe(true);
 
     expect(out).toContain('id="arrival"');
     expect(out).toContain('id="ceremony"');

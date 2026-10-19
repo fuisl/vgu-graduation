@@ -1,0 +1,245 @@
+/*
+ * The name badge (NameBadge) and the blue stage it hangs in (/me, /guest/prototype).
+ * Brand tokens only; no hex, gradients, blur or shadows. One breakpoint at 960px.
+ *
+ * The CSS badge is a print of the WebGL card: `.name-badge` is a size container, the card is
+ * --badge-h tall (cqh, the stage height), and --u is one texture pixel of the card (card.ts FACE,
+ * 1024 x 1454), so every label sits where the texture prints it. --badge-x / --badge-top place it
+ * where the 3D card comes to rest: centred on phones (camera at z 7), at 86% from 961px (z 8).
+ */
+
+/* Stage: a blue band; the lanyard hangs from just under the header. */
+[data-theme="brand"] .badge-stage {
+  position: relative;
+  background: var(--brand-blue);
+  color: var(--brand-white);
+  --brand-fg: var(--brand-white);
+  --brand-muted: var(--brand-muted-on-blue);
+  --brand-line: var(--brand-line-on-blue);
+  --brand-danger: var(--brand-danger-on-blue);
+  --brand-success: var(--brand-success-on-blue);
+}
+[data-theme="brand"] .badge-stage__scene {
+  position: relative;
+  height: clamp(420px, 64svh, 560px);
+  max-width: 1800px;
+  margin-inline: auto;
+  isolation: isolate;
+}
+[data-theme="brand"] .badge-stage__content {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: var(--space-4);
+  justify-items: start;
+  max-width: var(--brand-content);
+  margin-inline: auto;
+  padding: var(--space-4) var(--gutter) var(--brand-section-y-compact);
+}
+@media (min-width: 961px) {
+  [data-theme="brand"] .badge-stage {
+    display: grid;
+    min-height: clamp(560px, 80svh, 780px);
+  }
+  [data-theme="brand"] .badge-stage__scene {
+    position: absolute;
+    inset: 0;
+    height: auto;
+  }
+  /* The text sits left of the badge; only its own controls take the pointer, the rest drags the card. */
+  [data-theme="brand"] .badge-stage__content {
+    align-self: center;
+    width: 100%;
+    padding-block: var(--brand-section-y-compact);
+    pointer-events: none;
+  }
+  [data-theme="brand"] .badge-stage__content > * {
+    max-width: min(34rem, 52%);
+    pointer-events: auto;
+  }
+}
+
+/* Badge ------------------------------------------------------------------ */
+[data-theme="brand"] .name-badge {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  container-type: size;
+  --badge-x: 50%;
+  --badge-top: 31.2cqh;
+  --badge-h: 56.6cqh;
+  --u: calc(var(--badge-h) / 1454);
+}
+@media (min-width: 961px) {
+  [data-theme="brand"] .name-badge {
+    --badge-x: 86%;
+    --badge-top: 33.5cqh;
+    --badge-h: 49.5cqh;
+  }
+}
+[data-theme="brand"] .name-badge__canvas {
+  position: absolute !important;
+  inset: 0;
+  touch-action: none;
+}
+/* Phones scroll the page with a vertical swipe over the badge; a sideways drag still swings it. */
+@media (max-width: 960px) {
+  [data-theme="brand"] .name-badge__canvas {
+    touch-action: pan-y;
+  }
+}
+[data-theme="brand"] .name-badge__fallback {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+[data-theme="brand"] .name-badge__fallback.is-hidden {
+  visibility: hidden;
+}
+
+/* The lanyard: strap, clip and card in a column, the card's width wide. */
+[data-theme="brand"] .name-badge__hang {
+  position: absolute;
+  top: 0;
+  left: var(--badge-x);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: calc(var(--badge-h) * 2 / 2.84);
+  height: calc(var(--badge-top) + var(--badge-h));
+  transform: translateX(-50%);
+}
+[data-theme="brand"] .name-badge__strap {
+  flex: 1 1 auto;
+  width: 22%;
+  background: var(--brand-white);
+}
+[data-theme="brand"] .name-badge__clip {
+  flex: none;
+  width: 14%;
+  height: calc(70 * var(--u));
+  border-radius: var(--brand-radius-sm);
+  background: var(--brand-blue-deep);
+}
+
+/* The card face, positioned in texture pixels (--u). */
+[data-theme="brand"] .name-badge__card {
+  position: relative;
+  flex: none;
+  width: 100%;
+  height: var(--badge-h);
+  overflow: hidden;
+  border-radius: var(--brand-radius);
+  background: var(--brand-white);
+  color: var(--brand-ink);
+  line-height: 1;
+}
+[data-theme="brand"] .name-badge__card::before {
+  content: "";
+  position: absolute;
+  inset: calc(24 * var(--u));
+  border: max(1px, calc(2 * var(--u))) solid var(--brand-line-on-white);
+}
+[data-theme="brand"] .name-badge__mark,
+[data-theme="brand"] .name-badge__row,
+[data-theme="brand"] .name-badge__tagline {
+  position: absolute;
+  left: calc(70 * var(--u));
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  transform: translateY(-50%);
+}
+[data-theme="brand"] .name-badge__mark {
+  top: calc(108 * var(--u));
+  font-size: calc(29 * var(--u));
+  font-weight: 500;
+  color: var(--brand-blue);
+}
+[data-theme="brand"] .name-badge__mark--end,
+[data-theme="brand"] .name-badge__row--end {
+  left: auto;
+  right: calc(70 * var(--u));
+}
+[data-theme="brand"] .name-badge__art {
+  position: absolute;
+  inset: 0;
+}
+[data-theme="brand"] .name-badge__ascii {
+  position: absolute;
+  top: calc(274.5 * var(--u));
+  left: 0;
+  right: 0;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: calc(39 * var(--u));
+  line-height: calc(91 * var(--u));
+  text-align: center;
+  white-space: pre;
+  color: var(--brand-muted-on-white);
+}
+[data-theme="brand"] .name-badge__ascii-key {
+  color: var(--brand-blue);
+}
+/* The QR's SVG includes a four-module quiet zone; --qr-n (modules) lines its code up with the texture's. */
+[data-theme="brand"] .name-badge__qr {
+  position: absolute;
+  top: calc((262 - 4 * 520 / var(--qr-n, 49)) * var(--u));
+  left: calc((252 - 4 * 520 / var(--qr-n, 49)) * var(--u));
+  width: calc(520 * (var(--qr-n, 49) + 8) / var(--qr-n, 49) * var(--u));
+  aspect-ratio: 1;
+  line-height: 0;
+}
+[data-theme="brand"] .name-badge__qr svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+[data-theme="brand"] .name-badge__qr path[stroke] {
+  stroke: var(--brand-ink);
+}
+[data-theme="brand"] .name-badge__name,
+[data-theme="brand"] .name-badge__fullname {
+  position: absolute;
+  left: calc(70 * var(--u));
+  right: calc(70 * var(--u));
+  overflow: hidden;
+  line-height: 1.25;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+[data-theme="brand"] .name-badge__name {
+  /* Line box 1.25em: the alphabetic baseline sits about 1em below its top, at texture y 1050. */
+  top: calc(1050 * var(--u) - 1em);
+  font-family: var(--font-sans);
+  font-size: calc(var(--name-px, 150) * var(--u));
+  font-weight: 500;
+}
+[data-theme="brand"] .name-badge__fullname {
+  top: calc(1118 * var(--u) - 1em);
+  font-family: var(--font-mono);
+  font-size: calc(32 * var(--u));
+  color: var(--brand-muted-on-white);
+}
+[data-theme="brand"] .name-badge__rule {
+  position: absolute;
+  top: calc(1170 * var(--u));
+  left: calc(70 * var(--u));
+  right: calc(70 * var(--u));
+  height: max(1px, calc(2 * var(--u)));
+  background: var(--brand-line-on-white);
+}
+[data-theme="brand"] .name-badge__row {
+  font-size: calc(27 * var(--u));
+  color: var(--brand-blue);
+}
+[data-theme="brand"] .name-badge__row--1 {
+  top: calc(1235 * var(--u));
+}
+[data-theme="brand"] .name-badge__row--2 {
+  top: calc(1274 * var(--u));
+}
+[data-theme="brand"] .name-badge__tagline {
+  top: calc(1380 * var(--u));
+  font-size: calc(24 * var(--u));
+  color: var(--brand-muted-on-white);
+}

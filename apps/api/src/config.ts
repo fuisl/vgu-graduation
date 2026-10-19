@@ -38,6 +38,8 @@ const envSchema = z.object({
   TRANSLATION_INGEST_URL: z.string().url().optional(),
   /** Concurrent `WS /live/translation` sockets; beyond it the handshake gets 503 and clients poll over HTTP. */
   LIVE_TRANSLATION_MAX_CLIENTS: z.coerce.number().int().positive().default(1000),
+  /** Concurrent `WS /live/gallery` sockets (ADR-014); beyond it the handshake gets 503 and pages poll `GET /live/gallery/feed`. */
+  LIVE_GALLERY_MAX_CLIENTS: z.coerce.number().int().positive().default(1000),
   /** Ed25519 private key for signing pass payloads (#35), PKCS#8 PEM or its base64. */
   PASS_SIGNING_KEY: z.string().optional(),
   /** Identifies the public key verifiers use; bump it when rotating PASS_SIGNING_KEY. */
@@ -137,6 +139,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     translation: {
       ingestUrl: parsed.TRANSLATION_INGEST_URL,
       maxClients: parsed.LIVE_TRANSLATION_MAX_CLIENTS,
+    },
+    live: {
+      galleryMaxClients: parsed.LIVE_GALLERY_MAX_CLIENTS,
     },
     print: {
       guestRequestsEnabled: parsed.PRINT_GUEST_REQUESTS_ENABLED,

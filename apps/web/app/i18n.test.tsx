@@ -13,8 +13,9 @@ vi.mock("geist/font/sans", () => ({ GeistSans: { variable: "sans" } }));
 vi.mock("next/font/google", () => ({ Inter_Tight: () => ({ variable: "inter" }) }));
 
 const { getLocale } = await import("../lib/i18n/server");
-const { default: WishesPage } = await import("./(memories)/wishes/page");
+const { default: HomePage } = await import("./page");
 const { default: VenuePage } = await import("./venue/page");
+const { default: WishesPage } = await import("./(memories)/wishes/page");
 const { default: RootLayout } = await import("./layout");
 
 describe("pages in Vietnamese", () => {
@@ -27,19 +28,24 @@ describe("pages in Vietnamese", () => {
   });
 
   it("renders header, page and footer copy in Vietnamese, with VI marked current", async () => {
-    const out = html(await WishesPage());
-    expect(out).toContain("Lưu lại một kỷ niệm.");
+    const out = html(await HomePage());
+    expect(out).toContain("Bắt đầu từ đây");
+    expect(out).toContain(">Máy ảnh<");
     expect(out).toContain(">Lời chúc<");
-    expect(out).toContain("Cổng khách mời");
+    expect(out).toContain(">Thư mời<");
     expect(out).toContain("Lễ tốt nghiệp VGU · Khóa 2026");
     expect(out).toMatch(/<button[^>]*value="vi"[^>]*lang="vi"[^>]*aria-label="VI, Tiếng Việt"[^>]*aria-current="true"/);
     expect(out).not.toMatch(/value="en"[^>]*aria-current/);
-    expect(out).not.toContain("Leave a memory.");
+    expect(out).not.toContain("Start here");
+  });
+
+  it("renders the wishes composer in Vietnamese", async () => {
+    expect(html(await WishesPage())).toContain("Gửi lời chúc đến khóa tốt nghiệp");
   });
 
   it("shows the Vietnamese error state when the API is down", async () => {
     const out = html(await VenuePage());
-    expect(out).toContain("Thông tin sự kiện tạm thời chưa hiển thị được.");
+    expect(out).toContain("Hiện chưa hiển thị được thông tin sự kiện.");
     expect(out).toContain(">Thử lại<");
   });
 });

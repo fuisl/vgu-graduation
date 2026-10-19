@@ -1,3 +1,23 @@
-/* /wishes (#149): the form panel is a plain white panel; shared styles live in ../memories.css. */
-[data-theme="brand"] .wishes-form { width: 100%; }
-[data-theme="brand"] .wishes-form .brand-cta { align-self: flex-start; }
+/*
+ * /wishes composer (camera-first redesign): on the first blue band, like the locket camera.
+ * The fields are white boxes with ink text on blue; their focus ring is the accent (on blue only).
+ */
+[data-theme="brand"] .wish-head { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-4); }
+[data-theme="brand"] .wish-title { margin: 0; font-size: var(--brand-text-h2); font-weight: 500; line-height: 1.1; letter-spacing: var(--brand-tracking-display); overflow-wrap: anywhere; }
+[data-theme="brand"] .wish-signed-out { margin: 0; max-width: var(--brand-measure); color: var(--brand-muted); }
+
+[data-theme="brand"] .wish-composer { display: flex; flex-direction: column; gap: var(--space-3); width: 100%; }
+[data-theme="brand"] .wish-composer__row { display: flex; flex-wrap: wrap; align-items: stretch; gap: var(--space-3); }
+[data-theme="brand"] .wish-input {
+  width: 100%; padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--brand-white); border-radius: var(--brand-radius);
+  background: var(--brand-white); color: var(--brand-ink); font: inherit;
+}
+[data-theme="brand"] .wish-input::placeholder { color: var(--brand-muted-on-white); }
+[data-theme="brand"] .wish-input:focus-visible { outline: 2px solid var(--brand-accent); outline-offset: 2px; }
+[data-theme="brand"] .wish-input--message { min-height: 7rem; resize: vertical; font-size: var(--brand-text-lead); line-height: 1.4; }
+[data-theme="brand"] .wish-input--alias { flex: 1 1 12rem; width: auto; min-height: var(--brand-tap); }
+[data-theme="brand"] .wish-public { margin: 0; font-size: var(--text-xs); color: var(--brand-muted); }
+
+[data-theme="brand"] .wish-status { min-height: 1.5em; margin: 0; font-size: var(--text-sm); color: var(--brand-fg); }
+[data-theme="brand"] .wish-status.is-error { color: var(--brand-danger); }

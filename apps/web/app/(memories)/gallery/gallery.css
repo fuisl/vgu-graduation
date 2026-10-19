@@ -1,54 +1,74 @@
-/* /gallery (#149): white surface with blue accents. Shared controls and the polaroid frame live in ../memories.css. */
+/*
+ * The live feed under the locket camera (/gallery) and the wish composer (/wishes), the photo
+ * dialog and the guest print request. White band; shared status styles live in ../memories.css.
+ */
 
-[data-theme="brand"] .gal-hero-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+[data-theme="brand"] .feed-title { margin: 0 0 var(--space-5); font-size: var(--brand-text-h3); font-weight: 500; line-height: 1.2; letter-spacing: -0.02em; scroll-margin-top: calc(72px + var(--space-4)); }
+[data-theme="brand"] .feed-title:focus { outline: none; }
+[data-theme="brand"] .feed-notice,
+[data-theme="brand"] .feed-offline { margin-bottom: var(--space-4); }
 
-/* Controls */
-[data-theme="brand"] .gal-controls { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-4); margin-bottom: var(--space-6); padding-bottom: var(--space-4); border-bottom: 1px solid var(--brand-line); }
-[data-theme="brand"] .gal-control-group { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+/* "N new": arrivals held back while the guest reads further down (nothing moves under them).
+   The holder is sticky and zero-height, so showing the button never shifts the feed either. */
+[data-theme="brand"] .feed { position: relative; }
+[data-theme="brand"] .feed-new { position: sticky; top: calc(72px + var(--space-3)); z-index: 5; display: flex; justify-content: center; height: 0; overflow: visible; }
+[data-theme="brand"] .feed-new__button {
+  min-height: var(--brand-tap); padding: 0 var(--space-5);
+  border: 0; border-radius: var(--brand-radius); background: var(--brand-blue); color: var(--brand-white);
+  font: inherit; font-size: var(--text-sm); font-weight: 500; cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease);
+}
+[data-theme="brand"] .feed-new__button:hover { background: var(--brand-blue-deep); }
+[data-theme="brand"] .feed-new__button:focus-visible { outline: 2px solid var(--brand-blue); outline-offset: 2px; }
+[data-theme="brand"] .feed-link { color: var(--brand-blue); text-decoration: underline; text-underline-offset: 0.25em; }
+[data-theme="brand"] .feed-link:focus-visible { outline: 2px solid var(--brand-blue); outline-offset: 2px; }
 
-/* Masonry grid */
-[data-theme="brand"] .gal-masonry { display: flex; align-items: flex-start; gap: var(--space-4); width: 100%; }
-[data-theme="brand"] .gal-masonry-col { display: flex; flex: 1; flex-direction: column; gap: var(--space-4); min-width: 0; }
+/* Photos: square tiles, newest first. Three columns on a phone, five on desktop. */
+[data-theme="brand"] .feed-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+[data-theme="brand"] .feed-tile { position: relative; aspect-ratio: 1 / 1; overflow: hidden; border-radius: var(--brand-radius); background: var(--brand-blue-soft); }
+[data-theme="brand"] .feed-tile img { display: block; width: 100%; height: 100%; object-fit: cover; }
+[data-theme="brand"] .feed-tile__open { display: block; width: 100%; height: 100%; padding: 0; border: 0; background: none; cursor: pointer; }
+[data-theme="brand"] .feed-tile__open:focus-visible { outline: 2px solid var(--brand-blue); outline-offset: 2px; }
+[data-theme="brand"] .feed-tile:has(.feed-tile__open:focus-visible) { overflow: visible; }
 
-/* Cards */
-[data-theme="brand"] .gal-card { position: relative; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--brand-line); border-radius: var(--brand-radius); background: var(--brand-white); transition: border-color var(--motion-fast) var(--ease); animation: gal-card-in var(--motion-slow) var(--ease) both; }
-[data-theme="brand"] .gal-card:hover { border-color: var(--brand-blue); }
-@keyframes gal-card-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-[data-theme="brand"] .gal-meta { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-3); padding: var(--space-4); border-bottom: 1px solid var(--brand-line); }
-[data-theme="brand"] .gal-meta-list { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; margin: 0; }
-[data-theme="brand"] .gal-meta-label { font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: var(--brand-tracking-label); text-transform: uppercase; color: var(--brand-muted); overflow-wrap: anywhere; }
-[data-theme="brand"] .gal-meta-value { font-family: var(--font-sans); font-size: var(--text-sm); text-transform: none; letter-spacing: 0; color: var(--brand-fg); }
-[data-theme="brand"] .gal-meta-time { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--brand-blue); }
-[data-theme="brand"] .gal-wish { padding: var(--space-5); line-height: 1.6; overflow-wrap: anywhere; }
-[data-theme="brand"] .gal-wish--clamp { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 5; }
-[data-theme="brand"] .gal-wish--full { padding: var(--space-6); font-size: var(--brand-text-lead); line-height: 1.5; }
-[data-theme="brand"] .gal-quote { margin-right: var(--space-2); color: var(--brand-blue); }
-[data-theme="brand"] .gal-card-footer { display: flex; margin-top: auto; border-top: 1px solid var(--brand-line); }
-[data-theme="brand"] .gal-card-footer { padding: var(--space-2); }
-[data-theme="brand"] .gal-card-footer .brand-cta { flex: 1; justify-content: center; }
+/* This guest's own photo before the gallery lists it: a mono status tag, and Retry or Remove. */
+[data-theme="brand"] .feed-tile__status {
+  position: absolute; top: var(--space-1); left: var(--space-1); max-width: calc(100% - 2 * var(--space-1)); margin: 0; padding: 2px var(--space-2); overflow-wrap: anywhere;
+  border-radius: var(--brand-radius-sm); background: var(--brand-ink); color: var(--brand-white);
+  font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: var(--brand-tracking-label); text-transform: uppercase;
+}
+[data-theme="brand"] .feed-tile--local.is-error .feed-tile__status { background: var(--brand-danger-on-white); }
+/* Developing (ADR-014): the guest's own shot in greyscale, like a print still coming up, until the
+   processed photo replaces it in colour. A state, not an animation: nothing moves. */
+[data-theme="brand"] .feed-tile--developing img { filter: grayscale(1) contrast(0.85); }
+[data-theme="brand"] .feed-tile__action {
+  position: absolute; right: 0; bottom: 0; left: 0; min-height: var(--brand-tap); padding: 0 var(--space-2);
+  border: 0; border-top: 1px solid var(--brand-line); background: var(--brand-white); color: var(--brand-blue);
+  font: inherit; font-size: var(--text-sm); font-weight: 500; cursor: pointer;
+}
+[data-theme="brand"] .feed-tile__action:hover { background: var(--brand-blue-soft); }
+[data-theme="brand"] .feed-tile__action:focus-visible { outline: 2px solid var(--brand-blue); outline-offset: -2px; }
 
-/* Carousel. Slot transforms are computed per card and stay inline. */
-[data-theme="brand"] .gal-carousel { width: 100%; }
-[data-theme="brand"] .gal-carousel-stage { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 500px; overflow: hidden; touch-action: pan-y; }
-[data-theme="brand"] .gal-carousel-track { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
-[data-theme="brand"] .gal-carousel-slot { position: absolute; width: min(340px, 80vw); cursor: pointer; transition: transform var(--motion-slow) var(--ease), opacity var(--motion-slow) var(--ease); }
-[data-theme="brand"] .gal-carousel-nav { position: absolute; top: 50%; z-index: 150; display: flex; justify-content: space-between; width: 100%; padding: 0 var(--space-4); transform: translateY(-50%); pointer-events: none; }
-[data-theme="brand"] .gal-carousel-nav .brand-cta { pointer-events: auto; background: var(--brand-white); }
-/* Faded side cards (QA P2-8): their text could not reach AA at that opacity, so it is not drawn; photos stay as a hint of what is next. */
-[data-theme="brand"] .gal-carousel-slot[aria-hidden="true"] .gal-meta,
-[data-theme="brand"] .gal-carousel-slot[aria-hidden="true"] .gal-wish,
-[data-theme="brand"] .gal-carousel-slot[aria-hidden="true"] .gal-card-footer { visibility: hidden; }
-/* Under the stage: the Pause/Play toggle (QA P1-5, a 44px secondary Cta) and the position. */
-[data-theme="brand"] .gal-carousel-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--space-3) var(--space-4); margin-top: var(--space-3); }
-[data-theme="brand"] .gal-carousel-count { margin: 0; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--brand-muted); font-variant-numeric: tabular-nums; }
-@media (max-width: 768px) { [data-theme="brand"] .gal-carousel-nav { display: none; } }
+/* Wishes: type and hairlines, newest first; the author and time as mono labels. */
+[data-theme="brand"] .feed-wishes { margin: 0; padding: 0; list-style: none; }
+[data-theme="brand"] .feed-wish { padding: var(--space-5) 0; border-top: 1px solid var(--brand-line); content-visibility: auto; contain-intrinsic-size: auto 8rem; }
+[data-theme="brand"] .feed-wish__body { margin: 0; font-size: var(--brand-text-lead); line-height: 1.4; overflow-wrap: anywhere; white-space: pre-line; }
+[data-theme="brand"] .feed-wish__meta { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); margin: var(--space-3) 0 0; font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: var(--brand-tracking-label); text-transform: uppercase; color: var(--brand-muted); }
+[data-theme="brand"] .feed-wish__author { overflow-wrap: anywhere; }
+[data-theme="brand"] .feed-wish__time,
+[data-theme="brand"] .feed-wish__status { color: var(--brand-blue); }
+[data-theme="brand"] .feed-wish--local.is-pending .feed-wish__body { color: var(--brand-muted); }
+[data-theme="brand"] .feed-wish--local.is-error .feed-wish__status { color: var(--brand-danger); }
+[data-theme="brand"] .feed-wish__actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-3); }
 
-/* Detail dialog (QA P1-1): a modal <dialog> that is itself the ink scrim, holding a white panel. */
+/* Photo dialog (QA P1-1): a modal <dialog> that is itself the ink scrim, holding a white panel. */
 [data-theme="brand"] .gal-dialog-backdrop { position: fixed; inset: 0; z-index: 1000; box-sizing: border-box; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; padding: var(--space-4); border: 0; background: color-mix(in srgb, var(--brand-ink) 75%, transparent); color: inherit; }
 [data-theme="brand"] .gal-dialog-backdrop[open] { display: flex; align-items: center; justify-content: center; }
 [data-theme="brand"] .gal-dialog-backdrop::backdrop { background: transparent; }
 [data-theme="brand"] .gal-dialog { position: relative; display: flex; flex-direction: column; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; border-radius: var(--brand-radius); background: var(--brand-white); color: var(--brand-fg); }
-[data-theme="brand"] .gal-dialog-bar { display: flex; justify-content: flex-end; padding: var(--space-3) var(--space-4) 0; }
+[data-theme="brand"] .gal-dialog-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); }
+[data-theme="brand"] .gal-dialog-time { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--brand-blue); }
+[data-theme="brand"] .gal-dialog-img { display: block; width: 100%; height: auto; background: var(--brand-ink); }
 
 /* Guest print request in the photo dialog (#74, experimental) */
 [data-theme="brand"] .gal-print { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3); padding: var(--space-4); border-top: 1px solid var(--brand-line); }
@@ -60,6 +80,10 @@
 [data-theme="brand"] .gal-print [data-print-message]:focus-visible { outline: 2px solid var(--brand-blue); outline-offset: 2px; }
 
 @media (prefers-reduced-motion: reduce) {
-  [data-theme="brand"] .gal-card { animation: none; }
-  [data-theme="brand"] .gal-carousel-slot { transition: none; }
+  [data-theme="brand"] .feed-new__button { transition: none; }
+}
+
+@media (max-width: 960px) {
+  [data-theme="brand"] .feed-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-1); }
+  [data-theme="brand"] .feed-tile { border-radius: var(--brand-radius-sm); }
 }

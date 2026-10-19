@@ -1,4 +1,4 @@
-import type { GalleryItem, LiveDisplayMessage, Wish } from "@grad/contract";
+import type { GalleryItem, LiveGalleryMessage, Wish } from "@grad/contract";
 import { and, asc, desc, eq, gt, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { photos, wishes } from "../../db/schema.js";
@@ -10,17 +10,22 @@ export interface DisplayChange {
   /** Exact `updated_at` text: a new value means a new state to send. */
   version: string;
   updatedAt: Date;
-  message: LiveDisplayMessage;
+  message: LiveGalleryMessage;
 }
 
-/** What the display feed reads. Only the database; nothing from the media pipeline's code. */
+/**
+ * What the live feed reads (display and gallery). Only the database; nothing
+ * from the media pipeline's code. Only visible items (and, for photos,
+ * processed ones) become `wish`/`photo` messages; any other state is `hidden`
+ * with just the id, so nothing unpublished ever reaches a listener.
+ */
 export interface DisplaySource {
   /** Database clock, so every cursor compares against the same clock as `updated_at`. */
   now(): Promise<Date>;
   /** Every wish and photo with `updated_at > since`, oldest change first. */
   changesSince(since: Date): Promise<DisplayChange[]>;
   /** Current state: the newest `limit` visible wishes and visible, processed photos, oldest first. */
-  snapshot(limit: number): Promise<LiveDisplayMessage[]>;
+  snapshot(limit: number): Promise<LiveGalleryMessage[]>;
 }
 
 const wishColumns = {
@@ -92,7 +97,7 @@ export class DisplayRepository implements DisplaySource {
     return changes.sort((a, b) => a.updatedAt.getTime() - b.updatedAt.getTime());
   }
 
-  async snapshot(limit: number): Promise<LiveDisplayMessage[]> {
+  async snapshot(limit: number): Promise<LiveGalleryMessage[]> {
     const [wishRows, photoRows] = await Promise.all([
       db
         .select(wishColumns)

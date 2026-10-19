@@ -1,0 +1,97 @@
+/*
+ * The locket camera (camera-first redesign). It sits on the first blue band of /gallery: a square
+ * viewfinder on the dark photo surface (--brand-ink), full-bleed on phones, with the shutter row
+ * on blue below it. Everything on the viewfinder reads as white; status colours use the on-blue
+ * variants (tuned for dark surfaces). Shared styles live in ../memories.css.
+ */
+
+/* The band starts right under the header: no extra top padding above the viewfinder. */
+[data-theme="brand"] .lk-camera-main > .brand-section:first-child { padding-top: 0; }
+
+[data-theme="brand"] .cam { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); }
+
+/* Square, because the capture is a square: what the guest sees is what is sent. It never pushes
+   the shutter below the fold: the side is capped by the viewport height minus header and controls. */
+[data-theme="brand"] .cam-viewfinder {
+  --brand-danger: var(--brand-danger-on-blue);
+  position: relative; display: flex; align-items: center; justify-content: center;
+  width: min(100%, 36rem, calc(100vh - 72px - 12rem));
+  width: min(100%, 36rem, calc(100svh - 72px - 12rem));
+  min-width: 16rem; aspect-ratio: 1 / 1; overflow: hidden;
+  border-radius: var(--brand-radius); background: var(--brand-ink); color: var(--brand-white);
+}
+[data-theme="brand"] .cam-video,
+[data-theme="brand"] .cam-still { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+[data-theme="brand"] .cam-video.is-mirrored { transform: scaleX(-1); }
+[data-theme="brand"] .cam-video.is-idle { visibility: hidden; }
+
+/* States on the viewfinder: one title, one line, one clear action. */
+[data-theme="brand"] .cam-message {
+  position: relative; z-index: 1; display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3);
+  width: 100%; max-width: 30rem; padding: var(--space-5);
+}
+[data-theme="brand"] .cam-message__title { margin: 0; font-size: var(--brand-text-h3); font-weight: 500; line-height: 1.2; letter-spacing: -0.02em; }
+[data-theme="brand"] .cam-message__body { margin: 0; color: var(--brand-muted-on-blue); }
+[data-theme="brand"] .cam-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-2); }
+[data-theme="brand"] .cam-hint { position: relative; z-index: 1; margin: 0; padding: var(--space-5); text-align: center; color: var(--brand-muted-on-blue); }
+
+/* Shutter row: shots left, the shutter in the middle, Flip on the right. */
+[data-theme="brand"] .cam-controls {
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: var(--space-4);
+  width: min(100%, 36rem); min-height: 80px;
+}
+[data-theme="brand"] .cam-controls--review { display: flex; justify-content: center; flex-wrap: wrap; gap: var(--space-3); }
+[data-theme="brand"] .cam-count { margin: 0; font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: var(--brand-tracking-label); text-transform: uppercase; color: var(--brand-muted); }
+[data-theme="brand"] .cam-side { display: flex; justify-content: flex-end; }
+
+[data-theme="brand"] .cam-shutter {
+  display: flex; align-items: center; justify-content: center; width: 76px; height: 76px; padding: 0;
+  border: 3px solid var(--brand-white); border-radius: 50%; background: transparent; cursor: pointer;
+  transition: transform var(--motion-fast) var(--ease), border-color var(--motion-fast) var(--ease);
+}
+[data-theme="brand"] .cam-shutter__inner { width: 60px; height: 60px; border-radius: 50%; background: var(--brand-white); transition: background-color var(--motion-fast) var(--ease); }
+[data-theme="brand"] .cam-shutter:hover:not(:disabled) .cam-shutter__inner { background: var(--brand-blue-soft); }
+[data-theme="brand"] .cam-shutter:active:not(:disabled) { transform: scale(0.94); }
+[data-theme="brand"] .cam-shutter:disabled { border-color: var(--brand-muted-on-blue); cursor: not-allowed; }
+[data-theme="brand"] .cam-shutter:disabled .cam-shutter__inner { background: transparent; border: 1px solid var(--brand-muted-on-blue); }
+
+[data-theme="brand"] .cam-flip {
+  min-width: var(--brand-tap); min-height: var(--brand-tap); padding: 0 var(--space-4);
+  border: 1px solid var(--brand-line-on-blue); border-radius: var(--brand-radius);
+  background: transparent; color: var(--brand-white);
+  font: inherit; font-size: var(--text-sm); font-weight: 500; cursor: pointer;
+  transition: border-color var(--motion-fast) var(--ease);
+}
+[data-theme="brand"] .cam-flip:hover { border-color: var(--brand-white); }
+[data-theme="brand"] .cam-flip:focus-visible,
+[data-theme="brand"] .cam-shutter:focus-visible { outline: 2px solid var(--brand-accent); outline-offset: 3px; }
+
+/* One status line under the camera (sending, sent, offline, failed) and the one-line public notice. */
+[data-theme="brand"] .cam-note,
+[data-theme="brand"] .cam-status { margin: 0; text-align: center; font-size: var(--text-sm); color: var(--brand-fg); }
+[data-theme="brand"] .cam-note,
+[data-theme="brand"] .cam-status.is-error { color: var(--brand-danger); }
+[data-theme="brand"] .cam-status { min-height: 1.5em; margin-top: var(--space-2); }
+/* The live region stays in the DOM (so its first message is announced) but takes no room while empty. */
+[data-theme="brand"] .cam-status:empty { min-height: 0; margin: 0; }
+[data-theme="brand"] .cam-public { margin: 0; max-width: 36rem; text-align: center; font-size: var(--text-xs); color: var(--brand-muted); }
+
+/* Phones: the viewfinder runs edge to edge, square corners, still capped by the height. */
+@media (max-width: 960px) {
+  [data-theme="brand"] .cam { margin-inline: calc(-1 * var(--gutter)); }
+  [data-theme="brand"] .cam-viewfinder {
+    width: min(100%, calc(100vh - 72px - 11rem));
+    width: min(100%, calc(100svh - 72px - 11rem));
+    border-radius: 0;
+  }
+  [data-theme="brand"] .cam-controls,
+  [data-theme="brand"] .cam-public,
+  [data-theme="brand"] .cam-note { width: 100%; padding-inline: var(--gutter); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="brand"] .cam-shutter,
+  [data-theme="brand"] .cam-shutter__inner,
+  [data-theme="brand"] .cam-flip { transition: none; }
+  [data-theme="brand"] .cam-shutter:active:not(:disabled) { transform: none; }
+}

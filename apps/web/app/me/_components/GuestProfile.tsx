@@ -1,80 +1,92 @@
 import type { EventConfig, Invitation } from "@grad/contract";
 import { BrandEyebrow, Cta, Section } from "@grad/ui";
-import { Suspense } from "react";
 import type { ApiResult } from "../../../lib/api/result";
+import { buildCalendarLinks } from "../../../lib/calendar/links";
 import { pickMessages, type I18n } from "../../../lib/i18n/dictionary";
 import { summarizeRsvp } from "../../../lib/invite/format";
-import { guestGivenName } from "../../../lib/invite/guest-name";
-import { GuestAvatar, StillAvatar } from "../../guest-avatar/GuestAvatar";
-import { PassBadge, PassBadgeSkeleton } from "../../invite/_components/PassBadge";
-import { TextSizeControl } from "../../text-size/TextSizeControl";
+import { guestBadgeCard, guestBadgeLabels } from "../../../lib/profile/badge";
+import { AddToCalendar } from "../../calendar/AddToCalendar";
+import { StillAvatar } from "../../guest-avatar/GuestAvatar";
+import { BadgeStage } from "../../guest/badge/BadgeStage";
+import type { PassArt } from "../../guest/badge/card";
+import { NameBadge } from "../../guest/badge/NameBadge";
 import { GuestLinks } from "./GuestLinks";
 
 /**
- * The signed-in guest profile (#139), a GitHub-like page in the brand language: a blue band with the
- * large animated blobatar, the given name and the RSVP state, then a white working band with who
- * invited them, quick links, text size and the pass. The avatar seed is the guest id, never the token.
+ * The signed-in guest portal (#139): the guest's name badge drops in as the hero, and the only
+ * text beside it is where they stand and their one next action, plus who invited them. Then a
+ * compact white band with the guest's own utilities. Event facts live in the site menu, not here.
+ * `art` is the pass QR, started by the page and never awaited by it.
  */
-export function GuestProfile({ invitation, event, i18n }: { invitation: Invitation; event: ApiResult<EventConfig>; i18n: I18n }) {
+export function GuestProfile({ invitation, event, art, i18n }: {
+  invitation: Invitation;
+  event: ApiResult<EventConfig>;
+  art: Promise<PassArt | null> | null;
+  i18n: I18n;
+}) {
   const { t } = i18n;
   const { guest, inviters, rsvp } = invitation;
-  const givenName = guestGivenName(guest);
+  const badge = (
+    <NameBadge card={guestBadgeCard(guest, event, i18n)} art={art ?? undefined} labels={guestBadgeLabels(guest.name, i18n)} />
+  );
   return (
     <>
-      <Section tone="blue" aria-labelledby="profile-heading">
-        <div className="profile-hero">
-          <GuestAvatar seed={guest.id} size={160} className="profile-hero__avatar" followTouch />
-          <div className="profile-hero__text">
-            <BrandEyebrow>{t("profile.eyebrow")}</BrandEyebrow>
-            <h1 id="profile-heading" className="profile-name">{givenName}</h1>
-            {guest.name !== givenName ? <p className="profile-fullname">{guest.name}</p> : null}
-            <p className="profile-lead">
-              <span className="profile-label">{t("profile.rsvp")}</span> {summarizeRsvp(rsvp, i18n)}
-            </p>
-            <div className="profile-hero__action">
-              <Cta tone="on-blue" href="/invite">{rsvp ? t("profile.openInvitation") : t("profile.respond")}</Cta>
-            </div>
+      <BadgeStage labelledBy="profile-heading" badge={badge}>
+        <BrandEyebrow>{t("profile.eyebrow")}</BrandEyebrow>
+        {/* The badge is the visual title; the heading names the page for assistive tech. */}
+        <h1 id="profile-heading" className="brand-sr-only">{guest.name}</h1>
+        <p className="profile-status">{summarizeRsvp(rsvp, i18n)}</p>
+        <NextAction invitation={invitation} event={event} i18n={i18n} />
+        {inviters.length > 0 ? (
+          <div className="profile-inviters-block">
+            <BrandEyebrow>{t("profile.invitedBy")}</BrandEyebrow>
+            <ul className="profile-inviters">
+              {inviters.map((inviter) => (
+                <li key={inviter.id} className="profile-inviter">
+                  <StillAvatar seed={inviter.id} size={32} />
+                  <span>{inviter.name}</span>
+                </li>
+              ))}
+            </ul>
           </div>
-        </div>
-      </Section>
+        ) : null}
+      </BadgeStage>
 
-      <Section tone="white" density="compact">
-        <div className="profile-grid">
-          <div className="profile-stack">
-            {inviters.length > 0 ? (
-              <section aria-labelledby="inviters-heading" className="profile-block">
-                <h2 id="inviters-heading" className="profile-heading">{t("profile.invitedBy")}</h2>
-                <ul className="profile-inviters">
-                  {inviters.map((inviter) => (
-                    <li key={inviter.id} className="profile-inviter">
-                      <StillAvatar seed={inviter.id} size={36} />
-                      <span>{inviter.name}</span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ) : null}
-
-            <section aria-labelledby="links-heading" className="profile-block">
-              <h2 id="links-heading" className="profile-heading">{t("profile.yourDay")}</h2>
-              <GuestLinks signedIn headingId="links-heading" i18n={i18n} />
-            </section>
-
-            <section aria-labelledby="text-size-heading" className="profile-block">
-              <h2 id="text-size-heading" className="profile-heading">{t("textSize.label")}</h2>
-              <p className="profile-note">{t("profile.textSizeNote")}</p>
-              <TextSizeControl messages={pickMessages(i18n.locale, "textSize.")} />
-            </section>
-          </div>
-
-          <div className="profile-stack">
-            <Suspense fallback={<PassBadgeSkeleton i18n={i18n} />}>
-              <PassBadge guestName={guest.name} event={event} i18n={i18n} />
-            </Suspense>
-            <p className="profile-note">{t("profile.passNote")}</p>
-          </div>
+      <Section tone="white" density="compact" aria-labelledby="links-heading">
+        <div className="profile-block profile-day">
+          <h2 id="links-heading" className="profile-heading">{t("profile.yourDay")}</h2>
+          <GuestLinks headingId="links-heading" art={art} i18n={i18n} />
         </div>
       </Section>
     </>
   );
+}
+
+/**
+ * The one thing to do next: answer the invitation; once attending, put the day in the calendar
+ * (changing the answer stays one tap away); after declining, change the answer.
+ */
+function NextAction({ invitation, event, i18n }: { invitation: Invitation; event: ApiResult<EventConfig>; i18n: I18n }) {
+  const { t } = i18n;
+  const { rsvp } = invitation;
+  if (!rsvp) {
+    return <Cta tone="on-blue" href="/invite#rsvp">{t("profile.respond")}</Cta>;
+  }
+  if (rsvp.attending && event.status === "ok") {
+    return (
+      <div className="profile-actions">
+        <AddToCalendar
+          links={buildCalendarLinks(event.data, undefined, { directions: t("calendar.directions") })}
+          messages={pickMessages(i18n.locale, "calendar.")}
+          tone="on-blue"
+          show="action"
+          emphasis="primary"
+        />
+        <Cta tone="on-blue" variant="secondary" href="/invite#rsvp">{t("rsvp.form.change")}</Cta>
+      </div>
+    );
+  }
+  return rsvp.attending
+    ? <Cta tone="on-blue" href="/invite">{t("profile.openInvitation")}</Cta>
+    : <Cta tone="on-blue" href="/invite#rsvp">{t("rsvp.form.change")}</Cta>;
 }

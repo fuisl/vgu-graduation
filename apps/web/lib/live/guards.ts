@@ -2,6 +2,8 @@ import type {
   GalleryItem,
   LiveDisplayFeedResponse,
   LiveDisplayMessage,
+  LiveGalleryFeedResponse,
+  LiveGalleryMessage,
   LiveTranslationMessage,
   LiveTranslationSegmentsResponse,
   TargetLanguage,
@@ -83,6 +85,15 @@ export function isLiveDisplayMessage(v: unknown): v is LiveDisplayMessage {
 
 export function isLiveDisplayFeedResponse(v: unknown): v is LiveDisplayFeedResponse {
   return isObj(v) && Array.isArray(v.messages) && v.messages.every(isLiveDisplayMessage) && isTimestamp(v.until);
+}
+
+/** `WS /live/gallery` (ADR-014): the display's messages without captions. */
+export function isLiveGalleryMessage(v: unknown): v is LiveGalleryMessage {
+  return isObj(v) && v.type !== "segment" && isLiveDisplayMessage(v);
+}
+
+export function isLiveGalleryFeedResponse(v: unknown): v is LiveGalleryFeedResponse {
+  return isObj(v) && Array.isArray(v.messages) && v.messages.every(isLiveGalleryMessage) && isTimestamp(v.until);
 }
 
 const isState = (v: unknown) => v === "live" || v === "unavailable";

@@ -1,6 +1,7 @@
 import os from "node:os";
 import { config } from "./config.js";
 import { pool } from "./db/index.js";
+import { JOBS_CHANNEL, PgListener } from "./db/notify.js";
 import { deriveHandler } from "./modules/media/derivatives.js";
 import { DERIVE_JOB } from "./modules/media/media.repository.js";
 import { runCalendarReplyPoller } from "./modules/mail/calendar-replies.js";
@@ -62,6 +63,12 @@ async function main() {
       workerId,
       logger,
       signal: controller.signal,
+      // Claims a new job (an upload's derivatives) at once instead of on the next idle poll.
+      wake: new PgListener({
+        connectionString: config.databaseUrl,
+        channel: JOBS_CHANNEL,
+        log: { warn: (fields, message) => logger.info(fields, message) },
+      }),
     }),
     // Calendar RSVP replies (ADR-013): reads the organizer's inbox, only when turned on.
     config.mail.calendarRsvp ? runCalendarReplyPoller({ pool, signal: controller.signal, logger }) : Promise.resolve(),

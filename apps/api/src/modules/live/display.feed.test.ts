@@ -1,4 +1,4 @@
-import type { LiveDisplayMessage } from "@grad/contract";
+import type { LiveGalleryMessage } from "@grad/contract";
 import { describe, expect, it, vi } from "vitest";
 import { DisplayFeed } from "./display.feed.js";
 import type { DisplayChange, DisplaySource } from "./display.repository.js";
@@ -23,14 +23,14 @@ function fakeSource() {
   const source: DisplaySource = {
     now: async () => state.now,
     changesSince: vi.fn(async (since: Date) => state.rows.filter((r) => r.updatedAt > since)),
-    snapshot: vi.fn(async () => [{ type: "wish", wish: { id: "w0", authorName: "A", body: "b", createdAt: T0.toISOString() } }] as LiveDisplayMessage[]),
+    snapshot: vi.fn(async () => [{ type: "wish", wish: { id: "w0", authorName: "A", body: "b", createdAt: T0.toISOString() } }] as LiveGalleryMessage[]),
   };
   return { state, source };
 }
 
 function setup(options = {}) {
   const { state, source } = fakeSource();
-  const sent: LiveDisplayMessage[] = [];
+  const sent: LiveGalleryMessage[] = [];
   const feed = new DisplayFeed(source, { broadcast: (m) => void sent.push(m) }, { error: vi.fn() }, { overlapMs: 5000, keepaliveMs: 60_000, ...options });
   return { state, source, sent, feed };
 }

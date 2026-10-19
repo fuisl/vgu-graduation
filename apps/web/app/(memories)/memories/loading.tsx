@@ -1,4 +1,4 @@
-import { BrandEyebrow, BrandTheme, Section } from "@grad/ui";
+import { BrandTheme, Section } from "@grad/ui";
 import { getI18n } from "../../../lib/i18n/server";
 import { SiteFooter } from "../../site/SiteFooter";
 import { SiteHeader } from "../../site/SiteHeader";
@@ -13,7 +13,6 @@ export default async function Loading() {
       <main id="main">
         <Section tone="blue">
           <div className="mem-hero">
-            <BrandEyebrow ellipsis>{i18n.t("memories.archive")}</BrandEyebrow>
             <p className="mem-title" role="status">{i18n.t("memories.loading")}</p>
           </div>
         </Section>

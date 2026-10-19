@@ -2,6 +2,7 @@ import type {Metadata} from "next";
 import type {ReactNode} from "react";
 import {ArrowUpRightPixel, BrandEyebrow, BrandTheme, Button, Container, Cta, Eyebrow, PaperPlanePixel, PillGroup, PillItem, PillToggle, Rule, Section} from "@grad/ui";
 import {BrandLogo} from "../logo/BrandLogo";
+import {EssentialsLabel} from "../site/EventEssentials";
 import {SiteFooter} from "../site/SiteFooter";
 import {SignedInChip} from "../site/GuestChip";
 import {LanguageSwitch} from "../site/LanguageSwitch";
@@ -9,6 +10,8 @@ import {MenuSheetPreview} from "../site/MobileMenu";
 import {siteNavLinks} from "../site/nav";
 import {SignedOutChip} from "../site/SiteAction";
 import {SiteHeader} from "../site/SiteHeader";
+import {TextSizeControl} from "../text-size/TextSizeControl";
+import {pickMessages} from "../../lib/i18n/dictionary";
 import {getI18n} from "../../lib/i18n/server";
 
 export const metadata: Metadata = {title: "Design system | GRAD '26"};
@@ -269,7 +272,7 @@ export default async function DesignSystem() {
         <Section tone="blue" aria-labelledby="ds-shell">
           <BrandEyebrow ellipsis>Site shell</BrandEyebrow>
           <h2 id="ds-shell" className="brand-ds-h2">Header and footer</h2>
-          <p className="brand-ds-note">The real <code>SiteHeader</code> (compact mark only, Menu pill on mobile) and <code>SiteFooter</code> (deep-blue band, the only full wordmark), shown below.</p>
+          <p className="brand-ds-note">The real <code>SiteHeader</code>, the menubar (compact mark; the event essentials, Camera and Wishes; EN | VI, text size and the guest chip; Camera and Menu on mobile), and the minimal <code>SiteFooter</code> (deep-blue band, the only full wordmark), shown below.</p>
         </Section>
         <SiteHeader i18n={i18n} current="home" />
         <Section tone="white" density="compact" aria-labelledby="ds-shell-gap">
@@ -285,7 +288,7 @@ export default async function DesignSystem() {
           </p>
           <div className="brand-ds-row">
             <p className="brand-ds-row__label">Signed out</p>
-            <div className="brand-ds-row__items"><SignedOutChip label={i18n.t("header.guestPortal")} /></div>
+            <div className="brand-ds-row__items"><SignedOutChip label={i18n.t("header.invitation")} /></div>
           </div>
           <div className="brand-ds-row">
             <p className="brand-ds-row__label">Signed in</p>
@@ -298,15 +301,24 @@ export default async function DesignSystem() {
           <h2 id="ds-menu" className="brand-ds-h2">Mobile menu, open</h2>
           <p className="brand-ds-note">
             At 960px and below the header shows only the mark and the Menu button, which opens this full-screen sheet (<code>MobileMenu</code>): a modal dialog with
-            the four links as large rows, the current one in the accent colour, then the language switch and the guest chip. Shown here as a static, inert picture at phone width.
+            the event essentials (linking to the venue page), Camera and Wishes as large rows (the current one in the accent colour), then the guest chip, the language switch and text size. Shown here as a static, inert picture at phone width.
           </p>
           <MenuSheetPreview
             label="Preview of the open mobile menu"
             current="venue"
             links={siteNavLinks(i18n)}
             language={<LanguageSwitch locale={i18n.locale} label={i18n.t("lang.label")} />}
-            action={<SignedOutChip label={i18n.t("header.guestPortal")} />}
-            labels={{menu: i18n.t("header.menu"), close: i18n.t("header.closeMenu"), nav: i18n.t("header.navLabel")}}
+            textSize={<TextSizeControl variant="compact" messages={pickMessages(i18n.locale, "textSize.")} />}
+            essentials={<EssentialsLabel i18n={i18n} variant="sheet" event={null} />}
+            action={<SignedOutChip label={i18n.t("header.invitation")} />}
+            labels={{
+              menu: i18n.t("header.menu"),
+              close: i18n.t("header.closeMenu"),
+              nav: i18n.t("header.navLabel"),
+              home: i18n.t("nav.home"),
+              language: i18n.t("lang.label"),
+              textSize: i18n.t("textSize.label"),
+            }}
           />
         </Section>
 

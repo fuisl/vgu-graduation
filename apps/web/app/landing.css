@@ -1,24 +1,13 @@
-/* Landing (#148). Route-local, brand tokens only. Sculpture and decode internals live beside their components. */
-/* Hero fills the viewport, including the 72px it runs up behind the overlaid header; the sculpture takes the leftover height. */
+/* Landing (#148, owner brief 2026-10). Route-local, brand tokens only. Sculpture and decode internals live beside their components. */
+/* Hero: the sculpture stage, then the headline and one sentence. Not a full screen, so the entry points start in the first view on a phone. */
 [data-theme="brand"] .home > .brand-section:first-child {
-  /* Less padding under the hero text than a normal band, so it sits near the bottom edge. */
-  padding-bottom: clamp(var(--space-5), 3vw, var(--space-7));
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  min-height: 100svh;
-}
-[data-theme="brand"] .home > .brand-section:first-child > .brand-section-inner {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
+  padding-bottom: clamp(var(--space-6), 4vw, var(--space-8));
 }
 [data-theme="brand"] .home-stage {
   position: relative;
   display: grid;
   place-items: center;
-  flex: 1 1 auto;
-  min-height: 280px;
+  height: clamp(200px, 38svh, 460px);
   container-type: inline-size;
 }
 /* Never taller than wide: the camera's FOV is vertical, so a portrait canvas would crop the sculpture's sides. */
@@ -38,175 +27,90 @@
   min-height: 0;
   max-height: none;
 }
-/* Title, then place, month and countdown stacked under it, all left-aligned. */
 [data-theme="brand"] .home-hero-foot {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-5);
-  margin-top: var(--space-6);
+  gap: var(--space-4);
+  margin-top: var(--space-5);
 }
 [data-theme="brand"] .home-title {
   margin: 0;
   font-family: var(--font-sans);
-  /* The "G" carries ~0.04em of left side bearing; pull it back so its ink lines up with the mono text below. */
+  /* The "G" carries ~0.04em of left side bearing; pull it back so its ink lines up with the text below. */
   margin-left: -0.025em;
   font-size: clamp(2.25rem, 1rem + 4.5vw, 5rem);
   font-weight: 500;
   line-height: var(--brand-leading-display);
   letter-spacing: var(--brand-tracking-display);
 }
-/* Under the title: a 2x2 mono block, column-major (campus/city, then date/countdown). */
-[data-theme="brand"] .home-hero-meta {
-  display: grid;
-  grid-auto-flow: column;
-  grid-template-rows: auto auto;
-  justify-content: start;
-  column-gap: clamp(var(--space-5), 5vw, var(--space-8));
-  row-gap: var(--space-2);
-  font-family: var(--font-mono);
-  font-size: clamp(var(--text-xs), 0.55rem + 0.5vw, 1rem);
-  line-height: 1.2;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-/* Larger text (#176): on phones the two nowrap columns no longer fit side by side, so stack them. */
-@media (max-width: 960px) {
-  html[data-text-size] [data-theme="brand"] .home-hero-meta {
-    grid-auto-flow: row;
-    grid-template-rows: none;
-  }
-}
-[data-theme="brand"] .home-hero-meta__cell {
+[data-theme="brand"] .home-lead {
   margin: 0;
-  font-variant-numeric: tabular-nums;
+  max-width: 46ch;
+  color: var(--brand-muted-on-blue);
+  font-size: var(--brand-text-lead);
+  line-height: 1.4;
 }
-/* "VGU Campus" links to /venue; the pixel arrow is sized to the capitals beside it. */
-[data-theme="brand"] .home-hero-meta__link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45em;
-  /* A 44px tap target (QA P1-7) that keeps the mono block's rhythm: the extra height hangs into negative margins. */
-  min-height: var(--brand-tap);
-  margin-block: calc((1.2em - var(--brand-tap)) / 2);
-  color: inherit;
-  text-decoration: none;
-}
-[data-theme="brand"] .home-hero-meta__link .brand-arrow {
-  width: 0.72em;
-  height: 0.72em;
-}
-[data-theme="brand"] .home-hero-meta__link:hover .brand-arrow { transform: translate(1px, -1px); }
-[data-theme="brand"] .home-hero-meta__link:hover { text-decoration: underline; text-underline-offset: 0.25em; }
-[data-theme="brand"] .home-hero-meta__link:focus-visible {
-  outline: 2px solid var(--brand-accent);
-  outline-offset: 4px;
-}
-[data-theme="brand"] .home-h2 {
-  margin: var(--space-3) 0 var(--space-6);
-  font-family: var(--font-sans);
-  font-size: var(--brand-text-h2);
-  font-weight: 500;
-  line-height: 1.1;
-  letter-spacing: var(--brand-tracking-display);
-}
-[data-theme="brand"] .home-when {
+/* Entry points: large rows (title, one line, arrow) between hairlines, like the guest profile's quick links. */
+[data-theme="brand"] .home-entries {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-6);
-  align-items: start;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--space-6);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
 }
-[data-theme="brand"] .home-fact p { margin: 0; }
-[data-theme="brand"] .home-fact__action { margin-top: var(--space-3); }
-[data-theme="brand"] .home-fact .brand-eyebrow { margin-bottom: var(--space-2); }
-[data-theme="brand"] .home-fact__main { font-size: var(--brand-text-h3); font-weight: 500; line-height: 1.2; }
-[data-theme="brand"] .home-fact__sub { margin-top: var(--space-2); color: var(--brand-muted); }
-[data-theme="brand"] .home-note {
-  margin-top: var(--space-3);
-  max-width: var(--brand-measure);
-  color: var(--brand-muted);
-  font-size: var(--text-sm, 0.875rem);
+[data-theme="brand"] .home-entries li {
+  border-bottom: 1px solid var(--brand-line);
 }
-[data-theme="brand"] .home-actions {
+[data-theme="brand"] .home-entries li:nth-child(-n + 2) {
+  border-top: 1px solid var(--brand-line);
+}
+[data-theme="brand"] .home-entry {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-4) var(--space-6);
-  margin-top: var(--space-6);
-}
-[data-theme="brand"] .home-when .home-actions {
-  margin-top: 0;
-  flex-direction: column;
-  align-items: flex-start;
-}
-[data-theme="brand"] .home-link {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--brand-tap);
-  color: inherit;
-  text-decoration: underline;
-  text-underline-offset: 0.25em;
-}
-[data-theme="brand"] .brand-section--white .home-link { color: var(--brand-blue); }
-[data-theme="brand"] .home-link:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
-[data-theme="brand"] .home-state {
-  margin: 0;
-  max-width: var(--brand-measure);
-  color: var(--brand-muted);
-}
-[data-theme="brand"] .home-photos {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-3);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-[data-theme="brand"] .home-photos img {
-  display: block;
-  width: 100%;
-  height: auto;
-  aspect-ratio: 1 / 1;
-  object-fit: cover;
-  border-radius: var(--brand-radius);
-  background: var(--brand-blue-deep);
-}
-[data-theme="brand"] .home-wishes {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  justify-content: space-between;
   gap: var(--space-4);
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  min-height: var(--brand-tap);
+  padding: var(--space-4) var(--space-2);
+  color: var(--brand-fg);
+  text-decoration: none;
+  transition: background-color var(--motion-fast) var(--ease);
 }
-[data-theme="brand"] .home-wish {
-  padding: var(--space-5);
-  border-radius: var(--brand-radius);
+[data-theme="brand"] .home-entry:hover {
   background: var(--brand-blue-soft);
 }
-[data-theme="brand"] .home-wish__body {
-  display: -webkit-box;
-  margin: 0;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 5;
-  line-clamp: 5;
-  overflow-wrap: anywhere;
+[data-theme="brand"] .home-entry:hover .brand-arrow {
+  transform: translate(1px, -1px);
 }
-[data-theme="brand"] .home-wish__author {
-  margin: var(--space-4) 0 0;
-  font-family: var(--font-mono);
-  font-size: var(--text-sm, 0.875rem);
-  letter-spacing: var(--brand-tracking-label);
-  text-transform: uppercase;
+[data-theme="brand"] .home-entry:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 2px;
+}
+[data-theme="brand"] .home-entry__text {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+[data-theme="brand"] .home-entry__title {
+  font-size: var(--brand-text-h3);
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+[data-theme="brand"] .home-entry__description {
   color: var(--brand-muted);
   overflow-wrap: anywhere;
 }
+[data-theme="brand"] .home-entry__arrow {
+  flex: none;
+  color: var(--brand-blue);
+}
 @media (max-width: 960px) {
-  [data-theme="brand"] .home-when,
-  [data-theme="brand"] .home-wishes { grid-template-columns: 1fr; }
-  [data-theme="brand"] .home-photos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  [data-theme="brand"] .home-entries { grid-template-columns: minmax(0, 1fr); }
+  [data-theme="brand"] .home-entries li:nth-child(2) { border-top: 0; }
   [data-theme="brand"] .home-visual { max-height: none; }
-  [data-theme="brand"] .home-stage { min-height: 160px; }
+  [data-theme="brand"] .home-stage { height: clamp(180px, 34svh, 360px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="brand"] .home-entry { transition: none; }
 }
 [data-theme="brand"] .home { overflow-x: clip; }

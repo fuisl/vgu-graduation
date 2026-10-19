@@ -64,6 +64,13 @@ const CAPTION_IDLE_MS = 45_000;
 const SKIP_MS = 5 * 60_000;
 /** Matches --motion-slow plus a frame, so the leaving slide is gone once its fade ends. */
 const CROSSFADE_MS = 520;
+/** Catch-up poll while the socket is down (ADR-014). */
+const POLL_MS = 5_000;
+/**
+ * A new wish or photo cuts short a slide that is a repeat, once that slide has
+ * been up this long (ADR-014). A slide's first showing always gets its full time.
+ */
+const MIN_REPEAT_DWELL_MS = 4_000;
 
 /**
  * Feed connection: socket first, then the HTTP catch-up on every open, applied
@@ -113,6 +120,7 @@ function useDisplayFeed() {
       }
     };
 
+    let socketOpen = false;
     const socket = new LiveSocket({
       url: liveSocketUrl("/live/display", origin),
       // The API sends a keepalive about every 25 s; nearly three missed means the socket is dead.
@@ -125,9 +133,17 @@ function useDisplayFeed() {
       onClose: ({ opened }) => {
         if (!opened) void catchUp();
       },
-      onStateChange: (state) => setLink(linkOf(state)),
+      onStateChange: (state) => {
+        socketOpen = state.phase === "open";
+        setLink(linkOf(state));
+      },
     });
     socket.start();
+    // While the socket is down (WebSockets blocked, a flapping network), poll the catch-up
+    // every few seconds instead of only once per reconnect attempt, which backs off to 30 s.
+    const poll = setInterval(() => {
+      if (!socketOpen && request === null && document.visibilityState !== "hidden") void catchUp();
+    }, POLL_MS);
 
     const online = () => socket.reconnectNow();
     const visible = () => {
@@ -137,6 +153,7 @@ function useDisplayFeed() {
     document.addEventListener("visibilitychange", visible);
     return () => {
       disposed = true;
+      clearInterval(poll);
       socket.stop();
       request?.abort();
       window.removeEventListener("online", online);
@@ -161,6 +178,9 @@ function useSlideshow(slides: Slide[], reduced: boolean) {
   const shownRef = useRef(new Map<string, number>());
   const skipRef = useRef(new Map<string, number>());
   const advanceRef = useRef<() => void>(() => {});
+  /** When the current slide went up, and whether it had been shown before (a repeat). */
+  const onStageRef = useRef<{ at: number; repeat: boolean }>({ at: 0, repeat: false });
+  const rescheduleRef = useRef<(ms: number) => void>(() => {});
 
   useEffect(() => {
     reducedRef.current = reduced;
@@ -186,6 +206,7 @@ function useSlideshow(slides: Slide[], reduced: boolean) {
       currentRef.current = slide;
       if (slide) {
         tick += 1;
+        onStageRef.current = { at: Date.now(), repeat: shownRef.current.has(slide.key) };
         shownRef.current = recordShown(shownRef.current, slide.key, tick, slidesRef.current);
       }
       const leaving = reducedRef.current || !previous || previous.key === slide?.key ? null : previous;
@@ -222,9 +243,11 @@ function useSlideshow(slides: Slide[], reduced: boolean) {
     };
 
     advanceRef.current = advance;
+    rescheduleRef.current = schedule;
     advance();
     return () => {
       advanceRef.current = () => {};
+      rescheduleRef.current = () => {};
       if (timer !== null) clearTimeout(timer);
       preload?.abort();
     };
@@ -236,7 +259,18 @@ function useSlideshow(slides: Slide[], reduced: boolean) {
     for (const key of skipRef.current.keys()) if (!keys.has(key)) skipRef.current.delete(key);
     const current = currentRef.current;
     // First content, or the slide on screen was hidden by a moderator: move on now.
-    if (!current || !keys.has(current.key)) advanceRef.current();
+    if (!current || !keys.has(current.key)) {
+      advanceRef.current();
+      return;
+    }
+    // Something new arrived while a repeat is up: bring it forward once the repeat has had
+    // a short beat, instead of waiting out up to 20 s (ADR-014). First showings keep their time.
+    const fresh = slides.some((s) => !shownRef.current.has(s.key) && !skipRef.current.has(s.key));
+    if (!fresh || !onStageRef.current.repeat) return;
+    const elapsed = Date.now() - onStageRef.current.at;
+    const remaining = slideDurationMs(current) - elapsed;
+    const delay = Math.max(0, MIN_REPEAT_DWELL_MS - elapsed);
+    if (delay < remaining) rescheduleRef.current(delay);
   }, [slides]);
 
   useEffect(() => {

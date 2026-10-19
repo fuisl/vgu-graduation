@@ -20,8 +20,10 @@ export async function GET() {
     publicApiOrigin(),
   );
 
+  // First paint only: the page then catches up from the API's live feed (ADR-014), so the
+  // edge keeps this a few seconds to absorb a crowd opening the gallery at once, no longer.
   return NextResponse.json(
     { items, partial: photos.status !== "ok" || wishes.status !== "ok" },
-    { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=30" } },
+    { headers: { "Cache-Control": "public, s-maxage=5, stale-while-revalidate=10" } },
   );
 }

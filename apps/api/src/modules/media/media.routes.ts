@@ -49,10 +49,11 @@ const DERIVATIVE_CACHE = "public, max-age=31536000, immutable";
 
 /**
  * Gallery listing: public (decided 2026-09-30) and identical for everyone, so
- * shared caches may keep it for the Vercel layer's 60-second window (§4.1);
- * a takedown drops out within that window.
+ * shared caches may keep it briefly. It only paints the page first: the page
+ * then catches up live from `GET /live/gallery/feed` (ADR-014), so the window
+ * is the Vercel layer's 10 seconds (§4.1), not a minute.
  */
-const GALLERY_CACHE = "public, s-maxage=60";
+const GALLERY_CACHE = "public, s-maxage=10";
 
 function storageUnavailable(
   request: FastifyRequest,

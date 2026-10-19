@@ -10,6 +10,8 @@ import {
   liveDisplayFeedQuerySchema,
   liveDisplayFeedResponseSchema,
   liveDisplayMessageSchema,
+  liveGalleryFeedResponseSchema,
+  liveGalleryMessageSchema,
   liveTranslationMessageSchema,
   mediaVariantParamsSchema,
   moderateRequestSchema,
@@ -174,6 +176,26 @@ describe("live display", () => {
     expect(liveDisplayFeedQuerySchema.parse({}).since).toBeUndefined();
     const hidden = { type: "hidden", kind: "photo", id: "p1" };
     expect(liveDisplayFeedResponseSchema.safeParse({ messages: [hidden], until: now }).success).toBe(true);
+  });
+});
+
+describe("live gallery", () => {
+  it("carries wishes, photos, takedowns and keepalives, but never captions", () => {
+    const wish = { id: uuid, authorName: "Jane", body: "Congrats!", createdAt: now };
+    const photo = { publicId: "p1", width: 640, height: 640, createdAt: now };
+    expect(liveGalleryMessageSchema.safeParse({ type: "wish", wish }).success).toBe(true);
+    expect(liveGalleryMessageSchema.safeParse({ type: "photo", photo }).success).toBe(true);
+    expect(liveGalleryMessageSchema.safeParse({ type: "hidden", kind: "photo", id: "p1" }).success).toBe(true);
+    expect(liveGalleryMessageSchema.safeParse({ type: "keepalive", until: now }).success).toBe(true);
+    const segment = { sessionId: "s", sequence: 0, startMs: 0, endMs: 1, sourceLanguage: "en", sourceText: "Hi", translations: [] };
+    expect(liveDisplayMessageSchema.safeParse({ type: "segment", segment }).success).toBe(true);
+    expect(liveGalleryMessageSchema.safeParse({ type: "segment", segment }).success).toBe(false);
+  });
+
+  it("is a subset of the display feed, so one poller serves both", () => {
+    const hidden = { type: "hidden", kind: "wish", id: uuid };
+    expect(liveGalleryFeedResponseSchema.safeParse({ messages: [hidden], until: now }).success).toBe(true);
+    expect(liveDisplayMessageSchema.safeParse(hidden).success).toBe(true);
   });
 });
 

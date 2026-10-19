@@ -19,8 +19,12 @@ import { invitationToken } from "../../auth/credentials.js";
 import { requireAdmin } from "../admin/admin-auth.js";
 import { InvalidCursorError, WishesService } from "./wishes.service.js";
 
-/** Wishes change often on the day: the Vercel layer revalidates every 30 seconds (architecture §4.1). */
-const PUBLIC_CACHE = "public, s-maxage=30, stale-while-revalidate=30";
+/**
+ * Wishes change often on the day. The listing only paints the page first; the
+ * page then catches up live from `GET /live/gallery/feed` (ADR-014), so the
+ * Vercel layer keeps it 10 seconds (architecture §4.1).
+ */
+const PUBLIC_CACHE = "public, s-maxage=10";
 
 const badCursor = { error: "Bad Request", message: "Invalid cursor" };
 

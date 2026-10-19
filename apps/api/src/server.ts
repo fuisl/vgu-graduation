@@ -70,7 +70,7 @@ export interface BuildServerOptions {
   /** Override for tests; defaults to the database- and Garage-backed service. */
   mediaService?: MediaRoutesOptions["service"];
   /** Overrides for tests: the display feed's data source and timings, and the translation module's. */
-  live?: Pick<LiveRoutesOptions, "displaySource" | "feed" | "translation">;
+  live?: Pick<LiveRoutesOptions, "displaySource" | "changes" | "feed" | "translation">;
   /** Log destination; defaults to stdout. Tests pass a stream to inspect output. */
   logStream?: { write(line: string): void };
 }

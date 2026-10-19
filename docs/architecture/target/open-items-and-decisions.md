@@ -68,7 +68,7 @@ Decided 2026-10-19 (infrastructure for #53, #71, #73, #77):
 Decided 2026-10-19 (#66, #70; details in `docs/design/live-surfaces.md`):
 
 - `/display` keeps the invitation credential of the display feed (#65); there is no separate display key. The kiosk gets its own invitation and opens its link once in the kiosk browser. Captions on `/live` are public (#68).
-- `/live` is not in the header navigation, which keeps its four links; it is linked from the invitation's event details and from the display's caption band. It has no footer.
+- `/live` is not in the menubar, which keeps to the event essentials, Camera and Wishes; it is linked from the invitation's event details and from the display's caption band. It has no footer.
 - Phones subscribe to every caption language and switch locally; after a reconnect they catch up by `since`, and they poll the segments endpoint when the socket is refused at the connection cap.
 - The display's caption line defaults to the other hall language (Vietnamese while English is spoken and vice versa), configurable with `?captions=`.
 

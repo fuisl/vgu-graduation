@@ -3,7 +3,7 @@
 import Link from "next/link";
 import {useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject} from "react";
 import {BrandLogo} from "../logo/BrandLogo";
-import {nextTrapIndex, type SiteNavKey, type SiteNavLink} from "./nav";
+import {VENUE_HREF, nextTrapIndex, type SiteNavKey, type SiteNavLink} from "./nav";
 
 const FOCUSABLE = "a[href], button:not([disabled])";
 
@@ -25,18 +25,27 @@ function ThreeBarsIcon() {
   );
 }
 
+type Labels = {menu: string; close: string; nav: string; home: string; language: string; textSize: string};
+
 type Props = {
   current?: SiteNavKey;
+  /** The guest's own entry (the chip, /me). */
   action: ReactNode;
-  /** The EN | VI switch (#9), above the guest chip. */
+  /** The EN | VI switch (#9). */
   language: ReactNode;
-  /** Nav links with labels in the page's language. */
+  /** The compact text size switch (#176). */
+  textSize: ReactNode;
+  /** The event essentials (date, time, venue), already rendered on the server; wrapped in the /venue link here. */
+  essentials: ReactNode;
+  /** Action links with labels in the page's language. */
   links: readonly SiteNavLink[];
-  labels: {menu: string; close: string; nav: string};
+  /** The one link that stays in the bar beside Menu: the camera, one tap away. */
+  quick?: SiteNavLink;
+  labels: Labels;
 };
 
-/** Mobile (<= 960px) menu button and full-screen blue sheet. */
-export function MobileMenu({current, action, language, links, labels}: Props) {
+/** Mobile (<= 960px): a one-tap Camera link, the Menu button and the full-screen blue sheet. */
+export function MobileMenu({current, action, language, textSize, essentials, links, quick, labels}: Props) {
   const [open, setOpen] = useState(false);
   const sheetId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -78,6 +87,8 @@ export function MobileMenu({current, action, language, links, labels}: Props) {
 
   return (
     <div className="brand-header__mobile">
+      {/* A shortcut, not a second nav: the current page is marked once, in the sheet's rows. */}
+      {quick ? <a className="brand-menu-button brand-menu-button--text" href={quick.href}>{quick.label}</a> : null}
       <button
         ref={buttonRef}
         type="button"
@@ -99,23 +110,40 @@ export function MobileMenu({current, action, language, links, labels}: Props) {
         hidden={!open}
         onKeyDown={onKeyDown}
       >
-        <SheetBody current={current} action={action} language={language} links={links} labels={labels} closeRef={closeRef} onClose={close} />
+        <SheetBody
+          current={current}
+          action={action}
+          language={language}
+          textSize={textSize}
+          essentials={essentials}
+          links={links}
+          labels={labels}
+          closeRef={closeRef}
+          onClose={close}
+        />
       </div>
     </div>
   );
 }
 
-type SheetBodyProps = Props & {closeRef?: RefObject<HTMLButtonElement | null>; onClose?: () => void};
+type SheetBodyProps = Omit<Props, "quick"> & {closeRef?: RefObject<HTMLButtonElement | null>; onClose?: () => void};
 
-/** The sheet's contents: mark and Close, the links as large rows, then the language switch and the action. */
-function SheetBody({current, action, language, links, labels, closeRef, onClose}: SheetBodyProps) {
+/**
+ * The sheet's contents, top to bottom: mark and Close; the essentials (date, time, venue) as the
+ * link to /venue; the action links as large rows; then, within thumb reach, the guest's own entry
+ * and the two settings (language and text size) with visible labels.
+ */
+function SheetBody({current, action, language, textSize, essentials, links, labels, closeRef, onClose}: SheetBodyProps) {
   return (
     <>
       <div className="brand-header__inner">
-        <Link className="brand-wordmark" href="/"><BrandLogo variant="compact" tone="on-blue" /></Link>
+        <Link className="brand-wordmark" href="/" aria-label={labels.home}><BrandLogo variant="compact" tone="on-blue" alt="" /></Link>
         <button ref={closeRef} type="button" className="brand-menu-button brand-menu-button--icon" aria-label={labels.close} onClick={onClose}><XIcon /></button>
       </div>
       <nav className="brand-sheet__nav" aria-label={labels.nav}>
+        <a className="brand-sheet__when" href={VENUE_HREF} aria-current={current === "venue" ? "page" : undefined} onClick={onClose}>
+          {essentials}
+        </a>
         {links.map((item) => (
           <a
             key={item.key}
@@ -129,8 +157,17 @@ function SheetBody({current, action, language, links, labels, closeRef, onClose}
         ))}
       </nav>
       <div className="brand-sheet__action">
-        {language}
         {action}
+        <div className="brand-sheet__settings">
+          <div className="brand-sheet__setting">
+            <span className="brand-sheet__setting-label" aria-hidden="true">{labels.language}</span>
+            {language}
+          </div>
+          <div className="brand-sheet__setting">
+            <span className="brand-sheet__setting-label" aria-hidden="true">{labels.textSize}</span>
+            {textSize}
+          </div>
+        </div>
       </div>
     </>
   );
@@ -140,7 +177,7 @@ function SheetBody({current, action, language, links, labels, closeRef, onClose}
  * The open sheet as a static picture for `/design-system` (#153): same markup and styles, laid out
  * in the page instead of fixed over it, not a dialog, and `inert` so nothing in it is focusable.
  */
-export function MenuSheetPreview(props: Props & {label: string}) {
+export function MenuSheetPreview(props: Omit<Props, "quick"> & {label: string}) {
   const {label, ...body} = props;
   return (
     <div className="brand-sheet brand-sheet--preview" role="img" aria-label={label} inert>

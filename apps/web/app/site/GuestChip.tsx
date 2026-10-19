@@ -9,7 +9,7 @@ import {SignedOutChip} from "./SiteAction";
 
 export type GuestIdentity = {givenName: string; avatarSeed: string};
 
-/** `header.guestPortal` and `header.profile` ("{name}, your profile"), resolved on the server. */
+/** `header.invitation` and `header.profile` ("{name}, your profile"), resolved on the server. */
 export type GuestChipLabels = {portal: string; profile: string};
 
 /** Presentational signed-in pill, linking to the guest's profile (#139). Same height and shape as the on-blue Cta. */

@@ -22,12 +22,12 @@ async function responseMessage(response: Response): Promise<string> {
   return "The request was rejected";
 }
 
-/** GET /wishes — public listing, revalidated on the API's 30-second cadence. */
+/** GET /wishes: public listing for first paint, revalidated every 10 s; pages then go live (ADR-014). */
 export async function getWishes(): Promise<ApiResult<WishesResponse>> {
   let response: Response;
   try {
     response = await apiFetch("/wishes?limit=100", {
-      cache: { mode: "revalidate", seconds: 30, tags: [WEB_CACHE_TAGS.wishes] },
+      cache: { mode: "revalidate", seconds: 10, tags: [WEB_CACHE_TAGS.wishes] },
     });
   } catch {
     return errorResult("network", "Could not reach the server");

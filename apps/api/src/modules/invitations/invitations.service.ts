@@ -57,7 +57,13 @@ export class InvitationsService {
     const created = await this.repository.createInvitation(dto, hashToken(token), actor);
     const inviteUrl = `${config.publicOrigin}/invite/${token}`;
     const emailStatus = dto.sendEmail
-      ? await this.mail.sendInvitation({ to: created.guest.email, givenName: created.guest.givenName, inviteUrl })
+      ? await this.mail.sendInvitation({
+          to: created.guest.email,
+          givenName: created.guest.givenName,
+          inviteUrl,
+          invitationId: created.invitationId,
+          guestName: created.guest.name,
+        })
       : undefined;
 
     return {
@@ -105,7 +111,13 @@ export class InvitationsService {
   private async emailGuest(invitationId: string, inviteUrl: string): Promise<EmailStatus> {
     const [row] = await this.repository.listForAdmin(invitationId);
     if (!row) return "failed";
-    return this.mail.sendInvitation({ to: row.guest.email, givenName: row.guest.givenName ?? row.guest.name, inviteUrl });
+    return this.mail.sendInvitation({
+      to: row.guest.email,
+      givenName: row.guest.givenName ?? row.guest.name,
+      inviteUrl,
+      invitationId,
+      guestName: row.guest.name,
+    });
   }
 
   /** Revokes an invitation (idempotent); null when the id is unknown. */

@@ -23,3 +23,4 @@ Date: YYYY-MM-DD
 - [ADR-010: Site languages without locale URLs](010-site-languages.md)
 - [ADR-011: No service worker for guest pages in v1](011-no-service-worker.md)
 - [ADR-012: Guest email through the owner's Gmail over SMTP](012-guest-email.md)
+- [ADR-013: Branded HTML email and RSVP from the guest's calendar](013-calendar-rsvp-email.md)

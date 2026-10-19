@@ -67,6 +67,8 @@ Configuration is environment-only:
 | `PRINT_GUEST_REQUESTS_ENABLED` | ConfigMap; `true` lets guests queue prints (#72), default off |
 | `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM` (optional) | SOPS-encrypted Secret `api-mail`, mounted into the API and worker; unset turns guest email off (ADR-012) |
 | `SMTP_HOST`, `SMTP_PORT` (optional) | Defaults `smtp.gmail.com` and `587` |
+| `MAIL_CALENDAR_RSVP` (optional) | ConfigMap on the API and worker; `true` sends the invitation as a calendar invitation and has the worker read replies (ADR-013), default off |
+| `IMAP_HOST`, `IMAP_PORT`, `MAIL_AUTHSERV_ID`, `MAIL_REPLY_POLL_SECONDS` (optional) | Defaults `imap.gmail.com`, `993`, `mx.google.com`, `60` |
 
 ## 4.4 apps/translation (k3s, GPU)
 

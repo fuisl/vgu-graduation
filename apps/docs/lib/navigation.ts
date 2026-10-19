@@ -119,6 +119,7 @@ export const navGroups: readonly NavGroup[] = [
           ["adr/010-site-languages", "ADR-010 Site languages"],
           ["adr/011-no-service-worker", "ADR-011 No service worker"],
           ["adr/012-guest-email", "ADR-012 Guest email"],
+          ["adr/013-calendar-rsvp-email", "ADR-013 Calendar RSVP by email"],
         ],
       },
     ],

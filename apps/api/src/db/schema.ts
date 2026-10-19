@@ -481,3 +481,15 @@ export const invitationGuideItems = pgTable(
     index("idx_invitation_guide_items_item").on(t.guideItemId),
   ],
 );
+
+/**
+ * How far the worker has read a mailbox for calendar RSVP replies (ADR-013): the
+ * IMAP UIDVALIDITY and the highest UID already looked at. One row per mailbox;
+ * no message content, sender or subject is ever stored.
+ */
+export const mailCursors = pgTable("mail_cursors", {
+  mailbox: text("mailbox").primaryKey(),
+  uidValidity: bigint("uid_validity", { mode: "number" }).notNull(),
+  lastUid: bigint("last_uid", { mode: "number" }).notNull(),
+  updatedAt: updatedAt(),
+});

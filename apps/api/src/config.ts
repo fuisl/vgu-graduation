@@ -58,6 +58,21 @@ const envSchema = z.object({
   SMTP_PASSWORD: z.string().optional(),
   /** Sender as guests see it, e.g. `GRAD '26 <you@gmail.com>`. Defaults to SMTP_USER. Gmail rewrites any other address to SMTP_USER. */
   MAIL_FROM: z.string().optional(),
+  /**
+   * Calendar RSVP by email (ADR-013). "true" makes the invitation email a calendar
+   * request (Yes/Maybe/No in Gmail, Outlook, Apple) and lets the worker read the
+   * replies from the same mailbox over IMAP. Needs mail on; off otherwise.
+   */
+  MAIL_CALENDAR_RSVP: z
+    .enum(["true", "false", "1", "0", ""])
+    .default("false")
+    .transform((v) => v === "true" || v === "1"),
+  IMAP_HOST: z.string().default("imap.gmail.com"),
+  IMAP_PORT: z.coerce.number().int().positive().default(993),
+  /** The receiving server's name in Authentication-Results; only its verdict is trusted. */
+  MAIL_AUTHSERV_ID: z.string().default("mx.google.com"),
+  /** How often the worker checks the mailbox for calendar replies. */
+  MAIL_REPLY_POLL_SECONDS: z.coerce.number().int().min(15).default(60),
 });
 
 /** Variables with no safe default: a deployed API must not boot without them. */
@@ -133,6 +148,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
       user: parsed.SMTP_USER,
       password: parsed.SMTP_PASSWORD,
       from: parsed.MAIL_FROM || parsed.SMTP_USER,
+      calendarRsvp: Boolean(parsed.SMTP_USER && parsed.SMTP_PASSWORD) && parsed.MAIL_CALENDAR_RSVP,
+      imapHost: parsed.IMAP_HOST,
+      imapPort: parsed.IMAP_PORT,
+      authservId: parsed.MAIL_AUTHSERV_ID,
+      replyPollMs: parsed.MAIL_REPLY_POLL_SECONDS * 1000,
     },
   };
 }

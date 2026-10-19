@@ -12,6 +12,10 @@ export interface MailMessage {
   to: string;
   subject: string;
   text: string;
+  /** The branded HTML alternative (layout.ts). */
+  html?: string;
+  /** An iTIP METHOD:REQUEST calendar object, sent as the text/calendar alternative mail apps answer (ADR-013). */
+  calendarRequest?: string;
   attachments?: MailAttachment[];
 }
 
@@ -51,8 +55,12 @@ export function createMailer(config: Config["mail"]): Mailer | null {
     debug: false,
   });
   return {
-    async send(message) {
-      await transport.sendMail({ from: config.from, ...message });
+    async send({ calendarRequest, ...message }) {
+      await transport.sendMail({
+        from: config.from,
+        ...message,
+        ...(calendarRequest ? { icalEvent: { method: "REQUEST", filename: "invite.ics", content: calendarRequest } } : {}),
+      });
     },
   };
 }

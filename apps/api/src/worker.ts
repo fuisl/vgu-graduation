@@ -3,6 +3,7 @@ import { config } from "./config.js";
 import { pool } from "./db/index.js";
 import { deriveHandler } from "./modules/media/derivatives.js";
 import { DERIVE_JOB } from "./modules/media/media.repository.js";
+import { runCalendarReplyPoller } from "./modules/mail/calendar-replies.js";
 import { RSVP_CONFIRMATION_JOB, rsvpConfirmationHandler } from "./modules/mail/rsvp-confirmation.js";
 import { JobQueue } from "./worker/queue.js";
 import { runWorker, type JobHandlers, type WorkerLogger } from "./worker/worker.js";
@@ -53,14 +54,18 @@ async function main() {
   process.on("SIGINT", () => shutdown("SIGINT"));
   process.on("SIGTERM", () => shutdown("SIGTERM"));
 
-  logger.info({ workerId, jobTypes: Object.keys(handlers) }, "worker started");
-  await runWorker({
-    queue: new JobQueue(pool),
-    handlers,
-    workerId,
-    logger,
-    signal: controller.signal,
-  });
+  logger.info({ workerId, jobTypes: Object.keys(handlers), calendarReplies: config.mail.calendarRsvp }, "worker started");
+  await Promise.all([
+    runWorker({
+      queue: new JobQueue(pool),
+      handlers,
+      workerId,
+      logger,
+      signal: controller.signal,
+    }),
+    // Calendar RSVP replies (ADR-013): reads the organizer's inbox, only when turned on.
+    config.mail.calendarRsvp ? runCalendarReplyPoller({ pool, signal: controller.signal, logger }) : Promise.resolve(),
+  ]);
   await pool.end();
   process.exit(0);
 }

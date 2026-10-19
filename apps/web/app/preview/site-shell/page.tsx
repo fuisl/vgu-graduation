@@ -1,14 +1,16 @@
 import {BrandEyebrow, BrandTheme, Section} from "@grad/ui";
+import {getI18n} from "../../../lib/i18n/server";
 import {SiteFooter} from "../../site/SiteFooter";
 import {SiteHeader} from "../../site/SiteHeader";
 
 export const metadata = {title: "Site shell preview", robots: {index: false}};
 
 /** Temporary, unlinked audit route for #145. Remove before merging to main (owner is auditing with it). */
-export default function SiteShellPreview() {
+export default async function SiteShellPreview() {
+  const i18n = await getI18n();
   return (
     <BrandTheme>
-      <SiteHeader current="home" />
+      <SiteHeader i18n={i18n} current="home" />
       <main>
         <Section tone="blue">
           <BrandEyebrow>Preview</BrandEyebrow>
@@ -19,7 +21,7 @@ export default function SiteShellPreview() {
           <p>Body copy on white, then the footer.</p>
         </Section>
       </main>
-      <SiteFooter />
+      <SiteFooter i18n={i18n} />
     </BrandTheme>
   );
 }

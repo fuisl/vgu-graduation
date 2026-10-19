@@ -1,37 +1,24 @@
 /**
  * The developers credited on /about (#7). Source: "Roles and area owners" in
  * docs/development/workflow.md. GitHub handles and roles only: no names, emails or other PII.
+ * Role names are `about.role.<role>` messages and bios `about.bio.<handle>` (#9).
  */
+export type TeamHandle = "fuisl" | "nhientruong04" | "dducwsxuaan" | "AndrwPham";
+export type TeamRole = "owner" | "design" | "web" | "features" | "backend" | "infrastructure" | "pm";
+
 export interface Developer {
   /** GitHub handle; also the key into PORTRAITS. */
-  handle: string;
-  roles: readonly string[];
-  bio: string;
+  handle: TeamHandle;
+  roles: readonly TeamRole[];
 }
 
 // TODO(owner): confirm each developer is happy with an ASCII portrait drawn from their GitHub avatar.
-// TODO(owner): replace the four draft bios (written from workflow.md roles) with the developers' own words.
+// TODO(owner): replace the four draft bios (`about.bio.*` in lib/i18n/messages, written from workflow.md roles) with the developers' own words.
 export const TEAM: readonly Developer[] = [
-  {
-    handle: "fuisl",
-    roles: ["Project owner", "Design", "Web", "Features"],
-    bio: "Leads the design language, the web app and the product features, and approves architecture decisions.",
-  },
-  {
-    handle: "nhientruong04",
-    roles: ["Backend", "Infrastructure"],
-    bio: "Leads the API, the data model and the homelab the ceremony runs on.",
-  },
-  {
-    handle: "dducwsxuaan",
-    roles: ["Web"],
-    bio: "Builds parts of the guest-facing web app and reviews web and design work.",
-  },
-  {
-    handle: "AndrwPham",
-    roles: ["Web", "Project management", "Backend"],
-    bio: "Builds parts of the web app, keeps the project board moving and backs up the API.",
-  },
+  { handle: "fuisl", roles: ["owner", "design", "web", "features"] },
+  { handle: "nhientruong04", roles: ["backend", "infrastructure"] },
+  { handle: "dducwsxuaan", roles: ["web"] },
+  { handle: "AndrwPham", roles: ["web", "pm", "backend"] },
 ];
 
 export const githubUrl = (handle: string) => `https://github.com/${encodeURIComponent(handle)}`;

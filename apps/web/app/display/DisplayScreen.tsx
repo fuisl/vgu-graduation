@@ -23,6 +23,7 @@ import {
 } from "../../lib/live/display-feed";
 import { LiveSocket, liveSocketUrl, type LiveSocketState } from "../../lib/live/live-socket";
 import { captionFor } from "../../lib/live/segments";
+import { sliceTranslator, type MessageSlice, type SliceTranslator } from "../../lib/i18n/format";
 import { BrandLogo } from "../logo/BrandLogo";
 import { captionLanguage, type CaptionSetting } from "./caption-setting";
 
@@ -34,7 +35,11 @@ type Props = {
   wishesLink: string;
   liveLink: string;
   captions: CaptionSetting;
+  /** `pickMessages(locale, "display.")`: the screen's own labels in the site language (#9). */
+  messages: MessageSlice<"display.">;
 };
+
+type T = SliceTranslator<keyof MessageSlice<"display.">>;
 
 type Action = { type: "message"; message: LiveDisplayMessage } | { type: "feed"; response: LiveDisplayFeedResponse };
 
@@ -44,12 +49,7 @@ function reducer(state: DisplayContent, action: Action): DisplayContent {
 
 type Link = "connecting" | "live" | "reconnecting" | "offline";
 
-const LINK_LABEL: Record<Link, string> = {
-  connecting: "Connecting",
-  live: "Live",
-  reconnecting: "Reconnecting",
-  offline: "Offline, showing the last update",
-};
+/* Connection labels are the `display.link.<link>` messages. */
 
 function linkOf(state: LiveSocketState): Link {
   if (state.phase === "open") return "live";
@@ -248,12 +248,12 @@ function useSlideshow(slides: Slide[], reduced: boolean) {
   return stage;
 }
 
-function SlideView({ slide, leaving = false }: { slide: Slide; leaving?: boolean }) {
+function SlideView({ slide, leaving = false, t }: { slide: Slide; leaving?: boolean; t: T }) {
   const className = `display-slide${leaving ? " display-slide--leaving" : ""}`;
   if (slide.kind === "photo") {
     return (
       <figure className={`${className} display-photo`} aria-hidden={leaving || undefined}>
-        <img className="display-photo__img" src={mediaDerivativeUrl(slide.photo.publicId, "display")} alt="A photo from the guest camera" />
+        <img className="display-photo__img" src={mediaDerivativeUrl(slide.photo.publicId, "display")} alt={t("display.photoAlt")} />
       </figure>
     );
   }
@@ -268,25 +268,26 @@ function SlideView({ slide, leaving = false }: { slide: Slide; leaving?: boolean
   );
 }
 
-function CaptionBand({ segments, setting, liveLink }: { segments: TranslationSegment[]; setting: Exclude<CaptionSetting, "off">; liveLink: string }) {
+function CaptionBand({ segments, setting, liveLink, t }: { segments: TranslationSegment[]; setting: Exclude<CaptionSetting, "off">; liveLink: string; t: T }) {
   const lines = segments.slice(-2).map((segment) => captionFor(segment, captionLanguage(setting, segment.sourceLanguage)));
   return (
-    <section className="display-captions" aria-label="Live captions">
+    <section className="display-captions" aria-label={t("display.captions")}>
       {lines.map((line, i) => (
         <p
           key={line.key}
           lang={line.language}
           className={`display-captions__line${i < lines.length - 1 ? " display-captions__line--previous" : ""} display-captions__line--${line.tone}`}
         >
-          {line.tone === "failed" ? "Translation unavailable for this sentence." : line.text}
+          {line.tone === "failed" ? t("display.lineFailed") : line.text}
         </p>
       ))}
-      <p className="display-captions__hint">Captions in Deutsch, English and Tiếng Việt on your phone: {liveLink}</p>
+      <p className="display-captions__hint">{t("display.captionsHint", { link: liveLink })}</p>
     </section>
   );
 }
 
-export function DisplayScreen({ eventName, eventDate, wishesQrSvg, wishesLink, liveLink, captions }: Props) {
+export function DisplayScreen({ eventName, eventDate, wishesQrSvg, wishesLink, liveLink, captions, messages }: Props) {
+  const t = sliceTranslator(messages);
   const reduced = usePrefersReducedMotion();
   useWakeLock(true);
   const { content, link, problem } = useDisplayFeed();
@@ -321,7 +322,7 @@ export function DisplayScreen({ eventName, eventDate, wishesQrSvg, wishesLink, l
 
   return (
     <div className={`display${showCaptions ? " display--captions" : ""}`}>
-      <h1 className="brand-sr-only">{eventName}: event display</h1>
+      <h1 className="brand-sr-only">{t("display.heading", { event: eventName })}</h1>
       <header className="display-top">
         <div className="display-brand">
           <span className="display-mark">
@@ -331,11 +332,11 @@ export function DisplayScreen({ eventName, eventDate, wishesQrSvg, wishesLink, l
         </div>
         <div className="display-top__end">
           <button type="button" className="display-fullscreen" onClick={toggleFullscreen}>
-            Full screen (F)
+            {t("display.fullscreen")}
           </button>
           <p className="display-status" data-link={link} role="status">
             <span className="display-status__dot" aria-hidden="true" />
-            {problem ? "Not signed in" : LINK_LABEL[link]}
+            {problem ? t("display.notSignedIn") : t(`display.link.${link}`)}
           </p>
         </div>
       </header>
@@ -343,34 +344,32 @@ export function DisplayScreen({ eventName, eventDate, wishesQrSvg, wishesLink, l
       <main className="display-stage">
         {stage.current ? (
           <>
-            {stage.leaving ? <SlideView key={`leaving-${stage.leaving.key}`} slide={stage.leaving} leaving /> : null}
-            <SlideView key={stage.current.key} slide={stage.current} />
+            {stage.leaving ? <SlideView key={`leaving-${stage.leaving.key}`} slide={stage.leaving} leaving t={t} /> : null}
+            <SlideView key={stage.current.key} slide={stage.current} t={t} />
           </>
         ) : (
           <div className="display-slide display-empty">
-            <p className="display-empty__kicker">Welcome to</p>
+            <p className="display-empty__kicker">{t("display.welcome")}</p>
             <p className="display-empty__title">{eventName}</p>
             {eventDate ? <p className="display-empty__date">{eventDate}</p> : null}
-            <p className="display-empty__lead">Scan the code to leave a wish. It appears on this screen in a moment.</p>
+            <p className="display-empty__lead">{t("display.scan")}</p>
           </div>
         )}
       </main>
 
       <aside className="display-share" aria-labelledby="display-share-title">
-        <a className="display-qr" href="/wishes" aria-label={`Leave a wish at ${wishesLink}`} dangerouslySetInnerHTML={{ __html: wishesQrSvg }} />
+        <a className="display-qr" href="/wishes" aria-label={t("display.qrLabel", { link: wishesLink })} dangerouslySetInnerHTML={{ __html: wishesQrSvg }} />
         <div className="display-share__text">
-          <p id="display-share-title" className="display-share__title">Share your wishes</p>
+          <p id="display-share-title" className="display-share__title">{t("display.share")}</p>
           <p className="display-share__link">{wishesLink}</p>
         </div>
       </aside>
 
-      {showCaptions ? <CaptionBand segments={content.captions} setting={captionSetting} liveLink={liveLink} /> : null}
+      {showCaptions ? <CaptionBand segments={content.captions} setting={captionSetting} liveLink={liveLink} t={t} /> : null}
 
       {problem ? (
         <p className="display-problem" role="alert">
-          {problem === "expired"
-            ? "This screen's invitation has expired. Open a current kiosk invitation link in this browser, then reload."
-            : "This screen is not signed in. Open the kiosk invitation link once in this browser, then reload."}
+          {problem === "expired" ? t("display.problem.expired") : t("display.problem.signedOut")}
         </p>
       ) : null}
     </div>

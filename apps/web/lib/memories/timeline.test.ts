@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { createI18n } from "../i18n/dictionary";
 import { buildTimeline, dayKey, formatClock, PHOTO_RUN_MAX } from "./timeline";
+
+const en = createI18n("en");
 
 const photo = (publicId: string, createdAt: string) => ({ publicId, width: 800, height: 600, createdAt });
 const wish = (id: string, createdAt: string) => ({ id, authorName: "Minh", body: "Congrats", createdAt });
@@ -9,7 +12,7 @@ const event = { startsAt: "2026-11-20T02:00:00.000Z", endsAt: "2026-11-20T04:00:
 
 describe("buildTimeline", () => {
   it("splits the ceremony day into arrival, ceremony and celebration, with the days around it", () => {
-    const timeline = buildTimeline({
+    const timeline = buildTimeline({ i18n: en,
       photos: [
         photo("after", "2026-11-21T03:00:00.000Z"),
         photo("party", "2026-11-20T10:00:00.000Z"),
@@ -31,8 +34,20 @@ describe("buildTimeline", () => {
     expect(timeline.chapters[0].range).toBe("18 Nov");
   });
 
-  it("uses the calendar feed's two-hour default when the event has no end", () => {
+  it("names chapters and ranges in Vietnamese (#9)", () => {
     const timeline = buildTimeline({
+      i18n: createI18n("vi"),
+      photos: [photo("gate", "2026-11-20T00:30:00.000Z"), photo("rehearsal", "2026-11-18T09:00:00.000Z")],
+      wishes: [],
+      event,
+    });
+    expect(timeline.chapters.map((c) => c.title)).toEqual(["Trước ngày lễ", "Đón khách"]);
+    expect(timeline.chapters[1].range).toBe("Đến 09:00");
+    expect(timeline.chapters[0].range).toContain("18");
+  });
+
+  it("uses the calendar feed's two-hour default when the event has no end", () => {
+    const timeline = buildTimeline({ i18n: en,
       photos: [photo("p", "2026-11-20T03:30:00.000Z")],
       wishes: [],
       event: { ...event, endsAt: null },
@@ -42,7 +57,7 @@ describe("buildTimeline", () => {
 
   it("orders entries oldest first and groups a burst of photos into one entry", () => {
     const burst = Array.from({ length: PHOTO_RUN_MAX + 1 }, (_, i) => photo(`b${i}`, `2026-11-20T02:${String(10 + i).padStart(2, "0")}:00.000Z`));
-    const timeline = buildTimeline({
+    const timeline = buildTimeline({ i18n: en,
       photos: [...burst].reverse(),
       wishes: [wish("w", "2026-11-20T02:05:00.000Z")],
       event,
@@ -53,7 +68,7 @@ describe("buildTimeline", () => {
   });
 
   it("starts a new photo entry after a wish or a gap of more than 30 minutes", () => {
-    const timeline = buildTimeline({
+    const timeline = buildTimeline({ i18n: en,
       photos: [photo("a", "2026-11-20T02:00:00.000Z"), photo("b", "2026-11-20T02:31:00.000Z"), photo("c", "2026-11-20T02:40:00.000Z")],
       wishes: [wish("w", "2026-11-20T02:35:00.000Z")],
       event,
@@ -62,7 +77,7 @@ describe("buildTimeline", () => {
   });
 
   it("falls back to days without an event, or hours when everything is on one day", () => {
-    const days = buildTimeline({
+    const days = buildTimeline({ i18n: en,
       photos: [photo("a", "2026-11-20T02:00:00.000Z"), photo("b", "2026-11-21T02:00:00.000Z")],
       wishes: [],
       event: null,
@@ -72,7 +87,7 @@ describe("buildTimeline", () => {
     expect(days.chapters.map((c) => c.id)).toEqual(["day-2026-11-20", "day-2026-11-21"]);
     expect(days.chapters[0].title).toBe("Friday 20 November");
 
-    const hours = buildTimeline({
+    const hours = buildTimeline({ i18n: en,
       photos: [photo("a", "2026-11-20T02:00:00.000Z"), photo("b", "2026-11-20T02:59:00.000Z"), photo("c", "2026-11-20T05:00:00.000Z")],
       wishes: [],
       event: null,
@@ -85,8 +100,8 @@ describe("buildTimeline", () => {
   });
 
   it("returns no chapters when nothing is curated, and survives an unknown time zone", () => {
-    expect(buildTimeline({ photos: [], wishes: [], event }).chapters).toEqual([]);
-    const timeline = buildTimeline({ photos: [photo("a", "2026-11-20T02:30:00.000Z")], wishes: [], event: { ...event, timeZone: "Mars/Olympus" } });
+    expect(buildTimeline({ i18n: en, photos: [], wishes: [], event }).chapters).toEqual([]);
+    const timeline = buildTimeline({ i18n: en, photos: [photo("a", "2026-11-20T02:30:00.000Z")], wishes: [], event: { ...event, timeZone: "Mars/Olympus" } });
     expect(timeline.timeZone).toBe("Asia/Ho_Chi_Minh");
   });
 

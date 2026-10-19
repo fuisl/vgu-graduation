@@ -6,44 +6,23 @@ import {
   type GuestRsvp,
 } from "@grad/contract";
 import type { ApiResult } from "../api/result";
+import type { I18n } from "../i18n/dictionary";
+
+export type AccessibilityGroupId = "mobility" | "hearing" | "sight" | "seating";
 
 /**
  * The RSVP form's "Accessibility and assistance" section (#176), grouped the way a
  * guest thinks about it. Every key in ACCESSIBILITY_NEED_KEYS appears exactly once.
+ * Legends are `rsvp.a11y.group.<id>` messages and labels `rsvp.a11y.need.<key>` (#9).
  */
 export const ACCESSIBILITY_GROUPS: ReadonlyArray<{
-  legend: string;
-  needs: ReadonlyArray<{ key: AccessibilityNeedKey; label: string }>;
+  id: AccessibilityGroupId;
+  needs: ReadonlyArray<{ key: AccessibilityNeedKey }>;
 }> = [
-  {
-    legend: "Getting around",
-    needs: [
-      { key: "wheelchair", label: "I use a wheelchair and need a wheelchair space" },
-      { key: "stepFreeAccess", label: "I need step-free access, without stairs" },
-    ],
-  },
-  {
-    legend: "Hearing",
-    needs: [
-      { key: "captions", label: "Captions or live translation on my phone" },
-      { key: "seatNearSpeakers", label: "A seat near the speakers" },
-    ],
-  },
-  {
-    legend: "Sight",
-    needs: [
-      { key: "largePrint", label: "A large-print programme" },
-      { key: "visionAssistance", label: "Someone to guide me when I arrive" },
-    ],
-  },
-  {
-    legend: "Seating",
-    needs: [
-      { key: "seatNearFront", label: "A seat near the front" },
-      { key: "aisleSeat", label: "An aisle seat" },
-      { key: "companion", label: "A companion or assistant comes with me and sits with me" },
-    ],
-  },
+  { id: "mobility", needs: [{ key: "wheelchair" }, { key: "stepFreeAccess" }] },
+  { id: "hearing", needs: [{ key: "captions" }, { key: "seatNearSpeakers" }] },
+  { id: "sight", needs: [{ key: "largePrint" }, { key: "visionAssistance" }] },
+  { id: "seating", needs: [{ key: "seatNearFront" }, { key: "aisleSeat" }, { key: "companion" }] },
 ];
 
 /** Form field names. `touched` is set by the form once the guest changes anything in the section. */
@@ -79,11 +58,11 @@ export type ParsedAccessibility =
  * - Touched: the full object. Everything unticked and no note is how a guest clears them; the API
  *   stores that as no needs.
  */
-export function parseAccessibilityFields(fields: Fields): ParsedAccessibility {
+export function parseAccessibilityFields(fields: Fields, { t }: Pick<I18n, "t">): ParsedAccessibility {
   if (fields.get(A11Y_TOUCHED_FIELD) !== "1") return { ok: true, accessibility: undefined };
   const note = String(fields.get(A11Y_NOTE_FIELD) ?? "").trim();
   if (note.length > ACCESSIBILITY_NOTE_MAX_LENGTH) {
-    return { ok: false, message: `The accessibility note must be at most ${ACCESSIBILITY_NOTE_MAX_LENGTH} characters.` };
+    return { ok: false, message: t("rsvp.a11y.noteLength", { max: ACCESSIBILITY_NOTE_MAX_LENGTH }) };
   }
   const accessibility: AccessibilityNeeds = { ...NO_NEEDS, note: note || null };
   for (const key of ACCESSIBILITY_NEED_KEYS) {

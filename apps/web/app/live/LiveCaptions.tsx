@@ -4,6 +4,8 @@ import type { TargetLanguage, TranslationSegment } from "@grad/contract";
 import { BrandEyebrow, Cta, PillGroup, PillToggle, Section } from "@grad/ui";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { browserApiOrigin } from "../../lib/api/browser-origin";
+import type { Locale } from "../../lib/i18n/config";
+import { sliceTranslator, type MessageSlice } from "../../lib/i18n/format";
 import { usePrefersReducedMotion, useWakeLock } from "../../lib/live/browser";
 import { LiveSocket, liveSocketUrl, type LiveSocketState } from "../../lib/live/live-socket";
 import { laterTimestamp } from "../../lib/live/guards";
@@ -22,7 +24,6 @@ import {
   translationView,
   type ServiceState,
   type TextSize,
-  type TranslationView,
 } from "../../lib/live/translation-feed";
 
 const LANGUAGE_KEY = "grad26.live.language";
@@ -36,14 +37,7 @@ const SNAPSHOT_QUIET_MS = 1_500;
 /** Within this distance of the bottom the page follows new captions. */
 const FOLLOW_THRESHOLD_PX = 96;
 
-const SIZE_LABEL: Record<TextSize, string> = { m: "Standard text", l: "Large text", xl: "Extra large text" };
-
-const STATUS_LABEL: Record<TranslationView, string> = {
-  connecting: "Connecting",
-  live: "Live",
-  reconnecting: "Reconnecting",
-  unavailable: "Translation unavailable",
-};
+/* Size and status labels are the `live.size.<size>` and `live.status.<view>` messages (#9). */
 
 /**
  * Socket, catch-up and segment store (protocol: contract `liveTranslationMessageSchema`).
@@ -217,8 +211,13 @@ function useAnnouncer() {
   return { text, announce, clear };
 }
 
-export function LiveCaptions() {
-  const [language, setLanguage] = useState<TargetLanguage>("en");
+/**
+ * `locale` is the site language (#9): it labels the page, and a Vietnamese reader with no saved
+ * caption choice starts on Vietnamese captions. Caption languages stay de, en and vi.
+ */
+export function LiveCaptions({ messages, locale }: { messages: MessageSlice<"live.">; locale: Locale }) {
+  const t = sliceTranslator(messages);
+  const [language, setLanguage] = useState<TargetLanguage>(locale);
   const [size, setSize] = useState<TextSize>("m");
   const languageRef = useRef(language);
   const reduced = usePrefersReducedMotion();
@@ -228,11 +227,12 @@ export function LiveCaptions() {
 
   useEffect(() => {
     const stored = parseLanguage(safeStorage.get(LANGUAGE_KEY));
-    const initial = stored ?? defaultLanguage(navigator.languages?.length ? navigator.languages : [navigator.language]);
+    const browser = navigator.languages?.length ? navigator.languages : [navigator.language];
+    const initial = stored ?? defaultLanguage(locale === "vi" ? ["vi", ...browser] : browser);
     languageRef.current = initial;
     setLanguage(initial);
     setSize(parseTextSize(safeStorage.get(SIZE_KEY)) ?? "m");
-  }, []);
+  }, [locale]);
 
   const onLiveSegment = useCallback(
     (segment: TranslationSegment) => {
@@ -298,30 +298,26 @@ export function LiveCaptions() {
       <main className="live-main">
         <Section tone="blue" density="compact" aria-labelledby="live-title">
           <div className="live-hero">
-            <BrandEyebrow>Live translation / Experimental</BrandEyebrow>
-            <h1 id="live-title" className="live-title">Live captions</h1>
-            <p className="live-lead">The ceremony is spoken in English and Vietnamese. Read along in your language as it happens.</p>
+            <BrandEyebrow>{t("live.eyebrow")}</BrandEyebrow>
+            <h1 id="live-title" className="live-title">{t("live.title")}</h1>
+            <p className="live-lead">{t("live.lead")}</p>
             <p className="live-status" data-view={view} role="status">
               <span className="live-status__dot" aria-hidden="true" />
-              {STATUS_LABEL[view]}
+              {t(`live.status.${view}`)}
             </p>
           </div>
         </Section>
 
         <Section tone="white" density="compact" aria-labelledby="live-log-title">
-          <h2 id="live-log-title" className="brand-sr-only">Captions in {languageName}</h2>
+          <h2 id="live-log-title" className="brand-sr-only">{t("live.logHeading", { language: languageName })}</h2>
           {view === "unavailable" ? (
             <div className="live-notice">
-              <p className="live-notice__title">Translation unavailable</p>
-              <p className="live-notice__body">
-                Live translation is paused or not running right now. The ceremony carries on as normal, and this page reconnects by itself when it is back.
-              </p>
+              <p className="live-notice__title">{t("live.status.unavailable")}</p>
+              <p className="live-notice__body">{t("live.unavailableBody")}</p>
             </div>
           ) : null}
           {segments.length === 0 && view !== "unavailable" ? (
-            <p className="live-empty" role="status">
-              {view === "live" ? "Waiting for the first words. Captions appear here as the ceremony is spoken." : "Connecting to live captions…"}
-            </p>
+            <p className="live-empty" role="status">{view === "live" ? t("live.waiting") : t("live.connecting")}</p>
           ) : null}
           {segments.length > 0 ? (
             <ol className={`live-log live-log--${size}`} role="log" aria-live="off" aria-labelledby="live-log-title">
@@ -331,13 +327,13 @@ export function LiveCaptions() {
                   <li key={caption.key} className={`live-line live-line--${caption.tone}`} lang={caption.language}>
                     {caption.tone === "failed" ? (
                       <>
-                        <span className="live-line__note" lang="en">Translation unavailable for this sentence. Original:</span> {caption.text}
+                        <span className="live-line__note" lang={locale}>{t("live.lineFailed")}</span> {caption.text}
                       </>
                     ) : (
                       caption.text
                     )}
                     {caption.tone === "draft" || caption.tone === "pending" ? (
-                      <span className="brand-sr-only" lang="en"> (still being translated)</span>
+                      <span className="brand-sr-only" lang={locale}> {t("live.lineDraft")}</span>
                     ) : null}
                   </li>
                 );
@@ -350,20 +346,20 @@ export function LiveCaptions() {
       <div className="live-dock">
         {!following && segments.length > 0 ? (
           <div className="live-dock__jump">
-            <Cta tone="on-white" onClick={jumpToLive}>Jump to live</Cta>
+            <Cta tone="on-white" onClick={jumpToLive}>{t("live.jump")}</Cta>
           </div>
         ) : null}
         <div className="live-dock__controls">
-          <PillGroup as="toggle" label="Caption language" tone="on-white">
+          <PillGroup as="toggle" label={t("live.languageLabel")} tone="on-white">
             {LANGUAGES.map((l) => (
               <PillToggle key={l.code} pressed={language === l.code} onClick={() => chooseLanguage(l.code)} aria-label={l.name} title={l.name}>
                 {l.label}
               </PillToggle>
             ))}
           </PillGroup>
-          <PillGroup as="toggle" label="Text size" tone="on-white">
+          <PillGroup as="toggle" label={t("live.sizeLabel")} tone="on-white">
             {TEXT_SIZES.map((s) => (
-              <PillToggle key={s} pressed={size === s} onClick={() => chooseSize(s)} aria-label={SIZE_LABEL[s]} title={SIZE_LABEL[s]}>
+              <PillToggle key={s} pressed={size === s} onClick={() => chooseSize(s)} aria-label={t(`live.size.${s}`)} title={t(`live.size.${s}`)}>
                 <span className={`live-size-glyph live-size-glyph--${s}`} aria-hidden="true">Aa</span>
               </PillToggle>
             ))}

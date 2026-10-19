@@ -2,6 +2,9 @@ import { renderToStaticMarkup as html } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { GuestNotice } from "./_components/GuestNotice";
 import { GuestProfile } from "./_components/GuestProfile";
+import { createI18n } from "../../lib/i18n/dictionary";
+
+const i18n = createI18n("en");
 
 // The pass is an async server component with its own tests; render a stand-in here.
 vi.mock("../invite/_components/PassBadge", () => ({
@@ -45,7 +48,7 @@ const event = {
 };
 
 describe("GuestProfile", () => {
-  const out = html(<GuestProfile invitation={invitation} event={event} />);
+  const out = html(<GuestProfile i18n={i18n} invitation={invitation} event={event} />);
 
   it("greets the guest by given name with the full name below", () => {
     expect(out).toMatch(/<h1 id="profile-heading" class="profile-name">An<\/h1>/);
@@ -81,7 +84,7 @@ describe("GuestProfile", () => {
 
 describe("GuestNotice", () => {
   it("explains how to open an invitation when signed out, with public links only", () => {
-    const out = html(<GuestNotice kind="signed-out" event={event} retryHref="/me" eyebrow="Guest portal" />);
+    const out = html(<GuestNotice i18n={i18n} kind="signed-out" event={event} retryHref="/me" eyebrow="Guest portal" />);
     expect(out).toContain("Open your invitation");
     expect(out).toContain("How to open your invitation");
     expect(out).toContain("The organizing team");
@@ -92,14 +95,14 @@ describe("GuestNotice", () => {
   });
 
   it("offers a retry for a temporary error", () => {
-    const out = html(<GuestNotice kind="error" event={{ status: "error", kind: "network", message: "down" }} retryHref="/guide" eyebrow="Guide-book" />);
+    const out = html(<GuestNotice i18n={i18n} kind="error" event={{ status: "error", kind: "network", message: "down" }} retryHref="/guide" eyebrow="Guide-book" />);
     expect(out).toContain('role="alert"');
     expect(out).toContain('href="/guide"');
     expect(out).not.toContain("How to open your invitation");
   });
 
   it("says when the invitation expired", () => {
-    const out = html(<GuestNotice kind="expired" event={event} retryHref="/me" eyebrow="Guest portal" />);
+    const out = html(<GuestNotice i18n={i18n} kind="expired" event={event} retryHref="/me" eyebrow="Guest portal" />);
     expect(out).toContain("Your invitation has expired");
   });
 });

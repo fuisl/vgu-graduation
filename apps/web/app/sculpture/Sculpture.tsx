@@ -288,7 +288,8 @@ class WebGLErrorBoundary extends Component<{ children: ReactNode; onError: () =>
   render() { return this.state.failed ? null : this.props.children; }
 }
 
-export function Sculpture() {
+/** `label` is the `landing.sculpture` message, with `{name}` for the programme shown (a proper noun, not translated). */
+export function Sculpture({ label }: { label: string }) {
   const [enabled, setEnabled] = useState(false);
   const [visible, setVisible] = useState(true);
   const [ready, setReady] = useState(false);
@@ -322,7 +323,7 @@ export function Sculpture() {
     return () => { cancelled = true; };
   }, []);
 
-  return <div className="sculpture" aria-label={`Animated ASCII sculpture: ${SHAPE_NAMES[shapeIndex]}`} role="img">
+  return <div className="sculpture" aria-label={label.replace("{name}", SHAPE_NAMES[shapeIndex] ?? "")} role="img">
     <ShapeCodeBackdrop index={shapeIndex} animate={enabled && ready && visible && !failed} departing={departing} />
     <pre className={`sculpture-fallback${ready && fontReady && enabled && !failed ? " is-hidden" : ""}`} aria-hidden="true">{`             .   :   .
        .  :  +  *  +  :  .

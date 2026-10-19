@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { sliceTranslator, type MessageSlice } from "../../lib/i18n/format";
 import { countdownParts, formatCountdown } from "./countdown-parts";
 
 /**
@@ -9,7 +10,8 @@ import { countdownParts, formatCountdown } from "./countdown-parts";
  * mismatch), then ticks each second. role="timer" is not announced on every tick; the label
  * carries a whole-day summary. Renders nothing once the start has passed.
  */
-export function Countdown({ target }: { target: string }) {
+export function Countdown({ target, labels }: { target: string; labels: MessageSlice<"landing.countdown."> }) {
+  const t = sliceTranslator(labels);
   const at = Date.parse(target);
   const [now, setNow] = useState<number | null>(null);
 
@@ -26,7 +28,7 @@ export function Countdown({ target }: { target: string }) {
     <p
       className="home-hero-meta__cell home-countdown"
       role="timer"
-      aria-label={parts ? `${parts.days} days until the ceremony` : "Countdown to the ceremony"}
+      aria-label={parts ? t.plural("landing.countdown.days", parts.days) : t("landing.countdown.label")}
     >
       <span aria-hidden="true">{parts ? formatCountdown(parts) : "--D.--H.--M.--S"}</span>
     </p>

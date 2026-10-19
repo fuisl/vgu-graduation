@@ -2,44 +2,30 @@ import Link from "next/link";
 import { BrandEyebrow, Section } from "@grad/ui";
 import type { EventConfig } from "@grad/contract";
 import type { ApiResult } from "../../../lib/api/result";
+import type { I18n } from "../../../lib/i18n/dictionary";
 import { EventDetails } from "./EventDetails";
 
 export type NoticeKind = "invalid" | "expired" | "error";
 
-const COPY: Record<NoticeKind, { title: string; body: string }> = {
-  invalid: {
-    title: "This invitation link isn't valid",
-    body: "The link may be incomplete, replaced or withdrawn. Please contact an organizer for a new one.",
-  },
-  expired: {
-    title: "This invitation has expired",
-    body: "Please contact an organizer if you still need to respond.",
-  },
-  error: {
-    title: "We couldn't load your invitation",
-    body: "This is a temporary problem, not a problem with your link. Refresh the page to try again.",
-  },
-};
-
-/** No invitation data is shown here, only the notice and public event information. */
-export function InviteNotice({ kind, event }: { kind: NoticeKind; event: ApiResult<EventConfig> }) {
-  const { title, body } = COPY[kind];
+/** No invitation data is shown here, only the notice and public event information. Copy is `invite.notice.<kind>.*`. */
+export function InviteNotice({ kind, event, i18n }: { kind: NoticeKind; event: ApiResult<EventConfig>; i18n: I18n }) {
+  const { t } = i18n;
   const contact = event.status === "ok" ? event.data.contact : null;
   return (
     <>
       <Section tone="blue" aria-labelledby="notice-heading">
         <div role={kind === "error" ? "alert" : undefined}>
-          <BrandEyebrow>Your invitation</BrandEyebrow>
-          <h1 id="notice-heading" className="invite-title">{title}</h1>
-          <p className="invite-lead">{body}</p>
+          <BrandEyebrow>{t("invite.eyebrow")}</BrandEyebrow>
+          <h1 id="notice-heading" className="invite-title">{t(`invite.notice.${kind}.title`)}</h1>
+          <p className="invite-lead">{t(`invite.notice.${kind}.body`)}</p>
           {kind === "error" ? (
             <p className="invite-lead">
-              <Link className="invite-link invite-link--on-blue" href="/invite" prefetch={false}>Try again</Link>
+              <Link className="invite-link invite-link--on-blue" href="/invite" prefetch={false}>{t("common.tryAgain")}</Link>
             </p>
           ) : null}
           {kind !== "error" && contact ? (
             <p className="invite-lead">
-              Organizer: {contact.name}
+              {t("invite.notice.organizer", { name: contact.name })}
               {contact.email ? (
                 <>
                   {" "}
@@ -52,7 +38,7 @@ export function InviteNotice({ kind, event }: { kind: NoticeKind; event: ApiResu
         </div>
       </Section>
       <Section tone="white" density="compact" narrow>
-        <EventDetails event={event} />
+        <EventDetails event={event} i18n={i18n} />
       </Section>
     </>
   );

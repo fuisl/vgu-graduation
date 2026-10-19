@@ -2,6 +2,7 @@
 
 import { useId, useState, type FormEvent } from "react";
 import { Cta, PaperPlanePixel } from "@grad/ui";
+import { formatRich, sliceTranslator, type MessageSlice } from "../../lib/i18n/format";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -13,7 +14,8 @@ type Status = { kind: "idle" } | { kind: "invalid" } | { kind: "pending" };
  * stores, logs or transmits the address. When the email exists, submit to its endpoint here
  * and replace the "pending" copy with a sent confirmation.
  */
-export function CalendarEmailForm({ icsHref }: { icsHref: string }) {
+export function CalendarEmailForm({ icsHref, messages }: { icsHref: string; messages: MessageSlice<"venue.email."> }) {
+  const t = sliceTranslator(messages);
   const id = useId();
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<Status>({ kind: "idle" });
@@ -25,7 +27,7 @@ export function CalendarEmailForm({ icsHref }: { icsHref: string }) {
 
   return (
     <form className="venue-email" onSubmit={onSubmit} noValidate aria-describedby={`${id}-status`}>
-      <label className="venue-label" htmlFor={`${id}-email`}>Get the calendar invite by email</label>
+      <label className="venue-label" htmlFor={`${id}-email`}>{t("venue.email.label")}</label>
       <div className="venue-email__row">
         <input
           id={`${id}-email`}
@@ -43,14 +45,16 @@ export function CalendarEmailForm({ icsHref }: { icsHref: string }) {
           aria-invalid={status.kind === "invalid"}
           required
         />
-        <Cta tone="on-blue" type="submit" icon={<PaperPlanePixel />}>Send invite</Cta>
+        <Cta tone="on-blue" type="submit" icon={<PaperPlanePixel />}>{t("venue.email.send")}</Cta>
       </div>
       <p id={`${id}-status`} className="venue-email__status" role="status">
-        {status.kind === "invalid" ? "Enter an email address like name@example.com." : null}
-        {status.kind === "pending" ? "Email invites are not sending yet. Use the calendar file below for now." : null}
+        {status.kind === "invalid" ? t("venue.email.invalid") : null}
+        {status.kind === "pending" ? t("venue.email.pending") : null}
       </p>
       <p className="venue-email__fallback">
-        Or <a className="venue-link" href={icsHref}>download the calendar file (.ics)</a>
+        {formatRich(t("venue.email.fallback"), {
+          link: <a className="venue-link" href={icsHref}>{t("venue.email.fallbackLink")}</a>,
+        })}
       </p>
     </form>
   );

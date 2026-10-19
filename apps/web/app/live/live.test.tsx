@@ -2,8 +2,8 @@ import { renderToStaticMarkup as html } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import LivePage from "./page";
 
-describe("/live (server render, before the socket connects)", () => {
-  const out = html(<LivePage />);
+describe("/live (server render, before the socket connects)", async () => {
+  const out = html(await LivePage());
 
   it("uses the shared header with no current nav item, and no footer", () => {
     expect(out).toContain("brand-header");

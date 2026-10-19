@@ -5,19 +5,20 @@ import {PillGroup, PillToggle} from "@grad/ui";
 import {
   TEXT_SIZES,
   TEXT_SIZE_ATTRIBUTE,
-  TEXT_SIZE_LABELS,
   TEXT_SIZE_STORAGE_KEY,
   applyTextSize,
   parseTextSize,
   type TextSize,
 } from "../../lib/a11y/text-size";
+import {sliceTranslator, type MessageSlice} from "../../lib/i18n/format";
 
 /**
  * Text size switch (#176): a toggle PillGroup that scales every brand page via the root font size.
  * The boot script in the root layout applies the stored choice before paint; this only reflects and
  * changes it. Server-rendered as "Default" and corrected on mount, so it never blocks the page.
  */
-export function TextSizeControl({tone = "on-white"}: {tone?: "on-blue" | "on-white"}) {
+export function TextSizeControl({tone = "on-white", messages}: {tone?: "on-blue" | "on-white"; messages: MessageSlice<"textSize.">}) {
+  const t = sliceTranslator(messages);
   const [size, setSize] = useState<TextSize>("default");
 
   useEffect(() => {
@@ -45,10 +46,10 @@ export function TextSizeControl({tone = "on-white"}: {tone?: "on-blue" | "on-whi
   }
 
   return (
-    <PillGroup as="toggle" label="Text size" tone={tone}>
+    <PillGroup as="toggle" label={t("textSize.label")} tone={tone}>
       {TEXT_SIZES.map((option) => (
         <PillToggle key={option} pressed={size === option} onClick={() => choose(option)}>
-          {TEXT_SIZE_LABELS[option]}
+          {t(`textSize.${option}`)}
         </PillToggle>
       ))}
     </PillGroup>

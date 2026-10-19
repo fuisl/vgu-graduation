@@ -3,32 +3,43 @@
 /* Gallery derivatives are already resized, immutable JPEGs from the media API; a Next image proxy would add an unnecessary hop. */
 /* eslint-disable @next/next/no-img-element */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Cta, PillGroup, PillToggle } from "@grad/ui";
 import type { GalleryItem } from "../../../data/gallery";
+import { sliceTranslator, type MessageSlice, type SliceTranslator } from "../../../lib/i18n/format";
 import { PrintRequest, usePrintAvailability } from "./PrintRequest";
 import "./gallery.css";
+
+/** `pickMessages(locale, "gallery.", "print.")`: the gallery and its print action in the guest's language (#9). */
+type GalleryMessages = MessageSlice<"gallery." | "print.">;
+type T = SliceTranslator<keyof GalleryMessages>;
 
 type Filter = "ALL" | "WISHES" | "POLAROIDS";
 type ViewMode = "GRID" | "CAROUSEL";
 type GridSize = "S" | "M" | "L";
 
-const FILTERS: { value: Filter; label: string }[] = [
-  { value: "ALL", label: "All entries" },
-  { value: "WISHES", label: "Guestbook wishes" },
-  { value: "POLAROIDS", label: "Polaroid snaps" },
+const FILTERS: { value: Filter; label: keyof GalleryMessages }[] = [
+  { value: "ALL", label: "gallery.filter.all" },
+  { value: "WISHES", label: "gallery.filter.wishes" },
+  { value: "POLAROIDS", label: "gallery.filter.polaroids" },
 ];
-const GRID_SIZES: { value: GridSize; label: string }[] = [
-  { value: "S", label: "Small, 4 columns" },
-  { value: "M", label: "Medium, 3 columns" },
-  { value: "L", label: "Large, 2 columns" },
+const GRID_SIZES: { value: GridSize; label: keyof GalleryMessages }[] = [
+  { value: "S", label: "gallery.size.s" },
+  { value: "M", label: "gallery.size.m" },
+  { value: "L", label: "gallery.size.l" },
 ];
+
+/** "a guest" for a photo, the author's name for a wish. */
+function senderOf(item: GalleryItem, t: T): string {
+  return item.sender ?? t("gallery.anonymous");
+}
 
 function prefersReducedMotion() {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-export function GalleryView() {
+export function GalleryView({ messages, intl }: { messages: GalleryMessages; intl: string }) {
+  const t = useMemo(() => sliceTranslator(messages), [messages]);
   const [isMounted, setIsMounted] = useState(false);
   const [filter, setFilter] = useState<Filter>("ALL");
   const [viewMode, setViewMode] = useState<ViewMode>("CAROUSEL");
@@ -68,7 +79,7 @@ export function GalleryView() {
         setIsPartial("partial" in body && body.partial === true);
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") return;
-        setLoadError("The gallery is temporarily unavailable. Please try again in a moment.");
+        setLoadError(t("gallery.unavailable"));
       } finally {
         if (!controller.signal.aborted) setIsLoading(false);
       }
@@ -76,7 +87,7 @@ export function GalleryView() {
 
     void loadGallery();
     return () => controller.abort();
-  }, []);
+  }, [t]);
 
   const filteredItems = galleryItems.filter((item) => {
     if (filter === "WISHES") return item.type === "WISH";
@@ -174,7 +185,7 @@ export function GalleryView() {
 
   const formatDate = (isoString: string) => {
     if (!isMounted) return "--:--";
-    return new Date(isoString).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+    return new Date(isoString).toLocaleTimeString(intl, { hour: "2-digit", minute: "2-digit", hour12: false });
   };
 
   // Linear carousel geometry: computed per card, so it stays inline.
@@ -210,10 +221,10 @@ export function GalleryView() {
   return (
     <>
       <div className="gal-controls">
-        <PillGroup as="toggle" label="Show" tone="on-white">
+        <PillGroup as="toggle" label={t("gallery.show")} tone="on-white">
           {FILTERS.map((option) => (
             <PillToggle key={option.value} pressed={filter === option.value} onClick={() => setFilter(option.value)}>
-              {option.label}
+              {t(option.label)}
             </PillToggle>
           ))}
         </PillGroup>
@@ -221,15 +232,15 @@ export function GalleryView() {
         <div className="gal-control-group">
           {viewMode === "GRID" && (
             <div className="gal-control-group">
-              <span className="mem-label mem-group-label" aria-hidden="true">Size</span>
-              <PillGroup as="toggle" label="Card size" tone="on-white">
+              <span className="mem-label mem-group-label" aria-hidden="true">{t("gallery.size")}</span>
+              <PillGroup as="toggle" label={t("gallery.cardSize")} tone="on-white">
                 {GRID_SIZES.map((option) => (
                   <PillToggle
                     key={option.value}
                     pressed={gridSize === option.value}
                     onClick={() => setGridSize(option.value)}
-                    aria-label={option.label}
-                    title={option.label}
+                    aria-label={t(option.label)}
+                    title={t(option.label)}
                   >
                     {option.value}
                   </PillToggle>
@@ -238,25 +249,23 @@ export function GalleryView() {
             </div>
           )}
 
-          <PillGroup as="toggle" label="Layout" tone="on-white">
-            <PillToggle pressed={viewMode === "GRID"} onClick={() => setViewMode("GRID")}>Grid</PillToggle>
-            <PillToggle pressed={viewMode === "CAROUSEL"} onClick={() => setViewMode("CAROUSEL")}>Carousel</PillToggle>
+          <PillGroup as="toggle" label={t("gallery.layout")} tone="on-white">
+            <PillToggle pressed={viewMode === "GRID"} onClick={() => setViewMode("GRID")}>{t("gallery.grid")}</PillToggle>
+            <PillToggle pressed={viewMode === "CAROUSEL"} onClick={() => setViewMode("CAROUSEL")}>{t("gallery.carousel")}</PillToggle>
           </PillGroup>
         </div>
       </div>
 
       {isPartial ? (
-        <p role="status" className="mem-status mem-status--notice">
-          Some memories could not be loaded. Showing the entries that are available.
-        </p>
+        <p role="status" className="mem-status mem-status--notice">{t("gallery.partial")}</p>
       ) : null}
 
       {isLoading ? (
-        <p role="status" className="mem-status mem-status--center">Loading memories…</p>
+        <p role="status" className="mem-status mem-status--center">{t("gallery.loading")}</p>
       ) : loadError ? (
         <p role="alert" className="mem-status mem-status--error mem-status--center">{loadError}</p>
       ) : len === 0 ? (
-        <p className="mem-status mem-status--center">No entries yet.</p>
+        <p className="mem-status mem-status--center">{t("gallery.empty")}</p>
       ) : viewMode === "GRID" ? (
         <div className="gal-masonry">
           {masonryColumns.map((col, colIndex) => (
@@ -268,6 +277,7 @@ export function GalleryView() {
                   index={colIndex * 2 + itemIndex}
                   onView={() => openItem(item)}
                   formatDate={formatDate}
+                  t={t}
                 />
               ))}
             </div>
@@ -278,7 +288,7 @@ export function GalleryView() {
           className="gal-carousel"
           role="region"
           aria-roledescription="carousel"
-          aria-label="Memories"
+          aria-label={t("gallery.carouselLabel")}
           onMouseEnter={() => setIsAutoPlaying(false)}
           onMouseLeave={() => setIsAutoPlaying(true)}
           onFocus={() => setIsAutoPlaying(false)}
@@ -287,8 +297,8 @@ export function GalleryView() {
           onTouchEnd={handleTouchEnd}
         >
           <div className="gal-carousel-nav">
-            <Cta tone="on-white" variant="secondary" onClick={handlePrev} aria-label="Previous memory">←</Cta>
-            <Cta tone="on-white" variant="secondary" onClick={handleNext} aria-label="Next memory">→</Cta>
+            <Cta tone="on-white" variant="secondary" onClick={handlePrev} aria-label={t("gallery.previous")}>←</Cta>
+            <Cta tone="on-white" variant="secondary" onClick={handleNext} aria-label={t("gallery.next")}>→</Cta>
           </div>
 
           <div className="gal-carousel-track">
@@ -309,6 +319,7 @@ export function GalleryView() {
                     handleCardClick(index);
                   }}
                   formatDate={formatDate}
+                  t={t}
                 />
               </div>
             ))}
@@ -326,14 +337,14 @@ export function GalleryView() {
             className="gal-dialog"
             role="dialog"
             aria-modal="true"
-            aria-label={selectedItem.type === "WISH" ? `Wish from ${selectedItem.sender}` : `Photo from ${selectedItem.sender}`}
+            aria-label={t(selectedItem.type === "WISH" ? "gallery.wishFrom" : "gallery.photoFrom", { name: senderOf(selectedItem, t) })}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="gal-dialog-bar" ref={closeBarRef}>
-              <Cta tone="on-white" variant="secondary" onClick={() => setSelectedItem(null)}>Close</Cta>
+              <Cta tone="on-white" variant="secondary" onClick={() => setSelectedItem(null)}>{t("gallery.close")}</Cta>
             </div>
 
-            <CardMeta item={selectedItem} formatDate={formatDate} />
+            <CardMeta item={selectedItem} formatDate={formatDate} t={t} />
 
             {selectedItem.type === "WISH" ? (
               <div className="gal-wish gal-wish--full">
@@ -343,13 +354,13 @@ export function GalleryView() {
             ) : (
               <div className="mem-polaroid">
                 <div className="mem-polaroid-frame">
-                  <img src={selectedItem.content} alt={`Photo from ${selectedItem.sender}`} className="mem-polaroid-img" />
+                  <img src={selectedItem.content} alt={t("gallery.photoFrom", { name: senderOf(selectedItem, t) })} className="mem-polaroid-img" />
                 </div>
               </div>
             )}
 
             {selectedItem.type === "POLAROID" && selectedItem.publicId ? (
-              <PrintRequest key={selectedItem.publicId} publicId={selectedItem.publicId} availability={printAvailability} />
+              <PrintRequest key={selectedItem.publicId} publicId={selectedItem.publicId} availability={printAvailability} t={t} />
             ) : null}
           </div>
         </div>
@@ -358,12 +369,12 @@ export function GalleryView() {
   );
 }
 
-function CardMeta({ item, formatDate }: { item: GalleryItem; formatDate: (d: string) => string }) {
+function CardMeta({ item, formatDate, t }: { item: GalleryItem; formatDate: (d: string) => string; t: T }) {
   return (
     <div className="gal-meta">
       <p className="gal-meta-list">
-        <span className="gal-meta-label">From: <span className="gal-meta-value">{item.sender}</span></span>
-        <span className="gal-meta-label">To: <span className="gal-meta-value">{item.receivers.join(", ")}</span></span>
+        <span className="gal-meta-label">{t("gallery.from")} <span className="gal-meta-value">{senderOf(item, t)}</span></span>
+        <span className="gal-meta-label">{t("gallery.to")} <span className="gal-meta-value">{t(`gallery.audience.${item.audience}`)}</span></span>
       </p>
       <time className="gal-meta-time" dateTime={item.timestamp}>{formatDate(item.timestamp)}</time>
     </div>
@@ -376,16 +387,18 @@ function GalleryCard({
   onView,
   formatDate,
   tabIndex,
+  t,
 }: {
   item: GalleryItem;
   index: number;
   onView: (e?: React.MouseEvent) => void;
   formatDate: (d: string) => string;
   tabIndex?: number;
+  t: T;
 }) {
   return (
     <article className="gal-card" style={{ animationDelay: `${index * 50}ms` }}>
-      <CardMeta item={item} formatDate={formatDate} />
+      <CardMeta item={item} formatDate={formatDate} t={t} />
 
       {item.type === "WISH" ? (
         <div className="gal-wish gal-wish--clamp">
@@ -395,13 +408,13 @@ function GalleryCard({
       ) : (
         <div className="mem-polaroid">
           <div className="mem-polaroid-frame">
-            <img src={item.content} alt={`Photo from ${item.sender}`} className="mem-polaroid-img" loading="lazy" />
+            <img src={item.content} alt={t("gallery.photoFrom", { name: senderOf(item, t) })} className="mem-polaroid-img" loading="lazy" />
           </div>
         </div>
       )}
 
       <div className="gal-card-footer">
-        <Cta tone="on-white" variant="secondary" onClick={onView} tabIndex={tabIndex}>View details</Cta>
+        <Cta tone="on-white" variant="secondary" onClick={onView} tabIndex={tabIndex}>{t("gallery.view")}</Cta>
       </div>
     </article>
   );

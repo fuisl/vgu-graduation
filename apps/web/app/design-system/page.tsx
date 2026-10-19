@@ -6,6 +6,7 @@ import {SiteFooter} from "../site/SiteFooter";
 import {SignedInChip} from "../site/GuestChip";
 import {SignedOutChip} from "../site/SiteAction";
 import {SiteHeader} from "../site/SiteHeader";
+import {getI18n} from "../../lib/i18n/server";
 
 export const metadata: Metadata = {title: "Design system · GRAD '26"};
 
@@ -106,7 +107,9 @@ function Toggles({title, tone}: {title: string; tone: "on-blue" | "on-white"}) {
   );
 }
 
-export default function DesignSystem() {
+/** A developer reference: its copy stays English (#9); the real header, footer and chips follow the site language. */
+export default async function DesignSystem() {
+  const i18n = await getI18n();
   return (
     <BrandTheme>
       <main className="brand-ds">
@@ -265,11 +268,11 @@ export default function DesignSystem() {
           <h2 id="ds-shell" className="brand-ds-h2">Header and footer</h2>
           <p className="brand-ds-note">The real <code>SiteHeader</code> (compact mark only, Menu pill on mobile) and <code>SiteFooter</code> (deep-blue band, the only full wordmark), shown below.</p>
         </Section>
-        <SiteHeader current="home" />
+        <SiteHeader i18n={i18n} current="home" />
         <Section tone="white" density="compact" aria-labelledby="ds-shell-gap">
           <h3 id="ds-shell-gap" className="brand-ds-h3">Page content sits here</h3>
         </Section>
-        <SiteFooter />
+        <SiteFooter i18n={i18n} />
 
         <Section tone="blue" aria-labelledby="ds-chip">
           <BrandEyebrow ellipsis>Guest chip</BrandEyebrow>
@@ -279,11 +282,11 @@ export default function DesignSystem() {
           </p>
           <div className="brand-ds-row">
             <p className="brand-ds-row__label">Signed out</p>
-            <div className="brand-ds-row__items"><SignedOutChip /></div>
+            <div className="brand-ds-row__items"><SignedOutChip label={i18n.t("header.guestPortal")} /></div>
           </div>
           <div className="brand-ds-row">
             <p className="brand-ds-row__label">Signed in</p>
-            <div className="brand-ds-row__items"><SignedInChip givenName="Linh"avatarSeed="3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e70" /></div>
+            <div className="brand-ds-row__items"><SignedInChip givenName="Linh" avatarSeed="3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e70" profileLabel={i18n.t("header.profile")} /></div>
           </div>
         </Section>
 

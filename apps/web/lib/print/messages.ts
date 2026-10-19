@@ -1,26 +1,31 @@
+import type { MessageKeys, SliceTranslator } from "../i18n/format";
+
+/** The `print.*` messages, in the guest's language (#9); the gallery passes its translator. */
+type T = SliceTranslator<MessageKeys<"print.">>;
+
 /** "about 45 minutes", "about an hour", "about 2 hours", "a minute": a Retry-After for people. */
-export function formatRetryAfter(seconds: number): string {
+export function formatRetryAfter(seconds: number, t: T): string {
   const minutes = Math.max(1, Math.ceil(seconds / 60));
-  if (minutes === 1) return "a minute";
-  if (minutes < 55) return `about ${minutes} minutes`;
+  if (minutes === 1) return t("print.wait.minute");
+  if (minutes < 55) return t("print.wait.minutes", { count: minutes });
   const hours = Math.round(minutes / 60);
-  return hours <= 1 ? "about an hour" : `about ${hours} hours`;
+  return hours <= 1 ? t("print.wait.hour") : t("print.wait.hours", { count: hours });
 }
 
 /** What the guest reads when POST /api/print fails, by status. Never echoes server detail. */
-export function printErrorMessage(status: number, retryAfterSeconds: number | undefined, perHour: number): string {
+export function printErrorMessage(status: number, retryAfterSeconds: number | undefined, perHour: number, t: T): string {
   switch (status) {
     case 401:
     case 404:
     case 410:
-      return "We couldn't confirm your invitation. Open your invitation link again, then request the print.";
+      return t("print.error.invitation");
     case 403:
-      return "Printing isn't available right now.";
+      return t("print.error.disabled");
     case 409:
-      return "This photo can't be printed. It may have been hidden or is still being processed.";
+      return t("print.error.photo");
     case 429:
-      return `You've reached the limit of ${perHour} prints an hour. Try again in ${formatRetryAfter(retryAfterSeconds ?? 3600)}.`;
+      return t("print.error.limit", { perHour, wait: formatRetryAfter(retryAfterSeconds ?? 3600, t) });
     default:
-      return "The print queue couldn't be reached. Check your connection and try again.";
+      return t("print.error.network");
   }
 }

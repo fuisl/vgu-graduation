@@ -2,34 +2,41 @@ import type { Metadata } from "next";
 import { BrandEyebrow, BrandTheme, Cta, Section } from "@grad/ui";
 import { getPublicGallery, getPublicWishes } from "../../../lib/api/public-memories";
 import { publicApiOrigin } from "../../../lib/calendar/links";
+import type { I18n } from "../../../lib/i18n/dictionary";
+import { formatRich } from "../../../lib/i18n/format";
+import { getI18n } from "../../../lib/i18n/server";
 import { DEFAULT_TIME_ZONE, formatClock, formatDay } from "../../../lib/memories/timeline";
 import { SiteFooter } from "../../site/SiteFooter";
 import { SiteHeader } from "../../site/SiteHeader";
 import { MemoryPhoto } from "./MemoryPhoto";
 import "./archive.css";
 
-export const metadata: Metadata = {
-  title: "Memories | GRAD '26",
-  description: "The curated archive of the VGU Class of 2026 graduation: photos and wishes chosen by the organizers.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("memories.metaTitle"), description: t("memories.metaDescription") };
+}
 
 /**
- * Curated public archive (#75). Static and cached on Vercel: it reads only the
- * curated GET /gallery/public and GET /wishes/public listings (tags
- * `gallery-public` and `wishes-public`), so an admin's public-flag or takedown
- * revalidates this page too. The event gallery at /gallery stays as it is.
+ * Curated public archive (#75). It reads only the curated GET /gallery/public and
+ * GET /wishes/public listings, cached in the fetch cache (tags `gallery-public` and
+ * `wishes-public`), so an admin's public-flag or takedown reaches this page too.
+ * Rendered per request in the guest's language (#9, ADR-010), so there is no page-level
+ * revalidate: the listings themselves stay cached. The event gallery at /gallery stays as it is.
  */
-export const revalidate = 60;
 
 /** Photos above the fold on a phone (two rows of two) load eagerly. */
 const EAGER_PHOTOS = 4;
 
-function photoAlt(createdAt: string): string {
-  return `Guest photo, ${formatDay(createdAt, DEFAULT_TIME_ZONE)}, ${formatClock(createdAt, DEFAULT_TIME_ZONE)}`;
+function photoAlt(createdAt: string, { t, intl }: I18n): string {
+  return t("memories.photoAlt", {
+    day: formatDay(createdAt, DEFAULT_TIME_ZONE, intl),
+    time: formatClock(createdAt, DEFAULT_TIME_ZONE),
+  });
 }
 
 export default async function MemoriesPage() {
-  const [gallery, wishes] = await Promise.all([getPublicGallery(), getPublicWishes()]);
+  const [gallery, wishes, i18n] = await Promise.all([getPublicGallery(), getPublicWishes(), getI18n()]);
+  const { t } = i18n;
   const origin = publicApiOrigin();
   const photos = gallery.status === "ok" ? gallery.data.items : null;
   const words = wishes.status === "ok" ? wishes.data.items : null;
@@ -37,22 +44,20 @@ export default async function MemoriesPage() {
 
   return (
     <BrandTheme>
-      <SiteHeader />
+      <SiteHeader i18n={i18n} />
       <main>
         <Section tone="blue" aria-labelledby="memories-title">
           <div className="mem-hero">
-            <BrandEyebrow ellipsis>Archive / Curated</BrandEyebrow>
-            <h1 id="memories-title" className="mem-title">Class of 2026, remembered.</h1>
-            <p className="mem-lead">
-              Photos and wishes from graduation day, chosen by the organizers and kept for the four-year archive.
-            </p>
+            <BrandEyebrow ellipsis>{t("memories.eyebrow")}</BrandEyebrow>
+            <h1 id="memories-title" className="mem-title">{t("memories.title")}</h1>
+            <p className="mem-lead">{t("memories.lead")}</p>
             <div className="arc-actions">
               {nothingCurated ? (
-                <Cta tone="on-blue" href="/gallery">Open the event gallery</Cta>
+                <Cta tone="on-blue" href="/gallery">{t("memories.openGallery")}</Cta>
               ) : (
                 <>
-                  <Cta tone="on-blue" href="/memories/timeline">Walk the timeline</Cta>
-                  <Cta tone="on-blue" variant="secondary" href="/gallery">Event gallery</Cta>
+                  <Cta tone="on-blue" href="/memories/timeline">{t("memories.walkTimeline")}</Cta>
+                  <Cta tone="on-blue" variant="secondary" href="/gallery">{t("memories.eventGallery")}</Cta>
                 </>
               )}
             </div>
@@ -61,27 +66,30 @@ export default async function MemoriesPage() {
 
         {nothingCurated ? (
           <Section tone="white" density="compact" aria-labelledby="memories-empty-title">
-            <BrandEyebrow>After the ceremony</BrandEyebrow>
-            <h2 id="memories-empty-title" className="arc-h2">Nothing curated yet</h2>
+            <BrandEyebrow>{t("memories.empty.eyebrow")}</BrandEyebrow>
+            <h2 id="memories-empty-title" className="arc-h2">{t("memories.empty.title")}</h2>
             <p className="arc-state">
-              After the ceremony the organizers choose photos and wishes for this public archive. Until then, everything guests
-              share is in the <a className="arc-link" href="/gallery">event gallery</a> and the{" "}
-              <a className="arc-link" href="/wishes">guestbook</a>.
+              {formatRich(t("memories.empty.body"), {
+                gallery: <a className="arc-link" href="/gallery">{t("memories.empty.galleryLink")}</a>,
+                guestbook: <a className="arc-link" href="/wishes">{t("memories.empty.guestbookLink")}</a>,
+              })}
             </p>
           </Section>
         ) : (
           <>
             <Section tone="white" density="compact" aria-labelledby="memories-photos-title">
-              <BrandEyebrow>Photos</BrandEyebrow>
+              <BrandEyebrow>{t("memories.photos.eyebrow")}</BrandEyebrow>
               <h2 id="memories-photos-title" className="arc-h2">
-                From the day{photos && photos.length > 0 ? <span className="arc-count"> {photos.length}</span> : null}
+                {t("memories.photos.title")}{photos && photos.length > 0 ? <span className="arc-count"> {photos.length}</span> : null}
               </h2>
               {photos === null ? (
                 <p className="arc-state" role="status">
-                  The archive photos are temporarily unavailable. <a className="arc-link" href="/memories">Try again</a>.
+                  {formatRich(t("memories.photos.unavailable"), {
+                    retry: <a className="arc-link" href="/memories">{t("common.tryAgain")}</a>,
+                  })}
                 </p>
               ) : photos.length === 0 ? (
-                <p className="arc-state">No photos have been curated yet.</p>
+                <p className="arc-state">{t("memories.photos.empty")}</p>
               ) : (
                 <ul className="arc-photos">
                   {photos.map((photo, index) => (
@@ -91,7 +99,7 @@ export default async function MemoriesPage() {
                         photo={photo}
                         origin={origin}
                         sizes="(max-width: 960px) 50vw, 300px"
-                        alt={photoAlt(photo.createdAt)}
+                        alt={photoAlt(photo.createdAt, i18n)}
                         eager={index < EAGER_PHOTOS}
                       />
                     </li>
@@ -99,19 +107,21 @@ export default async function MemoriesPage() {
                 </ul>
               )}
               {gallery.status === "ok" && gallery.data.truncated ? (
-                <p className="arc-state arc-state--note">Showing the most recent {photos?.length} photos.</p>
+                <p className="arc-state arc-state--note">{t("memories.photos.truncated", { count: photos?.length ?? 0 })}</p>
               ) : null}
             </Section>
 
             <Section tone="blue" aria-labelledby="memories-wishes-title">
-              <BrandEyebrow>Wishes</BrandEyebrow>
-              <h2 id="memories-wishes-title" className="arc-h2">Words for the class</h2>
+              <BrandEyebrow>{t("nav.wishes")}</BrandEyebrow>
+              <h2 id="memories-wishes-title" className="arc-h2">{t("memories.wishes.title")}</h2>
               {words === null ? (
                 <p className="arc-state" role="status">
-                  The archive wishes are temporarily unavailable. <a className="arc-link" href="/memories">Try again</a>.
+                  {formatRich(t("memories.wishes.unavailable"), {
+                    retry: <a className="arc-link" href="/memories">{t("common.tryAgain")}</a>,
+                  })}
                 </p>
               ) : words.length === 0 ? (
-                <p className="arc-state">No wishes have been curated yet.</p>
+                <p className="arc-state">{t("memories.wishes.empty")}</p>
               ) : (
                 <ul className="arc-wishes">
                   {words.map((wish) => (
@@ -125,21 +135,19 @@ export default async function MemoriesPage() {
             </Section>
 
             <Section tone="white" density="compact" aria-labelledby="memories-more-title">
-              <BrandEyebrow>Everything else</BrandEyebrow>
-              <h2 id="memories-more-title" className="arc-h2">The whole day</h2>
-              <p className="arc-state">
-                This archive is a selection. Everything guests shared on the day stays in the event gallery and the guestbook.
-              </p>
+              <BrandEyebrow>{t("memories.more.eyebrow")}</BrandEyebrow>
+              <h2 id="memories-more-title" className="arc-h2">{t("memories.more.title")}</h2>
+              <p className="arc-state">{t("memories.more.body")}</p>
               <div className="arc-actions">
-                <Cta tone="on-white" variant="secondary" href="/memories/timeline">Open the timeline</Cta>
-                <Cta tone="on-white" variant="secondary" href="/gallery">Event gallery</Cta>
-                <a className="arc-link arc-link--tap" href="/wishes">Guestbook</a>
+                <Cta tone="on-white" variant="secondary" href="/memories/timeline">{t("memories.openTimeline")}</Cta>
+                <Cta tone="on-white" variant="secondary" href="/gallery">{t("memories.eventGallery")}</Cta>
+                <a className="arc-link arc-link--tap" href="/wishes">{t("memories.guestbook")}</a>
               </div>
             </Section>
           </>
         )}
       </main>
-      <SiteFooter />
+      <SiteFooter i18n={i18n} />
     </BrandTheme>
   );
 }

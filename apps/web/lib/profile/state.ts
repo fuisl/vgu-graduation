@@ -14,19 +14,19 @@ export function selectGuestPageState(hasToken: boolean, invitation: ApiResult<In
   return selectInvitePageState(invitation);
 }
 
-/** Where a guest goes from their profile. Public pages work signed out too (`public`). */
-export const GUEST_LINKS: ReadonlyArray<{ href: string; title: string; description: string; public: boolean }> = [
-  { href: "/invite", title: "Your invitation", description: "Your RSVP, the ceremony details and your pass.", public: false },
-  { href: "/venue", title: "Venue and calendar", description: "When and where, directions and a calendar entry.", public: true },
-  { href: "/guide", title: "Guide-book", description: "Places to see on campus while the graduates are busy.", public: false },
-  {
-    href: "/live",
-    title: "Live captions",
-    description: "Read the ceremony on your phone in Deutsch, English or Tiếng Việt (experimental).",
-    public: true,
-  },
-  { href: "/gallery", title: "Gallery", description: "Photos from the day, from every guest's camera.", public: true },
-  { href: "/wishes", title: "Wishes", description: "Leave a message for the graduates.", public: true },
-  { href: "/polaroid", title: "Disposable camera", description: "Take photos for the shared roll.", public: false },
-  { href: "/accessibility", title: "Accessibility", description: "Step-free access, captions and how to ask for help.", public: true },
+export type GuestLinkId = "invite" | "venue" | "guide" | "live" | "gallery" | "wishes" | "polaroid" | "accessibility";
+
+/**
+ * Where a guest goes from their profile. Public pages work signed out too (`public`).
+ * Title and description are the `profile.link.<id>.title` / `.description` messages (#9).
+ */
+export const GUEST_LINKS: ReadonlyArray<{ id: GuestLinkId; href: string; public: boolean }> = [
+  { id: "invite", href: "/invite", public: false },
+  { id: "venue", href: "/venue", public: true },
+  { id: "guide", href: "/guide", public: false },
+  { id: "live", href: "/live", public: true },
+  { id: "gallery", href: "/gallery", public: true },
+  { id: "wishes", href: "/wishes", public: true },
+  { id: "polaroid", href: "/polaroid", public: false },
+  { id: "accessibility", href: "/accessibility", public: true },
 ];

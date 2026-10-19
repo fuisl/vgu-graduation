@@ -1,12 +1,15 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { PassBadgeView } from "./PassBadgeView";
+import { pickMessages } from "../../../lib/i18n/dictionary";
+
+const messages = pickMessages("en", "pass.");
 
 // Called as a function so the test needs no JSX transform (the app's vitest config has none).
 describe("PassBadgeView", () => {
   it("renders an accessible image naming the guest", () => {
     const html = renderToStaticMarkup(
-      PassBadgeView({ state: "ready", svg: "<svg></svg>", guestName: "Nguyễn Ánh", eventName: "GRAD '26", date: "Saturday" }),
+      PassBadgeView({ state: "ready", svg: "<svg></svg>", guestName: "Nguyễn Ánh", eventName: "GRAD '26", date: "Saturday", messages }),
     );
     expect(html).toContain('role="img"');
     expect(html).toContain("QR code badge for Nguyễn Ánh");
@@ -14,7 +17,7 @@ describe("PassBadgeView", () => {
   });
 
   it("shows a short note when unavailable", () => {
-    const html = renderToStaticMarkup(PassBadgeView({ state: "unavailable" }));
+    const html = renderToStaticMarkup(PassBadgeView({ state: "unavailable", messages }));
     expect(html).toContain("unavailable");
     expect(html).not.toContain('role="img"');
   });

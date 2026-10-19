@@ -112,7 +112,7 @@ export default async function DesignSystem() {
   const i18n = await getI18n();
   return (
     <BrandTheme>
-      <main className="brand-ds">
+      <main id="main" className="brand-ds">
         <Section tone="blue" aria-labelledby="ds-intro">
           <BrandEyebrow ellipsis>GRAD &apos;26 / Blue and white</BrandEyebrow>
           <h1 id="ds-intro" className="brand-ds-title">Design system</h1>

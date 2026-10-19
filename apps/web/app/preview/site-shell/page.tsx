@@ -11,7 +11,7 @@ export default async function SiteShellPreview() {
   return (
     <BrandTheme>
       <SiteHeader i18n={i18n} current="home" />
-      <main>
+      <main id="main">
         <Section tone="blue">
           <BrandEyebrow>Preview</BrandEyebrow>
           <h1 style={{margin: "var(--space-4) 0 0", fontSize: "var(--brand-text-h1)", fontWeight: 500}}>Blue section</h1>

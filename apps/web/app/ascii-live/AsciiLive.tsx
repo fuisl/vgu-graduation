@@ -188,7 +188,7 @@ export function AsciiLive({ messages }: { messages: MessageSlice<"ascii."> }) {
     <Cta tone={tone} onClick={() => void startCamera()} disabled={starting}>{starting ? t("ascii.starting") : t("ascii.start")}</Cta>;
 
   return <>
-    <main className="ascii-live">
+    <main id="main" className="ascii-live">
       <Section tone="blue" density="compact">
         <div className="ascii-live-header">
           <div>

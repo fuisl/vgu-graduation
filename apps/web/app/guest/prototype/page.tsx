@@ -17,7 +17,7 @@ export default async function GuestPrototype() {
   return (
     <BrandTheme>
       <SiteHeader i18n={i18n} />
-      <main className="guest-prototype">
+      <main id="main" className="guest-prototype">
         {/* Plain brand-blue stage; the canvas spans it so drags can reach the edges. */}
         <section className="guest-stage" aria-label={t("badge.stage")}>
           <div className="guest-object-scene">

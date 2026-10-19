@@ -8,7 +8,7 @@ Owner brief (2026-10): "Too much information and text is being displayed, and in
 
 `/` renders inside `BrandTheme` with `SiteHeader current="home"` (no nav item is current; the mark is the way home) and `SiteFooter`. Styles are route-local in `apps/web/app/landing.css`, brand tokens only. Sections, in order:
 
-1. **Blue hero** (`Section tone="blue"`, airy). The sculpture stage (`.home-visual`, `clamp(200px, 38svh, 460px)` high, `clamp(180px, 34svh, 360px)` at 960px and below, never taller than wide), then the `Graduation ’26` headline and one sentence on what the site is for (`landing.lead`). The hero is not a full screen, so on a phone the entry points start in the first view. No date, venue, countdown or calendar action: the menubar holds the event essentials.
+1. **Blue hero** (`Section tone="blue"`, airy). The hero fills the viewport (`100svh`, including the strip behind the overlaid header); the sculpture stage (`.home-visual`, never taller than wide, at least 280px, 160px at 960px and below) takes the height left over by the `Graduation ’26` headline and one sentence on what the site is for (`landing.lead`). The entry points start below the fold (owner decision, 2026-10-19). No date, venue, countdown or calendar action: the menubar holds the event essentials.
 2. **White "Start here"** (`Section tone="white" density="compact"`). Four entry points as large rows (title, one line, pixel arrow, hairlines between; the guest profile's quick-link pattern), two columns above 960px and one below, in the order of `AGENTS.md`: **My invitation** (`/me`, which opens the invitation or explains how to), **Venue and calendar** (`/venue`; its line is the date and venue, "Friday 20 November · Ceremony Hall", or "Date, directions and the campus map." when the event API fails), **Open camera** (`/gallery`, which opens the shared camera) and **Wishes** (`/wishes`).
 3. **Footer** (`SiteFooter`, deep blue, minimal).
 
@@ -91,7 +91,7 @@ The route sits on the blue-and-white brand theme (`BrandTheme`, `SiteHeader`, `S
 
 ## Reference captures
 
-Captures of the shipped landing live in `docs/design/reference/`: `landing-desktop.png` (1440px wide) and `landing-mobile.png` (390px wide), full page. They are stills of a live, animated page (2026-10 menubar pass) against a stub `GET /event` (20 November, Ceremony Hall), in a software-rendered browser, so the sculpture shows its static motif.
+Captures of the shipped landing live in `docs/design/reference/`: `landing-desktop.png` (1440px wide) and `landing-mobile.png` (390px wide), full page. They are stills of a live, animated page (2026-10 menubar pass, full-viewport hero) against `apps/web/scripts/mock-live-api.mjs` (24 October, VGU Campus, Main Hall), in a software-rendered browser, so the sculpture shows its static motif.
 
 ## Name badge
 

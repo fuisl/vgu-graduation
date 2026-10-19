@@ -23,7 +23,7 @@ type Entry = { id: "invitation" | "venue" | "camera" | "wishes"; href: string; d
 
 /**
  * Landing (/), owner brief 2026-10: say what the site is for and where to go, nothing else. A blue
- * hero (sculpture, headline, one sentence), then four entry points in the order of AGENTS.md:
+ * full-viewport hero (sculpture, headline, one sentence), then four entry points in the order of AGENTS.md:
  * invitation, venue and calendar, then the camera and wishes. Persistent facts and settings live
  * in the menubar; the venue entry repeats the date and venue once because, on a phone, the menubar
  * keeps them inside the Menu sheet.

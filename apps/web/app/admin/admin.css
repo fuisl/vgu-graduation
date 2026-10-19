@@ -10,11 +10,15 @@
 .admin p{line-height:1.6}
 .admin a:not(.admin-button){text-decoration:underline;text-underline-offset:.2em}
 .admin-muted{color:var(--muted)}
+/* Skip link (#78): first focusable element, above the viewport until focused. */
+.admin-skip-link{position:fixed;top:var(--space-3);left:var(--gutter);z-index:10;display:inline-flex;align-items:center;min-height:44px;padding:0 1rem;border:1px solid var(--color-border-strong);border-radius:var(--radius-sm);background:var(--surface);color:var(--fg);font-family:var(--font-mono);font-size:12px;text-decoration:none!important;transform:translateY(calc(-100% - var(--space-5)))}
+.admin-skip-link:focus{transform:none}
+#admin-main:focus{outline:none}
 
 .admin-header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:var(--space-2) var(--space-5)}
 .admin-header p{margin:0}
 .admin-nav ul{display:flex;flex-wrap:wrap;gap:0 var(--space-4);margin:0;padding:0;list-style:none}
-.admin-nav a,.admin-nav button{display:inline-flex;align-items:center;min-height:44px;padding:0;border:0;border-bottom:1px solid transparent;background:none;color:var(--muted);font-family:var(--font-mono);font-size:var(--text-xs);letter-spacing:.04em;text-transform:uppercase;text-decoration:none!important;cursor:pointer}
+.admin-nav a,.admin-nav button{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;padding:0;border:0;border-bottom:1px solid transparent;background:none;color:var(--muted);font-family:var(--font-mono);font-size:var(--text-xs);letter-spacing:.04em;text-transform:uppercase;text-decoration:none!important;cursor:pointer}
 .admin-nav a:hover,.admin-nav button:hover{color:var(--fg)}
 .admin-nav a[aria-current="page"]{border-bottom-color:var(--fg);color:var(--fg)}
 .admin-nav form{margin:0}
@@ -36,14 +40,16 @@ textarea.admin-input{min-height:6rem;resize:vertical}
 .admin-fieldset{margin:0 0 var(--space-4);padding:0;border:0}
 .admin-fieldset>legend{margin-bottom:var(--space-2);padding:0}
 .admin-check{display:flex;align-items:center;gap:var(--space-2);min-height:44px;font-size:var(--text-sm)}
-.admin-check input{width:18px;height:18px;margin:0;accent-color:var(--fg)}
+.admin-check input{flex:none;width:18px;height:18px;margin:0;accent-color:var(--fg)}
 
 .admin-notice{margin:0 0 var(--space-5);padding:var(--space-4);border:1px solid var(--color-border-strong);border-radius:var(--radius-sm)}
 .admin-notice>:first-child{margin-top:0}
 .admin-notice>:last-child{margin-bottom:0}
 .admin-notice--error{border-color:var(--color-danger)}
 
-.admin-table-wrap{overflow-x:auto}
+/* Scroll hint (#78): an edge shade appears on a side with more columns to scroll to. The "local"
+   covers travel with the content and hide the "scroll" shades at either end. */
+.admin-table-wrap{overflow-x:auto;background:linear-gradient(to right,var(--bg) 30%,transparent) left/2.5rem 100% no-repeat local,linear-gradient(to left,var(--bg) 30%,transparent) right/2.5rem 100% no-repeat local,linear-gradient(to right,color-mix(in srgb,var(--fg) 16%,transparent),transparent) left/.75rem 100% no-repeat scroll,linear-gradient(to left,color-mix(in srgb,var(--fg) 16%,transparent),transparent) right/.75rem 100% no-repeat scroll;background-color:var(--bg)}
 .admin-table{width:100%;border-collapse:collapse;font-size:var(--text-sm)}
 .admin-table caption{text-align:left}
 .admin-table th,.admin-table td{padding:var(--space-3) var(--space-4) var(--space-3) 0;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
@@ -179,7 +185,7 @@ textarea.admin-input{min-height:6rem;resize:vertical}
   .admin-header,.admin-no-print,.admin button,.admin .admin-button{display:none!important}
   .admin-print-only{display:block}
   .admin-muted,.admin-stats dt{color:#000}
-  .admin-table-wrap{overflow:visible}
+  .admin-table-wrap{overflow:visible;background:none}
   .admin-table th,.admin-table td{border-bottom-color:#999;color:#000}
   .admin-table tr{break-inside:avoid}
   .admin-notice{border-color:#000}

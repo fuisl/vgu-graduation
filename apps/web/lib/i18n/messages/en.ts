@@ -481,10 +481,10 @@ export const en = {
   "live.size.xl": "Extra large text",
   // Offline state and dock landmark (#78, QA P2-16, P1-6).
   "live.status.offline": "Offline",
-  "live.offlineTitle": "You are offline",
-  "live.offlineBody": "Live captions cannot be reached. Check your Wi-Fi or mobile data; this page reconnects by itself.",
+  "live.offlineTitle": "Live captions cannot be reached",
+  "live.offlineBody": "This phone may be offline, or the venue network may be down. Check your Wi-Fi or mobile data; this page reconnects by itself.",
   "live.offlineBodyStale":
-    "Live captions cannot be reached, so the lines below may be out of date. Check your Wi-Fi or mobile data; this page reconnects by itself.",
+    "The lines below may be out of date. This phone may be offline, or the venue network may be down; check your Wi-Fi or mobile data. This page reconnects by itself.",
   "live.controls": "Caption settings",
 
   // Event display (/display) -----------------------------------------------------------

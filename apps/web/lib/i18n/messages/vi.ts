@@ -498,10 +498,10 @@ export const vi: Messages = {
   // Offline state and dock landmark (#78, QA P2-16, P1-6).
   // TODO(owner): native review of the offline captions notice.
   "live.status.offline": "Ngoại tuyến",
-  "live.offlineTitle": "Quý khách đang ngoại tuyến",
-  "live.offlineBody": "Không kết nối được phụ đề trực tiếp. Quý khách vui lòng kiểm tra Wi-Fi hoặc dữ liệu di động; trang này sẽ tự kết nối lại.",
+  "live.offlineTitle": "Không kết nối được phụ đề trực tiếp",
+  "live.offlineBody": "Điện thoại có thể đang ngoại tuyến, hoặc mạng tại hội trường đang gặp sự cố. Quý khách vui lòng kiểm tra Wi-Fi hoặc dữ liệu di động; trang này sẽ tự kết nối lại.",
   "live.offlineBodyStale":
-    "Không kết nối được phụ đề trực tiếp, nên các dòng bên dưới có thể chưa cập nhật. Quý khách vui lòng kiểm tra Wi-Fi hoặc dữ liệu di động; trang này sẽ tự kết nối lại.",
+    "Các dòng bên dưới có thể chưa cập nhật. Điện thoại có thể đang ngoại tuyến, hoặc mạng tại hội trường đang gặp sự cố; Quý khách vui lòng kiểm tra Wi-Fi hoặc dữ liệu di động. Trang này sẽ tự kết nối lại.",
   "live.controls": "Cài đặt phụ đề",
 
   // Event display (/display) -----------------------------------------------------------

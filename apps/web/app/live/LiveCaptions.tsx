@@ -174,7 +174,11 @@ function useTranslationFeed(onLiveSegment: (segment: TranslationSegment) => void
       setOnline(true);
       socket.reconnectNow();
     };
-    const offline = () => setOnline(false);
+    // A socket can look open for a minute after the network is gone; drop it so the page says Offline now.
+    const offline = () => {
+      setOnline(false);
+      socket.restart();
+    };
     const visible = () => {
       if (document.visibilityState === "visible") socket.reconnectNow();
     };

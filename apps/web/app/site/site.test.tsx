@@ -3,65 +3,68 @@ import {describe, expect, it} from "vitest";
 import {SiteFooter} from "./SiteFooter";
 import {SiteHeader} from "./SiteHeader";
 import {nextTrapIndex} from "./nav";
+import {createI18n} from "../../lib/i18n/dictionary";
+
+const i18n = createI18n("en");
 
 const desktop = (markup: string) => markup.split('class="brand-header__action"')[0];
 
 describe("SiteHeader", () => {
   it("marks the current item with aria-current in the desktop nav", () => {
-    const out = desktop(html(<SiteHeader current="venue" />));
+    const out = desktop(html(<SiteHeader i18n={i18n} current="venue" />));
     expect(out.match(/aria-current="page"/g)).toHaveLength(1);
     expect(out).toMatch(/aria-current="page"[^>]*>Venue</);
   });
 
   it("shows only the compact logo, also inside the mobile sheet", () => {
-    const out = html(<SiteHeader />);
+    const out = html(<SiteHeader i18n={i18n} />);
     expect(out).toContain("/brand/logo-compact-on-blue.png");
     expect(out).not.toContain("logo-full");
     expect(out.match(/<img[^>]*logo-compact-on-blue\.png/g)).toHaveLength(2);
   });
 
   it("has no current item by default", () => {
-    expect(html(<SiteHeader />)).not.toContain("aria-current");
+    expect(html(<SiteHeader i18n={i18n} />)).not.toContain('aria-current="page"');
   });
 
   it("renders the four links in order", () => {
-    const links = [...desktop(html(<SiteHeader />)).matchAll(/<a class="brand-pill" href="([^"]+)"[^>]*>([^<]+)</g)].map((m) => [m[1], m[2]]);
+    const links = [...desktop(html(<SiteHeader i18n={i18n} />)).matchAll(/<a class="brand-pill" href="([^"]+)"[^>]*>([^<]+)</g)].map((m) => [m[1], m[2]]);
     expect(links).toEqual([["/", "Home"], ["/venue", "Venue"], ["/gallery", "Gallery"], ["/wishes", "Wishes"]]);
   });
 
   it("defaults the action to the signed-out chip linking to the guest profile", () => {
-    const out = html(<SiteHeader />);
+    const out = html(<SiteHeader i18n={i18n} />);
     expect(out).toContain('href="/me"');
     expect(out).toContain("Guest portal");
   });
 
   it("server-renders the guest chip signed out until /api/me answers", () => {
-    const out = html(<SiteHeader />);
+    const out = html(<SiteHeader i18n={i18n} />);
     expect(out).not.toContain("brand-guest-chip");
     expect(out.match(/Guest portal/g)).toHaveLength(2);
   });
 
   it("renders a custom action instead of the default", () => {
-    const out = html(<SiteHeader action={<span>Linh</span>} />);
+    const out = html(<SiteHeader i18n={i18n} action={<span>Linh</span>} />);
     expect(out).toContain("<span>Linh</span>");
     expect(out).not.toContain("Guest portal");
   });
 
   it("renders the mobile menu button as a labelled three-bars icon", () => {
-    const button = html(<SiteHeader />).match(/<button[^>]*aria-controls[^>]*>.*?<\/button>/)?.[0] ?? "";
+    const button = html(<SiteHeader i18n={i18n} />).match(/<button[^>]*aria-controls[^>]*>.*?<\/button>/)?.[0] ?? "";
     expect(button).toContain('aria-label="Menu"');
     expect(button).toMatch(/<svg[^>]*aria-hidden="true"/);
     expect(button).not.toMatch(/>Menu</);
   });
 
   it("renders the sheet's close button as a labelled x icon", () => {
-    const button = html(<SiteHeader />).match(/<button[^>]*aria-label="Close menu"[^>]*>.*?<\/button>/)?.[0] ?? "";
+    const button = html(<SiteHeader i18n={i18n} />).match(/<button[^>]*aria-label="Close menu"[^>]*>.*?<\/button>/)?.[0] ?? "";
     expect(button).toMatch(/<svg[^>]*aria-hidden="true"/);
     expect(button).not.toMatch(/>Close</);
   });
 
   it("wires the mobile menu button to the hidden sheet", () => {
-    const out = html(<SiteHeader current="home" />);
+    const out = html(<SiteHeader i18n={i18n} current="home" />);
     const id = out.match(/aria-controls="([^"]+)"/)?.[1];
     expect(id).toBeTruthy();
     expect(out).toContain('aria-expanded="false"');
@@ -72,7 +75,7 @@ describe("SiteHeader", () => {
 
 describe("SiteFooter", () => {
   it("renders landmark, links and credit", () => {
-    const out = html(<SiteFooter />);
+    const out = html(<SiteFooter i18n={i18n} />);
     expect(out).toContain("<footer");
     expect(out).toContain("/brand/logo-full-on-blue.png");
     expect(out).toContain("brand-section--blue-deep");
@@ -81,16 +84,16 @@ describe("SiteFooter", () => {
   });
 
   it("links the credits to the about page", () => {
-    expect(html(<SiteFooter />)).toMatch(/<a class="brand-footer__about" href="\/about">Credits<\/a>/);
+    expect(html(<SiteFooter i18n={i18n} />)).toMatch(/<a class="brand-footer__about" href="\/about">Credits<\/a>/);
   });
 
   it("links the curated archive from the footer only", () => {
-    expect(html(<SiteFooter />)).toContain('<a href="/memories">Memories</a>');
-    expect(html(<SiteHeader />)).not.toContain('href="/memories"');
+    expect(html(<SiteFooter i18n={i18n} />)).toContain('<a href="/memories">Memories</a>');
+    expect(html(<SiteHeader i18n={i18n} />)).not.toContain('href="/memories"');
   });
 
   it("links the accessibility page (#176)", () => {
-    expect(html(<SiteFooter />)).toMatch(/<a class="brand-footer__about" href="\/accessibility">Accessibility<\/a>/);
+    expect(html(<SiteFooter i18n={i18n} />)).toMatch(/<a class="brand-footer__about" href="\/accessibility">Accessibility<\/a>/);
   });
 });
 

@@ -6,7 +6,7 @@ import { Component, useEffect, useMemo, useRef, useState } from "react";
 import type { ErrorInfo, ReactNode } from "react";
 import {
   BufferAttribute, BufferGeometry, CanvasTexture, DynamicDrawUsage,
-  LinearFilter, NearestFilter, NoBlending, Points, ShaderMaterial,
+  NearestFilter, NoBlending, Points, ShaderMaterial,
   SRGBColorSpace, Vector2, WebGLRenderTarget,
 } from "three";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
@@ -14,8 +14,12 @@ import { FullScreenQuad, Pass } from "three/addons/postprocessing/Pass.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { POINT_COUNT, sequenceAt, SHADES, SHAPES, SHAPE_NAMES } from "./shapes";
 import { ShapeCodeBackdrop } from "./CodeBackdrop";
+import { cellPixels, gridLayout, initialDpr, lowerDpr, SCENE_DPR_CAP } from "./dpr";
 
 const GLYPHS = " .:-=+*#%@";
+
+/** Point size in world units at the scene's own pixel ratio (see ParticleScene). */
+const POINT_SIZE = 0.09;
 
 const passVertexShader = `varying vec2 vUv;
   void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
@@ -25,41 +29,50 @@ function monoFontFamily() {
 }
 
 /**
- * Glyph atlas rasterised at the device-pixel size of one grid cell (css cell x devicePixelRatio),
- * so each glyph is sampled ~1:1 instead of being minified from a 48x64 bitmap (#6).
+ * Glyph atlas with one atlas cell per screen cell, in whole device pixels, sampled texel for texel
+ * by the draw pass (nearest filter, gl_FragCoord), so glyphs are never resampled (#6, #78).
+ * Below 1.5x, a cell is only 6 to 9 pixels: the anti-aliased edges are pushed towards fully on or
+ * off so dense glyphs keep their shape instead of turning into soft blobs.
  */
-function glyphTexture(cssCellWidth: number, cssCellHeight: number, ratio: number) {
+function glyphTexture(cellWidth: number, cellHeight: number, ratio: number) {
   const canvas = document.createElement("canvas");
-  const cellWidth = Math.max(8, Math.round(cssCellWidth * ratio));
-  const cellHeight = Math.max(10, Math.round(cssCellHeight * ratio));
   canvas.width = GLYPHS.length * cellWidth;
   canvas.height = cellHeight;
-  const context = canvas.getContext("2d")!;
+  const context = canvas.getContext("2d", { willReadFrequently: ratio < 1.5 })!;
   context.clearRect(0, 0, canvas.width, canvas.height);
   context.fillStyle = "#fff";
-  context.font = `700 ${Math.round(cellHeight * 0.9)}px ${monoFontFamily()}`;
+  context.font = `${ratio < 1.5 ? 500 : 700} ${Math.round(cellHeight * 0.9)}px ${monoFontFamily()}`;
   context.textAlign = "center";
   context.textBaseline = "middle";
   [...GLYPHS].forEach((glyph, index) => context.fillText(glyph, index * cellWidth + cellWidth / 2, cellHeight / 2));
+  if (ratio < 1.5) {
+    const image = context.getImageData(0, 0, canvas.width, canvas.height);
+    const data = image.data;
+    for (let i = 3; i < data.length; i += 4) data[i] = Math.max(0, Math.min(255, (data[i] - 70) * 2.2));
+    context.putImageData(image, 0, 0);
+  }
   const texture = new CanvasTexture(canvas);
   texture.colorSpace = SRGBColorSpace;
   texture.generateMipmaps = false;
-  texture.minFilter = LinearFilter;
-  texture.magFilter = LinearFilter;
+  // Row 0 is the top of the glyph; the draw pass flips local y itself (glyphs were upside down before #78).
+  texture.flipY = false;
+  texture.minFilter = NearestFilter;
+  texture.magFilter = NearestFilter;
   return texture;
 }
 
 const cellFragmentShader = `uniform sampler2D tDiffuse;
   uniform vec2 uGrid;
+  uniform vec2 uCellUv;
+  uniform vec2 uOffsetUv;
   varying vec2 vUv;
   void main() {
-    vec2 center = (floor(vUv * uGrid) + 0.5) / uGrid;
+    vec2 center = uOffsetUv + (floor(vUv * uGrid) + 0.5) * uCellUv;
     vec3 source = vec3(0.0);
     vec3 peak = vec3(0.0);
-    vec2 cellSize = 1.0 / uGrid;
     for (int x = -1; x <= 1; x++) {
       for (int y = -1; y <= 1; y++) {
-        vec3 sampleColor = texture2D(tDiffuse, center + vec2(float(x), float(y)) * cellSize * 0.29).rgb;
+        vec3 sampleColor = texture2D(tDiffuse, center + vec2(float(x), float(y)) * uCellUv * 0.29).rgb;
         source += sampleColor;
         peak = max(peak, sampleColor);
       }
@@ -70,17 +83,23 @@ const cellFragmentShader = `uniform sampler2D tDiffuse;
     gl_FragColor = vec4(lightness, 0.0, 0.0, 1.0);
   }`;
 
+// Runs on the canvas framebuffer (the last pass), so gl_FragCoord is in device pixels.
 const drawFragmentShader = `uniform sampler2D tCells;
     uniform sampler2D tGlyphs;
     uniform vec2 uGrid;
+    uniform vec2 uCellPx;
+    uniform vec2 uOffsetPx;
     uniform float uGlyphCount;
-    varying vec2 vUv;
     void main() {
-      vec2 cell = floor(vUv * uGrid);
-      vec2 center = (cell + 0.5) / uGrid;
-      float lightness = texture2D(tCells, center).r;
+      vec2 p = gl_FragCoord.xy - uOffsetPx;
+      vec2 cell = floor(p / uCellPx);
+      if (cell.x < 0.0 || cell.y < 0.0 || cell.x >= uGrid.x || cell.y >= uGrid.y) {
+        gl_FragColor = vec4(0.0);
+        return;
+      }
+      float lightness = texture2D(tCells, (cell + 0.5) / uGrid).r;
       float index = floor(lightness * (uGlyphCount - 0.01));
-      vec2 local = fract(vUv * uGrid);
+      vec2 local = (p - cell * uCellPx) / uCellPx;
       vec2 glyphUv = vec2((index + local.x) / uGlyphCount, 1.0 - local.y);
       float glyph = texture2D(tGlyphs, glyphUv).a;
       // Blue-and-white ramp (redesign #147): --brand-blue-deep #16378A -> --brand-muted-on-blue #B9C8EE -> white.
@@ -94,7 +113,10 @@ const drawFragmentShader = `uniform sampler2D tCells;
       gl_FragColor = vec4(color * strength, strength);
     }`;
 
-/** Two-stage character renderer adapted from ASCIIGen's GPU pipeline. */
+/**
+ * Two-stage character renderer adapted from ASCIIGen's GPU pipeline. The grid is laid out in
+ * whole device pixels and centred on the canvas; the leftover (less than one cell) stays clear.
+ */
 class AsciiEnginePass extends Pass {
   private readonly cells = new WebGLRenderTarget(80, 50, {
     minFilter: NearestFilter,
@@ -102,7 +124,12 @@ class AsciiEnginePass extends Pass {
     depthBuffer: false,
   });
   private readonly cellMaterial = new ShaderMaterial({
-    uniforms: { tDiffuse: { value: null }, uGrid: { value: new Vector2(80, 50) } },
+    uniforms: {
+      tDiffuse: { value: null },
+      uGrid: { value: new Vector2(80, 50) },
+      uCellUv: { value: new Vector2(1 / 80, 1 / 50) },
+      uOffsetUv: { value: new Vector2(0, 0) },
+    },
     vertexShader: passVertexShader,
     fragmentShader: cellFragmentShader,
     blending: NoBlending,
@@ -121,6 +148,8 @@ class AsciiEnginePass extends Pass {
         tCells: { value: this.cells.texture },
         tGlyphs: { value: atlas },
         uGrid: { value: new Vector2(80, 50) },
+        uCellPx: { value: new Vector2(8, 10) },
+        uOffsetPx: { value: new Vector2(0, 0) },
         uGlyphCount: { value: GLYPHS.length },
       },
       vertexShader: passVertexShader,
@@ -133,10 +162,16 @@ class AsciiEnginePass extends Pass {
     this.drawQuad = new FullScreenQuad(this.drawMaterial);
   }
 
-  setGrid(columns: number, rows: number) {
+  /** Lays the grid out over a drawing buffer of `width` x `height` device pixels. */
+  setLayout(width: number, height: number, cellWidth: number, cellHeight: number) {
+    const { columns, rows, offsetX, offsetY } = gridLayout(width, height, cellWidth, cellHeight);
     this.cells.setSize(columns, rows);
     this.cellMaterial.uniforms.uGrid.value.set(columns, rows);
+    this.cellMaterial.uniforms.uCellUv.value.set(cellWidth / width, cellHeight / height);
+    this.cellMaterial.uniforms.uOffsetUv.value.set(offsetX / width, offsetY / height);
     this.drawMaterial.uniforms.uGrid.value.set(columns, rows);
+    this.drawMaterial.uniforms.uCellPx.value.set(cellWidth, cellHeight);
+    this.drawMaterial.uniforms.uOffsetPx.value.set(offsetX, offsetY);
   }
 
   render(renderer: Parameters<Pass["render"]>[0], writeBuffer: Parameters<Pass["render"]>[1], readBuffer: Parameters<Pass["render"]>[2]) {
@@ -161,11 +196,12 @@ function AsciiPass({ onFirstFrame }: { onFirstFrame: () => void }) {
   const { gl, scene, camera, size } = useThree();
   const seen = useRef(false);
   const phone = size.width < 500;
-  const cellWidth = phone ? 6 : 7;
-  const cellHeight = phone ? 8 : 9;
   const ratio = gl.getPixelRatio();
+  const [cellWidth, cellHeight] = cellPixels(phone ? 6 : 7, phone ? 8 : 9, ratio);
   const composer = useMemo(() => {
     const effect = new EffectComposer(gl);
+    // The scene and the cell pass never need more than SCENE_DPR_CAP; the glyph pass draws at `ratio`.
+    effect.setPixelRatio(Math.min(ratio, SCENE_DPR_CAP));
     effect.addPass(new RenderPass(scene, camera));
     const pass = new AsciiEnginePass(glyphTexture(cellWidth, cellHeight, ratio));
     effect.addPass(pass);
@@ -174,11 +210,9 @@ function AsciiPass({ onFirstFrame }: { onFirstFrame: () => void }) {
 
   useEffect(() => {
     composer.effect.setSize(size.width, size.height);
-    composer.pass.setGrid(
-      Math.max(24, Math.floor(size.width / cellWidth)),
-      Math.max(20, Math.floor(size.height / cellHeight)),
-    );
-  }, [composer, size]);
+    const buffer = gl.getDrawingBufferSize(new Vector2());
+    composer.pass.setLayout(buffer.x, buffer.y, cellWidth, cellHeight);
+  }, [composer, gl, size, cellWidth, cellHeight]);
 
   useEffect(() => () => {
     composer.pass.dispose();
@@ -192,6 +226,32 @@ function AsciiPass({ onFirstFrame }: { onFirstFrame: () => void }) {
       onFirstFrame();
     }
   }, 1);
+  return null;
+}
+
+/**
+ * Steps the pixel ratio down while frames are slow: after a short warm-up, if the mean frame time
+ * over a window of 90 frames is above 25ms (under 40fps), call `onSlow`, then measure afresh.
+ * It only ever lowers the ratio, so it cannot oscillate. Hidden tabs do not render, so they never count.
+ */
+function FrameBudget({ dpr, onSlow }: { dpr: number; onSlow: () => void }) {
+  const frames = useRef(0);
+  const total = useRef(0);
+  useEffect(() => {
+    frames.current = 0;
+    total.current = 0;
+  }, [dpr]);
+  useFrame((_, delta) => {
+    if (dpr <= 1) return;
+    frames.current += 1;
+    if (frames.current <= 30) return; // warm-up: shader compiles, the atlas upload
+    total.current += Math.min(delta, 0.25);
+    if (frames.current < 120) return;
+    const mean = total.current / (frames.current - 30);
+    frames.current = 0;
+    total.current = 0;
+    if (mean > 0.025) onSlow();
+  });
   return null;
 }
 
@@ -209,6 +269,10 @@ function CameraRig() {
 
 function ParticleScene({ onShape, onDepart }: { onShape: (index: number) => void; onDepart: () => void }) {
   const points = useRef<Points>(null);
+  // three sizes points in canvas pixels (size x renderer ratio), but the scene renders at most at
+  // SCENE_DPR_CAP: scale down by the difference so a point covers the same share of a cell at any DPR.
+  const ratio = useThree((state) => state.viewport.dpr);
+  const pointSize = (POINT_SIZE * Math.min(ratio, SCENE_DPR_CAP)) / ratio;
   const elapsed = useRef(0);
   const previous = useRef(-1);
   const departing = useRef(false);
@@ -277,7 +341,7 @@ function ParticleScene({ onShape, onDepart }: { onShape: (index: number) => void
   });
 
   return <points ref={points} geometry={geometry}>
-    <pointsMaterial color="#ffffff" vertexColors size={0.09} sizeAttenuation transparent opacity={0.94} depthWrite={false} />
+    <pointsMaterial color="#ffffff" vertexColors size={pointSize} sizeAttenuation transparent opacity={0.94} depthWrite={false} />
   </points>;
 }
 
@@ -297,6 +361,7 @@ export function Sculpture({ label }: { label: string }) {
   const [fontReady, setFontReady] = useState(false);
   const [shapeIndex, setShapeIndex] = useState(0);
   const [departing, setDeparting] = useState(false);
+  const [dpr, setDpr] = useState(1);
 
   useEffect(() => {
     const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -304,6 +369,8 @@ export function Sculpture({ label }: { label: string }) {
       setReady(false);
       setEnabled(!preference.matches && !!window.WebGLRenderingContext);
     };
+    const hints = navigator as Navigator & { deviceMemory?: number };
+    setDpr(initialDpr(window.devicePixelRatio, hints.hardwareConcurrency, hints.deviceMemory));
     update();
     preference.addEventListener("change", update);
     const visibility = () => setVisible(!document.hidden);
@@ -338,7 +405,7 @@ export function Sculpture({ label }: { label: string }) {
       <Canvas
         className="sculpture-canvas"
         frameloop={visible ? "always" : "never"}
-        dpr={[1, 2]}
+        dpr={dpr}
         camera={{ position: [0, 2.0, 4.8], fov: 40, near: 0.1, far: 30 }}
         gl={{ antialias: false, alpha: true, powerPreference: "low-power" }}
         onCreated={({ gl }) => {
@@ -349,6 +416,7 @@ export function Sculpture({ label }: { label: string }) {
         <CameraRig />
         <ParticleScene onShape={(index) => { setShapeIndex(index); setDeparting(false); }} onDepart={() => setDeparting(true)} />
         <AsciiPass onFirstFrame={() => setReady(true)} />
+        <FrameBudget dpr={dpr} onSlow={() => setDpr(lowerDpr)} />
       </Canvas>
     </WebGLErrorBoundary>}
   </div>;

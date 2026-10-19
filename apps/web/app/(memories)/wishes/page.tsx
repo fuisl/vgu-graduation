@@ -17,7 +17,7 @@ export default async function WishesPage() {
   return (
     <BrandTheme>
       <SiteHeader i18n={i18n} current="wishes" />
-      <main>
+      <main id="main">
         <Section tone="blue" aria-labelledby="wishes-title">
           <div className="mem-hero">
             <BrandEyebrow ellipsis>{t("wishesPage.eyebrow")}</BrandEyebrow>

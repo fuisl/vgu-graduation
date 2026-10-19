@@ -1,8 +1,10 @@
 import { Cta } from "@grad/ui";
 import type { EventConfig } from "@grad/contract";
 import type { ApiResult } from "../../../lib/api/result";
-import type { I18n } from "../../../lib/i18n/dictionary";
+import { buildCalendarLinks } from "../../../lib/calendar/links";
+import { pickMessages, type I18n } from "../../../lib/i18n/dictionary";
 import { formatEventWhen } from "../../../lib/invite/format";
+import { AddToCalendar } from "../../calendar/AddToCalendar";
 
 /**
  * Public event information (GET /event). Safe to show to anyone; no personal data. Reusable by other pages.
@@ -31,6 +33,18 @@ export function EventDetails({ event, i18n }: { event: ApiResult<EventConfig>; i
             <time dateTime={data.startsAt}>{when.date}</time>
             <br />
             {when.time}
+          </dd>
+        </div>
+        <div>
+          <dt>{t("venue.calendar")}</dt>
+          <dd className="invite-facts__calendar">
+            {/* Secondary: the RSVP is this view's primary action (QA P1-3). */}
+            <AddToCalendar
+              links={buildCalendarLinks(data, undefined, { directions: t("calendar.directions") })}
+              messages={pickMessages(i18n.locale, "calendar.")}
+              tone="on-white"
+              emphasis="secondary"
+            />
           </dd>
         </div>
         <div>

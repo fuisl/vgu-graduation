@@ -47,7 +47,7 @@ export async function requestGuestPrint(token: string, photoPublicId: string): P
       cache: { mode: "no-store" },
     });
   } catch {
-    return { status: "error", httpStatus: 503, message: "Could not reach the API" };
+    return { status: "error", httpStatus: 503, message: "Could not reach the server" };
   }
 
   if (!response.ok) {
@@ -62,9 +62,9 @@ export async function requestGuestPrint(token: string, photoPublicId: string): P
   try {
     body = await response.json();
   } catch {
-    return { status: "error", httpStatus: 502, message: "The API response was not valid JSON" };
+    return { status: "error", httpStatus: 502, message: "The server response was not valid JSON" };
   }
   const parsed = createPrintJobResponseSchema.safeParse(body);
-  if (!parsed.success) return { status: "error", httpStatus: 502, message: "The API response did not match the expected shape" };
+  if (!parsed.success) return { status: "error", httpStatus: 502, message: "The server response did not match the expected shape" };
   return { status: "ok", job: parsed.data };
 }

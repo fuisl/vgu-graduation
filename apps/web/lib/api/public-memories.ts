@@ -46,18 +46,18 @@ async function getPublicListing<T>(
     try {
       response = await apiFetch(`${path}?${query}`, { cache: { mode: "revalidate", seconds, tags: [tag] } });
     } catch {
-      return errorResult("network", "Could not reach the API");
+      return errorResult("network", "Could not reach the server");
     }
-    if (!response.ok) return errorResult("http", "The API returned an unexpected error", response.status);
+    if (!response.ok) return errorResult("http", "The server returned an unexpected error", response.status);
 
     let body: unknown;
     try {
       body = await response.json();
     } catch {
-      return errorResult("validation", "The API response was not valid JSON");
+      return errorResult("validation", "The server response was not valid JSON");
     }
     const parsed = schema.safeParse(body);
-    if (!parsed.success) return errorResult("validation", "The API response did not match the expected shape");
+    if (!parsed.success) return errorResult("validation", "The server response did not match the expected shape");
 
     items.push(...parsed.data.items);
     cursor = parsed.data.nextCursor;

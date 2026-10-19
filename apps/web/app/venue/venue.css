@@ -129,8 +129,11 @@
   color: var(--brand-muted);
 }
 [data-theme="brand"] .venue-link {
-  display: inline-block;
-  padding-block: var(--space-2);
+  /* A 44px target (QA P1-7), centred on its line. */
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--brand-tap);
+  max-width: 100%;
   color: var(--brand-white);
   text-decoration: underline;
   text-underline-offset: 0.2em;

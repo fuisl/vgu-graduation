@@ -1,0 +1,20 @@
+/* Add to calendar (QA P1-3): the action, then the options as secondary Ctas that wrap. Brand tokens only. */
+[data-theme="brand"] .calendar {
+  display: grid;
+  gap: var(--space-4);
+  justify-items: start;
+  width: 100%;
+}
+[data-theme="brand"] .calendar__options {
+  display: grid;
+  gap: var(--space-2);
+  width: 100%;
+}
+[data-theme="brand"] .calendar__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

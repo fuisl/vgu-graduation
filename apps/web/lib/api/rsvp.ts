@@ -22,20 +22,20 @@ export async function getRsvp(token: string): Promise<ApiResult<GuestRsvp | null
       cache: { mode: "no-store" },
     });
   } catch {
-    return errorResult("network", "Could not reach the API");
+    return errorResult("network", "Could not reach the server");
   }
 
   if (response.status === 401 || response.status === 404) return empty();
-  if (!response.ok) return errorResult("http", "The API returned an unexpected error", response.status);
+  if (!response.ok) return errorResult("http", "The server returned an unexpected error", response.status);
 
   let body: unknown;
   try {
     body = await response.json();
   } catch {
-    return errorResult("validation", "The API response was not valid JSON");
+    return errorResult("validation", "The server response was not valid JSON");
   }
   const parsed = getRsvpResponseSchema.safeParse(body);
-  if (!parsed.success) return errorResult("validation", "The API response did not match the expected shape");
+  if (!parsed.success) return errorResult("validation", "The server response did not match the expected shape");
   return ok(parsed.data.rsvp);
 }
 
@@ -50,7 +50,7 @@ async function errorMessage(response: Response): Promise<string> {
   } catch {
     // Non-JSON body: fall through to the generic message.
   }
-  return "The API rejected the request";
+  return "The request was rejected";
 }
 
 /**
@@ -67,17 +67,17 @@ export async function putRsvp(token: string, request: PutRsvpRequest): Promise<A
       cache: { mode: "no-store" },
     });
   } catch {
-    return errorResult("network", "Could not reach the API");
+    return errorResult("network", "Could not reach the server");
   }
 
   if (!response.ok) {
-    const message = response.status === 400 ? await errorMessage(response) : "The API returned an unexpected error";
+    const message = response.status === 400 ? await errorMessage(response) : "The server returned an unexpected error";
     return errorResult("http", message, response.status);
   }
 
   const parsed = putRsvpResponseSchema.safeParse(await response.json());
   if (!parsed.success) {
-    return errorResult("validation", "The API response did not match the expected shape");
+    return errorResult("validation", "The server response did not match the expected shape");
   }
   return ok(parsed.data);
 }

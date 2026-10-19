@@ -100,11 +100,11 @@ describe("parseRsvpForm", () => {
 describe("mapRsvpResult", () => {
   const rsvp = { id: "x", attending: true, plusOnesCount: 0, dietaryRequirements: null, notes: null, updatedAt: "" };
   it("maps success", () => expect(mapRsvpResult(ok(rsvp), en).status).toBe("success"));
-  it("shows the API message on 400", () =>
-    expect(mapRsvpResult(errorResult("http", "Too many plus-ones", 400), en)).toEqual({
+  it("shows a plain line on 400, never the API's own text (QA P2-5)", () =>
+    expect(mapRsvpResult(errorResult("http", "The API rejected the request", 400), en)).toEqual({
       status: "error",
       kind: "rejected",
-      message: "Too many plus-ones",
+      message: "Some answers could not be accepted. Please check them and try again.",
     }));
   it.each([404, 410, 401])("treats %i as invitation gone", (s) =>
     expect(mapRsvpResult(errorResult("http", "x", s), en)).toMatchObject({ kind: "gone" })

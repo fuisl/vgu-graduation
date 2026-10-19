@@ -15,8 +15,8 @@ const invitation: Invitation = {
 };
 
 describe("selectInvitePageState", () => {
-  it("no cookie -> invalid", () => {
-    expect(selectInvitePageState(null)).toEqual({ kind: "invalid" });
+  it("no cookie -> missing (not \"invalid\": the guest just has not opened the link here)", () => {
+    expect(selectInvitePageState(null)).toEqual({ kind: "missing" });
   });
   it("active invitation -> personal", () => {
     expect(selectInvitePageState(ok(invitation))).toEqual({ kind: "personal", invitation });

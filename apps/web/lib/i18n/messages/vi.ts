@@ -41,11 +41,19 @@ export const vi: Messages = {
   "notFound.eyebrow": "Lỗi 404",
   "notFound.text": "Trang này đã đi lạc trước khi buổi lễ bắt đầu.",
   "notFound.home": "Về trang chủ",
+  "notFound.metaTitle": "Không tìm thấy trang | GRAD '26",
   "calendar.add": "Thêm vào lịch",
   "calendar.directions": "Chỉ đường: {url}",
+  // Add to calendar block (#78, QA P1-3): app names stay as they are.
+  // TODO(owner): native review of "Hoặc chọn ứng dụng lịch" and "Tải tệp .ics".
+  "calendar.choose": "Hoặc chọn ứng dụng lịch",
+  "calendar.google": "Google Calendar",
+  "calendar.apple": "Apple Calendar",
+  "calendar.outlook": "Outlook",
+  "calendar.ics": "Tải tệp .ics",
 
   // Landing (/) -------------------------------------------------------------
-  "landing.metaTitle": "GRAD '26 · Lễ tốt nghiệp VGU",
+  "landing.metaTitle": "GRAD '26 | Lễ tốt nghiệp VGU",
   "landing.metaDescription": "Người bạn đồng hành số cho lễ tốt nghiệp VGU: thư mời, địa điểm, thư viện ảnh và lời chúc.",
   // TODO(owner): confirm the translated landing headline (the brand moment) or keep "Graduation ’26" in both languages.
   "landing.title": "Tốt nghiệp ’26",
@@ -58,7 +66,8 @@ export const vi: Messages = {
   "landing.when.eyebrow": "Thời gian và địa điểm",
   "landing.when.title": "Hẹn gặp Quý khách vào ngày lễ",
   "landing.when.tbc": "Ngày và giờ vẫn có thể thay đổi. Quý khách có thể thêm lịch đăng ký để tự động nhận thông tin cập nhật.",
-  "landing.when.more": "Tất cả lựa chọn lịch và hướng dẫn đến nơi",
+  // TODO(owner): native review (#78: the calendar options moved onto the home page).
+  "landing.when.more": "Hướng dẫn đến nơi và bản đồ khuôn viên",
   "landing.when.unavailable": "Thông tin sự kiện tạm thời chưa hiển thị được. {link} để thử lại.",
   "landing.when.unavailableLink": "Mở trang địa điểm",
   "landing.gallery.title": "Ảnh mới nhất",
@@ -73,7 +82,7 @@ export const vi: Messages = {
   "landing.wishes.all": "Đọc tất cả lời chúc",
 
   // Invitation (/invite) -------------------------------------------------------
-  "invite.metaTitle": "Thư mời của Quý khách · GRAD '26",
+  "invite.metaTitle": "Thư mời của Quý khách | GRAD '26",
   "invite.eyebrow": "Thư mời của Quý khách",
   "invite.loading": "Đang tải thư mời…",
   "invite.greeting": "Trân trọng kính mời {name}",
@@ -97,9 +106,17 @@ export const vi: Messages = {
   "invite.demo.eyebrow": "THƯ MỜI CÁ NHÂN / XEM TRƯỚC",
   "invite.demo.title1": "Trân trọng",
   "invite.demo.title2": "kính mời.",
+  // Guest-facing preview copy and the missing-link notice (#78, QA P2-4, P2-7).
+  // TODO(owner): native review of the invitation preview and missing-link copy.
+  "invite.demo.metaTitle": "Xem trước thư mời | GRAD '26",
   "invite.demo.body":
-    "Trang thử nghiệm hệ thống thiết kế. Dữ liệu khách mời cá nhân và chức năng phản hồi thuộc về phần thư mời hoàn chỉnh.",
+    "Đây là hình thức của một thư mời cá nhân. Thư mời của Quý khách là một đường dẫn do tân khoa mời Quý khách gửi đến: hãy mở trên điện thoại để phản hồi, xem thông tin buổi lễ và giữ thẻ khách mời.",
+  "invite.demo.howTo": "Cách mở thư mời",
   "invite.demo.home": "Về trang chủ",
+  "invite.notice.missing.title": "Vui lòng mở đường dẫn thư mời trước",
+  "invite.notice.missing.body":
+    "Thư mời của Quý khách là một đường dẫn cá nhân do tân khoa mời Quý khách gửi đến. Hãy mở đường dẫn đó một lần trên điện thoại này, trang này sẽ hiển thị thư mời của Quý khách.",
+  "invite.notice.missing.link": "Cách mở thư mời",
   "event.ceremony": "Buổi lễ",
   "event.unavailable": "Hiện chưa tải được thông tin sự kiện. Vui lòng tải lại trang sau ít phút hoặc liên hệ ban tổ chức.",
   "event.captions": "Phụ đề",
@@ -113,11 +130,12 @@ export const vi: Messages = {
   "pass.save": "Lưu thẻ",
 
   // Venue (/venue) ---------------------------------------------------------------
-  "venue.metaTitle": "Địa điểm và lịch · GRAD '26",
+  "venue.metaTitle": "Địa điểm và lịch | GRAD '26",
   "venue.metaDescription": "Thời gian và địa điểm diễn ra buổi lễ, chỉ đường và cách thêm sự kiện vào lịch.",
   "venue.title": "Địa điểm và lịch",
   "venue.unavailable": "Thông tin sự kiện tạm thời chưa hiển thị được. Vui lòng thử lại sau ít phút hoặc liên hệ ban tổ chức.",
   "venue.tbc": "Ngày và giờ vẫn có thể thay đổi; trang này luôn hiển thị thông tin mới nhất.",
+  "venue.calendar": "Lịch",
   "venue.email.label": "Nhận lời mời lịch qua email",
   "venue.email.send": "Gửi lời mời",
   "venue.email.invalid": "Vui lòng nhập địa chỉ email, ví dụ name@example.com.",
@@ -130,7 +148,7 @@ export const vi: Messages = {
     "Bản đồ khuôn viên VGU quanh Sunrise River. Ceremony Hall, nơi diễn ra buổi lễ, được tô nổi bật ở bờ bắc, cạnh thư viện. Từ cổng chính trên Ring Road 4, Quý khách đi bộ về phía bắc qua West Bridge để đến nơi.",
 
   // Guide-book (/guide) -----------------------------------------------------------
-  "guide.metaTitle": "Cẩm nang · GRAD '26",
+  "guide.metaTitle": "Cẩm nang | GRAD '26",
   "guide.eyebrow": "Cẩm nang",
   "guide.title": "Trong thời gian ở khuôn viên trường",
   "guide.loading": "Đang tải cẩm nang…",
@@ -155,7 +173,7 @@ export const vi: Messages = {
   "guide.category.practical": "Tiện ích",
 
   // Guest profile (/me) ---------------------------------------------------------
-  "profile.metaTitle": "Hồ sơ của Quý khách · GRAD '26",
+  "profile.metaTitle": "Hồ sơ của Quý khách | GRAD '26",
   "profile.loading": "Đang tải hồ sơ…",
   "profile.eyebrow": "Hồ sơ khách mời",
   "profile.rsvp": "Phản hồi",
@@ -207,7 +225,7 @@ export const vi: Messages = {
   "textSize.largest": "Lớn nhất",
 
   // Accessibility (/accessibility) -------------------------------------------------
-  "a11y.metaTitle": "Hỗ trợ tiếp cận · GRAD '26",
+  "a11y.metaTitle": "Hỗ trợ tiếp cận | GRAD '26",
   "a11y.metaDescription": "Cách vào địa điểm, theo dõi buổi lễ với phụ đề và cách yêu cầu hỗ trợ.",
   "a11y.title": "Buổi lễ chào đón tất cả mọi người",
   "a11y.lead":
@@ -241,7 +259,7 @@ export const vi: Messages = {
     "Trang web cũng hoạt động với trình đọc màn hình, khi chỉ dùng bàn phím, với chức năng thu phóng của trình duyệt và chế độ giảm chuyển động. Nếu có điều gì chưa phù hợp với Quý khách, xin báo ban tổ chức để chúng tôi khắc phục.",
 
   // About (/about) -----------------------------------------------------------------
-  "about.metaTitle": "Giới thiệu · GRAD '26",
+  "about.metaTitle": "Giới thiệu | GRAD '26",
   "about.metaDescription": "Các lập trình viên đã xây dựng người bạn đồng hành tốt nghiệp GRAD '26.",
   "about.eyebrow": "Giới thiệu",
   "about.title": "Những người đứng sau Grad ’26",
@@ -361,6 +379,10 @@ export const vi: Messages = {
   "gallery.audience.class": "Khóa tốt nghiệp",
   "gallery.close": "Đóng",
   "gallery.view": "Xem chi tiết",
+  // Carousel autoplay control (#78, QA P1-5).
+  // TODO(owner): native review of the slideshow pause/play labels.
+  "gallery.pause": "Tạm dừng trình chiếu",
+  "gallery.play": "Phát trình chiếu",
   "print.signedOut": "Khách mời có thể yêu cầu in ảnh này tại buổi lễ. Vui lòng {link} trước.",
   "print.signedOutLink": "mở thư mời của Quý khách",
   "print.request": "Yêu cầu in ảnh",
@@ -418,8 +440,6 @@ export const vi: Messages = {
   "camera.shots.other": "Còn {count} ảnh",
   "camera.switchToRear": "Chuyển sang camera sau",
   "camera.switchToSelfie": "Chuyển sang camera trước",
-  "camera.flipSelfie": "Đổi (Trước)",
-  "camera.flipRear": "Đổi (Sau)",
   "camera.take": "Chụp ảnh",
   "camera.uploading": "Đang tải ảnh lên",
   "camera.empty": "Hết cuộn phim",
@@ -428,7 +448,8 @@ export const vi: Messages = {
     "Ảnh của Quý khách sẽ được công khai: có thể hiển thị trên màn hình sự kiện và thư viện ảnh, và được lưu trong kho lưu trữ tốt nghiệp bốn năm. Vui lòng liên hệ ban tổ chức nếu muốn gỡ bỏ nội dung.",
   "camera.added": "Ảnh đã được thêm vào thư viện.",
   "camera.received": "Đã nhận ảnh. Ảnh sẽ xuất hiện sau khi xử lý xong.",
-  "camera.error.insecure": "Máy ảnh bị chặn. Cần dùng HTTPS hoặc localhost.",
+  // TODO(owner): native review of the reworded camera messages (#78).
+  "camera.error.insecure": "Trình duyệt này không dùng được máy ảnh. Quý khách vui lòng mở trang này bằng Safari hoặc Chrome.",
   "camera.error.denied": "Quyền truy cập máy ảnh bị từ chối. Vui lòng kiểm tra quyền truy cập.",
   "camera.error.starting": "Máy ảnh đang khởi động. Vui lòng đợi một chút rồi thử lại.",
   "camera.error.capture": "Trình duyệt này không chụp được ảnh.",
@@ -436,8 +457,20 @@ export const vi: Messages = {
   "camera.error.invalid": "Thư mời này không còn hiệu lực. Vui lòng liên hệ ban tổ chức.",
   "camera.error.expired": "Thư mời này đã hết hạn. Vui lòng liên hệ ban tổ chức.",
   "camera.error.rollFull": "Cuộn phim của thư mời này đã dùng hết.",
-  "camera.error.tooLarge": "Ảnh này quá lớn để tải lên.",
-  "camera.error.upload": "Chưa tải được ảnh lên. Vui lòng thử lại.",
+  "camera.error.tooLarge": "Ảnh này quá lớn để tải lên. Quý khách vui lòng chụp lại.",
+  "camera.error.upload": "Chưa tải được ảnh lên. Ảnh vẫn được giữ bên dưới; vui lòng thử lại.",
+  // Guest camera upload states (#78, QA P1-2).
+  // TODO(owner): native review of the offline, busy and sign-in camera messages.
+  "camera.error.offline": "Quý khách đang ngoại tuyến nên ảnh chưa được gửi. Ảnh vẫn được giữ bên dưới; hãy thử lại khi có kết nối.",
+  "camera.error.network": "Ảnh chưa đến được thư viện. Quý khách vui lòng kiểm tra kết nối; ảnh vẫn được giữ bên dưới để thử lại.",
+  "camera.error.busy": "Việc tải ảnh đang tạm dừng trong giây lát. Ảnh vẫn được giữ bên dưới; vui lòng thử lại sau ít phút.",
+  "camera.error.unsupported": "Định dạng ảnh này không được hỗ trợ. Quý khách vui lòng chụp lại.",
+  "camera.retry": "Tải lại ảnh",
+  "camera.pendingAlt": "Ảnh của Quý khách, chưa được tải lên",
+  "camera.signedOut.title": "Vui lòng mở thư mời trước",
+  "camera.signedOut.body":
+    "Máy ảnh dành cho khách mời. Quý khách vui lòng mở đường dẫn thư mời cá nhân một lần trên điện thoại này, rồi quay lại đây.",
+  "camera.signedOut.link": "Cách mở thư mời",
 
   // Live captions (/live) ------------------------------------------------------------
   "live.metaTitle": "Phụ đề trực tiếp | GRAD '26",
@@ -462,6 +495,14 @@ export const vi: Messages = {
   "live.size.m": "Chữ tiêu chuẩn",
   "live.size.l": "Chữ lớn",
   "live.size.xl": "Chữ rất lớn",
+  // Offline state and dock landmark (#78, QA P2-16, P1-6).
+  // TODO(owner): native review of the offline captions notice.
+  "live.status.offline": "Ngoại tuyến",
+  "live.offlineTitle": "Không kết nối được phụ đề trực tiếp",
+  "live.offlineBody": "Điện thoại có thể đang ngoại tuyến, hoặc mạng tại hội trường đang gặp sự cố. Quý khách vui lòng kiểm tra Wi-Fi hoặc dữ liệu di động; trang này sẽ tự kết nối lại.",
+  "live.offlineBodyStale":
+    "Các dòng bên dưới có thể chưa cập nhật. Điện thoại có thể đang ngoại tuyến, hoặc mạng tại hội trường đang gặp sự cố; Quý khách vui lòng kiểm tra Wi-Fi hoặc dữ liệu di động. Trang này sẽ tự kết nối lại.",
+  "live.controls": "Cài đặt phụ đề",
 
   // Event display (/display) -----------------------------------------------------------
   "display.metaTitle": "Màn hình sự kiện | GRAD '26",
@@ -485,7 +526,7 @@ export const vi: Messages = {
   "display.problem.signedOut": "Màn hình này chưa đăng nhập. Hãy mở đường dẫn thư mời kiosk một lần trong trình duyệt này, rồi tải lại trang.",
 
   // ASCII Live (/ascii-live, experimental) ----------------------------------------------
-  "ascii.metaTitle": "ASCII Live — GRAD '26",
+  "ascii.metaTitle": "ASCII Live | GRAD '26",
   "ascii.metaDescription": "Biến hình ảnh máy ảnh thành tranh ASCII trực tiếp ngay trong trình duyệt.",
   "ascii.eyebrow": "Thử nghiệm / Trên thiết bị",
   "ascii.privacy": "Hình ảnh từ máy ảnh chỉ ở trong trình duyệt này. Không khung hình nào được tải lên hay lưu lại.",

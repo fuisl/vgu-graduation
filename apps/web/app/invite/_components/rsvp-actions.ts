@@ -1,8 +1,7 @@
 "use server";
 
-import { revalidateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { hashToken } from "../../../lib/api/client";
 import { putRsvp } from "../../../lib/api/rsvp";
 import { getI18n } from "../../../lib/i18n/server";
 import { INVITATION_COOKIE } from "../../../lib/invite/cookie";
@@ -23,8 +22,9 @@ export async function submitRsvp(maxPlusOnes: number, formData: FormData): Promi
 
   const result = await putRsvp(token, parsed.request);
   if (result.status === "ok") {
-    // Same tag getInvitation uses, so the page re-fetches the new answer.
-    revalidateTag(`invitation:${await hashToken(token)}`);
+    // GET /invitations/me is never cached (QA P0-1), so there is no tag to invalidate; this only
+    // tells Next to send the re-rendered /invite back with the action, so "Your RSVP" shows the new answer.
+    revalidatePath("/invite");
   }
   return mapRsvpResult(result, i18n);
 }

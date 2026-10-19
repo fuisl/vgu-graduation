@@ -19,10 +19,16 @@ describe("/live (server render, before the socket connects)", async () => {
   it("offers language and text size as pressed toggles with full names", () => {
     expect(out).toContain('aria-label="Caption language"');
     expect(out).toContain('aria-label="Text size"');
-    for (const name of ["Deutsch", "English", "Tiếng Việt", "Standard text", "Large text", "Extra large text"]) {
+    // Names start with the visible code (QA P1-6, label-content-name-mismatch).
+    for (const name of ["DE Deutsch", "EN English", "VI Tiếng Việt", "Standard text", "Large text", "Extra large text"]) {
       expect(out).toContain(`aria-label="${name}"`);
     }
     expect(out.match(/aria-pressed="true"/g)).toHaveLength(2);
+  });
+
+  it("keeps every part inside a landmark (QA P1-6)", () => {
+    expect(out).toContain('<aside class="live-dock" aria-label="Caption settings">');
+    expect(out.indexOf('aria-live="polite"')).toBeLessThan(out.indexOf("</main>"));
   });
 
   it("has one polite live region for announcements", () => {

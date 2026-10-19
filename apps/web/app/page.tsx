@@ -13,9 +13,12 @@ import { mediaDerivativeUrl } from "../lib/api/browser-origin";
 import { getWishes } from "../lib/api/wishes";
 import { buildCalendarLinks } from "../lib/calendar/links";
 import { formatEventWhen } from "../lib/invite/format";
+import { AddToCalendar } from "./calendar/AddToCalendar";
 import { Countdown } from "./landing-countdown/Countdown";
 import { DecodeText } from "./landing-title/DecodeText";
-import { Sculpture } from "./sculpture/Sculpture";
+import { LazySculpture } from "./sculpture/LazySculpture";
+import { SculptureFallback } from "./sculpture/SculptureFallback";
+import { SHAPE_NAMES } from "./sculpture/shapes";
 import { SiteFooter } from "./site/SiteFooter";
 import { SiteHeader } from "./site/SiteHeader";
 import "./landing.css";
@@ -37,6 +40,7 @@ export default async function Home() {
   const event = eventResult.status === "ok" ? localizeEvent(eventResult.data, locale) : null;
   const when = event ? formatEventWhen(event, i18n) : null;
   const links = event ? buildCalendarLinks(event, undefined, { directions: t("calendar.directions") }) : null;
+  const calendarMessages = pickMessages(locale, "calendar.");
   // "November 20" in English (as before #9), "20 tháng 11" in Vietnamese.
   const day = event
     ? new Intl.DateTimeFormat(locale === "en" ? "en-US" : i18n.intl, { month: "long", day: "numeric", timeZone: event.timeZone }).format(new Date(event.startsAt))
@@ -47,11 +51,14 @@ export default async function Home() {
   return (
     <BrandTheme>
       <SiteHeader i18n={i18n} current="home" />
-      <main className="home">
+      <main id="main" className="home">
         <Section tone="blue" aria-labelledby="home-title">
           <div className="home-stage">
             <div className="home-visual">
-              <Sculpture label={t("landing.sculpture")} />
+              {/* The static motif is server-rendered (it is the LCP element); the canvas loads after idle (QA P1-4). */}
+              <LazySculpture label={t("landing.sculpture")}>
+                <SculptureFallback label={t("landing.sculpture", { name: SHAPE_NAMES[0] ?? "" })} />
+              </LazySculpture>
             </div>
           </div>
           <div className="home-hero-foot">
@@ -74,6 +81,12 @@ export default async function Home() {
                 </>
               ) : null}
             </div>
+            {/* The hero's one primary action (#148, QA P2-15): the right calendar for this phone. */}
+            {links ? (
+              <div className="home-hero-cta">
+                <AddToCalendar links={links} messages={calendarMessages} tone="on-blue" show="action" />
+              </div>
+            ) : null}
           </div>
         </Section>
 
@@ -99,7 +112,7 @@ export default async function Home() {
                 </div>
               </div>
               <div className="home-actions">
-                <Cta tone="on-white" href={links.webcal}>{t("calendar.add")}</Cta>
+                <AddToCalendar links={links} messages={calendarMessages} tone="on-white" show="options" />
                 <a className="home-link" href="/venue">{t("landing.when.more")}</a>
               </div>
             </div>

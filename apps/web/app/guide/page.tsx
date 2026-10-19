@@ -41,7 +41,7 @@ export default async function GuidePage() {
   return (
     <BrandTheme>
       <SiteHeader i18n={i18n} />
-      <main className="profile-main">
+      <main id="main" className="profile-main">
         {state.kind === "personal" ? (
           // A personal state implies a cookie, so guide is never null here.
           <PersonalGuide i18n={i18n} invitation={state.invitation} guide={guide ?? { status: "empty" }} />

@@ -38,11 +38,18 @@ export const en = {
   "notFound.eyebrow": "Error 404",
   "notFound.text": "This page wandered off before the ceremony started.",
   "notFound.home": "Back to home",
+  "notFound.metaTitle": "Page not found | GRAD '26",
   "calendar.add": "Add to calendar",
   "calendar.directions": "Directions: {url}",
+  // Add to calendar block (#78, QA P1-3): app names stay as they are.
+  "calendar.choose": "Or choose your calendar",
+  "calendar.google": "Google Calendar",
+  "calendar.apple": "Apple Calendar",
+  "calendar.outlook": "Outlook",
+  "calendar.ics": "Download .ics file",
 
   // Landing (/) -------------------------------------------------------------
-  "landing.metaTitle": "GRAD '26 · VGU graduation",
+  "landing.metaTitle": "GRAD '26 | VGU graduation",
   "landing.metaDescription": "The digital companion for the VGU graduation ceremony: invitation, venue, gallery and wishes.",
   "landing.title": "Graduation ’26",
   "landing.sculpture": "Animated ASCII sculpture: {name}",
@@ -54,7 +61,7 @@ export const en = {
   "landing.when.eyebrow": "When and where",
   "landing.when.title": "Join us on the day",
   "landing.when.tbc": "The date and time may still change. Add the calendar feed to get updates automatically.",
-  "landing.when.more": "All calendar options and arrival details",
+  "landing.when.more": "Arrival details and the campus map",
   "landing.when.unavailable": "Event details are temporarily unavailable. {link} to try again.",
   "landing.when.unavailableLink": "Open the venue page",
   "landing.gallery.title": "Latest photos",
@@ -69,7 +76,7 @@ export const en = {
   "landing.wishes.all": "Read all wishes",
 
   // Invitation (/invite) -------------------------------------------------------
-  "invite.metaTitle": "Your invitation · GRAD '26",
+  "invite.metaTitle": "Your invitation | GRAD '26",
   "invite.eyebrow": "Your invitation",
   "invite.loading": "Loading your invitation…",
   "invite.greeting": "You are invited, {name}",
@@ -91,9 +98,16 @@ export const en = {
   "invite.demo.eyebrow": "PERSONAL INVITATION / PREVIEW",
   "invite.demo.title1": "You are",
   "invite.demo.title2": "invited.",
+  // Guest-facing preview copy and the missing-link notice (#78, QA P2-4, P2-7).
+  "invite.demo.metaTitle": "Invitation preview | GRAD '26",
   "invite.demo.body":
-    "Design-system smoke test. Personalized guest data and RSVP behavior belong to the invitation vertical-slice PR.",
+    "This is how a personal invitation looks. Yours comes as a link from the graduate who invited you: open it on your phone to answer, see the ceremony details and keep your badge.",
+  "invite.demo.howTo": "How to open your invitation",
   "invite.demo.home": "Back home",
+  "invite.notice.missing.title": "Open your invitation link first",
+  "invite.notice.missing.body":
+    "Your invitation is a personal link from the graduate who invited you. Open it once on this phone and this page shows your invitation.",
+  "invite.notice.missing.link": "How to open your invitation",
   "event.ceremony": "The ceremony",
   "event.unavailable": "Event details could not be loaded right now. Please refresh this page in a moment, or contact an organizer.",
   "event.captions": "Captions",
@@ -107,12 +121,13 @@ export const en = {
   "pass.save": "Save badge",
 
   // Venue (/venue) ---------------------------------------------------------------
-  "venue.metaTitle": "Venue and calendar · GRAD '26",
+  "venue.metaTitle": "Venue and calendar | GRAD '26",
   "venue.metaDescription": "When and where the ceremony takes place, directions, and how to add it to your calendar.",
   "venue.title": "Venue and calendar",
   "venue.unavailable": "Event information is temporarily unavailable. Please try again in a moment, or contact an organizer.",
   "venue.tbc": "The date and time may still change; this page always shows the latest.",
-  "venue.email.label": "Get the calendar invite by email",
+  "venue.calendar": "Calendar",
+  "venue.email.label":"Get the calendar invite by email",
   "venue.email.send": "Send invite",
   "venue.email.invalid": "Enter an email address like name@example.com.",
   "venue.email.pending": "Email invites are not sending yet. Use the calendar file below for now.",
@@ -124,7 +139,7 @@ export const en = {
     "Map of the VGU campus around Sunrise River. The Ceremony Hall, where the ceremony takes place, is highlighted on the north bank beside the library. From the main entrance off Ring Road 4, walk north over the West Bridge to reach it.",
 
   // Guide-book (/guide) -----------------------------------------------------------
-  "guide.metaTitle": "Guide-book · GRAD '26",
+  "guide.metaTitle": "Guide-book | GRAD '26",
   "guide.eyebrow": "Guide-book",
   "guide.title": "While you are on campus",
   "guide.loading": "Loading your guide-book…",
@@ -149,7 +164,7 @@ export const en = {
   "guide.category.practical": "Practical",
 
   // Guest profile (/me) ---------------------------------------------------------
-  "profile.metaTitle": "Your profile · GRAD '26",
+  "profile.metaTitle": "Your profile | GRAD '26",
   "profile.loading": "Loading your profile…",
   "profile.eyebrow": "Guest profile",
   "profile.rsvp": "RSVP",
@@ -198,7 +213,7 @@ export const en = {
   "textSize.largest": "Largest",
 
   // Accessibility (/accessibility) -------------------------------------------------
-  "a11y.metaTitle": "Accessibility · GRAD '26",
+  "a11y.metaTitle": "Accessibility | GRAD '26",
   "a11y.metaDescription": "Getting into the venue, following the ceremony with captions, and how to ask for help.",
   "a11y.title": "Everyone is welcome at the ceremony",
   "a11y.lead":
@@ -232,7 +247,7 @@ export const en = {
     "The site also works with screen readers, keyboard only, your browser's zoom and the reduced-motion setting. If something does not work for you, tell the organizers and we will fix it.",
 
   // About (/about) -----------------------------------------------------------------
-  "about.metaTitle": "About · GRAD '26",
+  "about.metaTitle": "About | GRAD '26",
   "about.metaDescription": "The developers who built the GRAD '26 graduation companion.",
   "about.eyebrow": "About",
   "about.title": "The people behind Grad ’26",
@@ -351,6 +366,9 @@ export const en = {
   "gallery.audience.class": "Graduating class",
   "gallery.close": "Close",
   "gallery.view": "View details",
+  // Carousel autoplay control (#78, QA P1-5).
+  "gallery.pause": "Pause slideshow",
+  "gallery.play": "Play slideshow",
   "print.signedOut": "Guests can request a print of this photo at the venue. {link} first.",
   "print.signedOutLink": "Open your invitation",
   "print.request": "Request a print",
@@ -409,8 +427,6 @@ export const en = {
   "camera.shots.other": "{count} shots remaining",
   "camera.switchToRear": "Switch to rear camera",
   "camera.switchToSelfie": "Switch to selfie camera",
-  "camera.flipSelfie": "Flip (Selfie)",
-  "camera.flipRear": "Flip (Rear)",
   "camera.take": "Take photo",
   "camera.uploading": "Uploading photo",
   "camera.empty": "Film roll empty",
@@ -419,7 +435,7 @@ export const en = {
     "Your photo is public: it may be shown on the event display and gallery, and kept in the four-year graduation archive. Contact an organizer to have something removed.",
   "camera.added": "Photo added to the gallery.",
   "camera.received": "Photo received. It will appear after processing.",
-  "camera.error.insecure": "Camera blocked. HTTPS or localhost is required.",
+  "camera.error.insecure": "The camera isn't available in this browser. Try opening this page in Safari or Chrome.",
   "camera.error.denied": "Camera access denied. Please check permissions.",
   "camera.error.starting": "The camera is still starting. Please wait a moment and try again.",
   "camera.error.capture": "This browser could not capture the photo.",
@@ -427,8 +443,18 @@ export const en = {
   "camera.error.invalid": "This invitation is no longer valid. Please contact an organizer.",
   "camera.error.expired": "This invitation has expired. Please contact an organizer.",
   "camera.error.rollFull": "All shots on this invitation's roll have been used.",
-  "camera.error.tooLarge": "This photo is too large to upload.",
-  "camera.error.upload": "The photo could not be uploaded. Please try again.",
+  "camera.error.tooLarge": "This photo is too large to upload. Please take it again.",
+  "camera.error.upload": "The photo could not be uploaded. It is kept below; please try again.",
+  // Guest camera upload states (#78, QA P1-2).
+  "camera.error.offline": "You are offline, so the photo was not sent. It is kept below; retry when you have a connection.",
+  "camera.error.network": "The photo could not reach the gallery. Check your connection; it is kept below to retry.",
+  "camera.error.busy": "Photo uploads are paused for a moment. Your photo is kept below; try again shortly.",
+  "camera.error.unsupported": "This photo's format is not supported. Please take it again.",
+  "camera.retry": "Retry upload",
+  "camera.pendingAlt": "Your photo, not uploaded yet",
+  "camera.signedOut.title": "Open your invitation first",
+  "camera.signedOut.body": "The camera is for invited guests. Open your personal invitation link once on this phone, then come back here.",
+  "camera.signedOut.link": "How to open your invitation",
 
   // Live captions (/live) ------------------------------------------------------------
   "live.metaTitle": "Live captions | GRAD '26",
@@ -453,6 +479,13 @@ export const en = {
   "live.size.m": "Standard text",
   "live.size.l": "Large text",
   "live.size.xl": "Extra large text",
+  // Offline state and dock landmark (#78, QA P2-16, P1-6).
+  "live.status.offline": "Offline",
+  "live.offlineTitle": "Live captions cannot be reached",
+  "live.offlineBody": "This phone may be offline, or the venue network may be down. Check your Wi-Fi or mobile data; this page reconnects by itself.",
+  "live.offlineBodyStale":
+    "The lines below may be out of date. This phone may be offline, or the venue network may be down; check your Wi-Fi or mobile data. This page reconnects by itself.",
+  "live.controls": "Caption settings",
 
   // Event display (/display) -----------------------------------------------------------
   "display.metaTitle": "Event display | GRAD '26",
@@ -476,7 +509,7 @@ export const en = {
   "display.problem.signedOut": "This screen is not signed in. Open the kiosk invitation link once in this browser, then reload.",
 
   // ASCII Live (/ascii-live, experimental) ----------------------------------------------
-  "ascii.metaTitle": "ASCII Live — GRAD '26",
+  "ascii.metaTitle": "ASCII Live | GRAD '26",
   "ascii.metaDescription": "Turn your camera into live ASCII art in your browser.",
   "ascii.eyebrow": "Experimental / on-device",
   "ascii.privacy": "Your camera stays in this browser. No frames are uploaded or saved.",

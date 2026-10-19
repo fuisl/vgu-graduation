@@ -52,6 +52,16 @@ describe("translationView", () => {
     expect(translationView(waiting(1), "unknown", true)).toBe("connecting");
   });
 
+  it("says offline when nothing answers, unavailable when the API answers without translation (QA P2-16)", () => {
+    expect(translationView(waiting(3), "unknown", false, { reach: "unreachable" })).toBe("offline");
+    expect(translationView(waiting(3), "unknown", false, { reach: "reachable" })).toBe("unavailable");
+    expect(translationView(waiting(6, true), "live", false, { reach: "unreachable" })).toBe("offline");
+    expect(translationView(waiting(1, true), "live", false, { online: false })).toBe("offline");
+    expect(translationView(waiting(1, true), "live", false, { reach: "unreachable" })).toBe("reconnecting");
+    // Polling over HTTP or an open socket outrank the browser's online flag.
+    expect(translationView({ phase: "open" }, "live", false, { online: false })).toBe("live");
+  });
+
   it("says reconnecting after a drop, for a while", () => {
     expect(translationView(waiting(1, true), "live")).toBe("reconnecting");
     expect(translationView(waiting(6, true), "live")).toBe("unavailable");

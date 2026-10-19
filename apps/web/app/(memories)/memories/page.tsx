@@ -45,7 +45,7 @@ export default async function MemoriesPage() {
   return (
     <BrandTheme>
       <SiteHeader i18n={i18n} />
-      <main>
+      <main id="main">
         <Section tone="blue" aria-labelledby="memories-title">
           <div className="mem-hero">
             <BrandEyebrow ellipsis>{t("memories.eyebrow")}</BrandEyebrow>

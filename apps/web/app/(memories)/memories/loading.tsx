@@ -10,7 +10,7 @@ export default async function Loading() {
   return (
     <BrandTheme>
       <SiteHeader i18n={i18n} />
-      <main>
+      <main id="main">
         <Section tone="blue">
           <div className="mem-hero">
             <BrandEyebrow ellipsis>{i18n.t("memories.archive")}</BrandEyebrow>

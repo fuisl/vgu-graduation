@@ -2,9 +2,9 @@
 
 import type { Invitation } from "@grad/contract";
 import { Cta } from "@grad/ui";
-import { useState, useTransition, type FormEvent } from "react";
+import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import { sliceTranslator } from "../../../lib/i18n/format";
-import { IDLE, type RsvpFormState, type RsvpMessages } from "../../../lib/invite/rsvp-form";
+import type { RsvpFormState, RsvpMessages } from "../../../lib/invite/rsvp-form";
 import type { SavedNeeds } from "../../../lib/invite/accessibility";
 import { AccessibilitySection } from "./AccessibilitySection";
 import { submitRsvp } from "./rsvp-actions";
@@ -13,9 +13,12 @@ export function RsvpForm({
   invitation,
   savedNeeds,
   messages,
+  noteMaxLength,
 }: {
   invitation: Invitation;
   savedNeeds: SavedNeeds;
+  /** ACCESSIBILITY_NOTE_MAX_LENGTH, passed from the server so the contract (and zod) stay out of this bundle (QA P2-2). */
+  noteMaxLength: number;
   /** `pickMessages(locale, ...RSVP_MESSAGES)`: the form's strings in the guest's language (#9). */
   messages: RsvpMessages;
 }) {
@@ -25,14 +28,26 @@ export function RsvpForm({
   const [plusOnes, setPlusOnes] = useState(String(rsvp?.plusOnesCount ?? 0));
   const [dietary, setDietary] = useState(rsvp?.dietaryRequirements ?? "");
   const [notes, setNotes] = useState(rsvp?.notes ?? "");
-  const [state, setState] = useState<RsvpFormState>(IDLE);
+  const [state, setState] = useState<RsvpFormState>({ status: "idle" });
   const [pending, startTransition] = useTransition();
+  const statusRef = useRef<HTMLDivElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
+  const submittedRef = useRef(false);
+
+  // The fieldset is disabled while saving, which drops focus to <body>; once the answer is in,
+  // move focus to what it says, so keyboard and screen-reader users land on it (QA P2-6).
+  useEffect(() => {
+    if (pending || !submittedRef.current) return;
+    if (state.status === "error") errorRef.current?.focus();
+    else if (state.status === "success") statusRef.current?.focus();
+  }, [pending, state]);
 
   // Controlled inputs plus a manual submit keep every answer on screen after a failure
   // (a <form action> would reset the fields).
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
+    submittedRef.current = true;
     startTransition(async () => {
       try {
         setState(await submitRsvp(maxPlusOnes, data));
@@ -109,7 +124,7 @@ export function RsvpForm({
         ) : null}
 
         {/* Not rendered for "No": nothing is submitted, so stored needs stay as they are. */}
-        {attending === "yes" ? <AccessibilitySection saved={savedNeeds} messages={messages} /> : null}
+        {attending === "yes" ? <AccessibilitySection saved={savedNeeds} messages={messages} noteMaxLength={noteMaxLength} /> : null}
 
         <div className="invite-field">
           <label htmlFor="rsvp-notes">{t("rsvp.form.notes")}</label>
@@ -131,10 +146,10 @@ export function RsvpForm({
         </div>
       </fieldset>
 
-      <div role="status" aria-live="polite" className="invite-status">
+      <div ref={statusRef} tabIndex={-1} role="status" aria-live="polite" className="invite-status">
         {pending ? t("rsvp.form.savingStatus") : state.status === "success" ? state.message : null}
       </div>
-      <div role="alert" className="invite-error">
+      <div ref={errorRef} tabIndex={-1} role="alert" className="invite-error">
         {!pending && state.status === "error" ? state.message : null}
       </div>
     </form>

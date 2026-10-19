@@ -8,7 +8,7 @@ import { getI18n } from "../../lib/i18n/server";
 import { formatEventWhen } from "../../lib/invite/format";
 import { SiteFooter } from "../site/SiteFooter";
 import { SiteHeader } from "../site/SiteHeader";
-import { CalendarEmailForm } from "./CalendarEmailForm";
+import { AddToCalendar } from "../calendar/AddToCalendar";
 import { CampusFigure } from "./CampusFigure";
 import "./venue.css";
 
@@ -128,7 +128,11 @@ export default async function VenuePage() {
                 </section>
               ) : null}
 
-              <CalendarEmailForm icsHref={links.ics} messages={pickMessages(locale, "venue.email.")} />
+              {/* CalendarEmailForm stays out until the invite email really sends (#150, QA P1-3). */}
+              <section aria-labelledby="calendar-heading" className="venue-fact">
+                <h2 id="calendar-heading" className="venue-label">{t("venue.calendar")}</h2>
+                <AddToCalendar links={links} messages={pickMessages(locale, "calendar.")} tone="on-blue" />
+              </section>
             </div>
 
             {drawn ? (

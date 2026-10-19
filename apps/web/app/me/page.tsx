@@ -30,7 +30,7 @@ export default async function ProfilePage() {
   return (
     <BrandTheme>
       <SiteHeader i18n={i18n} />
-      <main className="profile-main">
+      <main id="main" className="profile-main">
         {state.kind === "personal" ? (
           <GuestProfile i18n={i18n} invitation={state.invitation} event={event} />
         ) : (

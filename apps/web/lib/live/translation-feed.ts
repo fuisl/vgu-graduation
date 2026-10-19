@@ -31,7 +31,7 @@ export function segmentsUrl(apiOrigin: string, since: string | null, limit = SEG
   return url.toString();
 }
 
-export type TranslationView = "connecting" | "live" | "reconnecting" | "unavailable";
+export type TranslationView = "connecting" | "live" | "reconnecting" | "unavailable" | "offline";
 export type ServiceState = "unknown" | "live" | "unavailable";
 
 /** Attempts in a row that never open before the page says the service is absent rather than "connecting". */
@@ -40,21 +40,36 @@ export const UNAVAILABLE_AFTER_FAILURES = 3;
 /**
  * What the page says about the service. With the socket open, or refused but
  * the HTTP polling fallback answering (the API caps live connections and
- * answers 503 beyond that), it follows the server's `state`. `unavailable`
- * also covers an API that cannot be reached at all; the page keeps retrying
- * underneath either way.
+ * answers 503 beyond that), it follows the server's `state`. When the socket
+ * keeps failing it is `unavailable` if the API still answers (the translation
+ * module is absent or suspended) and `offline` if nothing answers at all, or
+ * at once when the browser says it is offline (QA P2-16, like `/display`).
+ * The page keeps retrying underneath either way.
+ *
+ * `reach`: whether the last catch-up request got any HTTP answer (`reachable`),
+ * failed on the network (`unreachable`), or has not run yet (`unknown`).
  */
-export function translationView(socket: LiveSocketState, service: ServiceState, polling = false): TranslationView {
+export function translationView(
+  socket: LiveSocketState,
+  service: ServiceState,
+  polling = false,
+  { online = true, reach = "unknown" }: { online?: boolean; reach?: Reach } = {},
+): TranslationView {
   if (socket.phase === "open" || polling) {
     if (service === "unavailable") return "unavailable";
     return service === "live" || socket.phase === "open" ? "live" : "connecting";
   }
   if (socket.phase === "stopped") return "connecting";
+  if (!online) return "offline";
   if (service === "unavailable") return "unavailable";
-  if (!socket.everOpened && socket.failures >= UNAVAILABLE_AFTER_FAILURES) return "unavailable";
-  if (socket.everOpened && socket.failures >= UNAVAILABLE_AFTER_FAILURES * 2) return "unavailable";
+  const gaveUp = socket.everOpened
+    ? socket.failures >= UNAVAILABLE_AFTER_FAILURES * 2
+    : socket.failures >= UNAVAILABLE_AFTER_FAILURES;
+  if (gaveUp) return reach === "unreachable" ? "offline" : "unavailable";
   return socket.everOpened ? "reconnecting" : "connecting";
 }
+
+export type Reach = "unknown" | "reachable" | "unreachable";
 
 export const LANGUAGES: ReadonlyArray<{ code: TargetLanguage; label: string; name: string }> = [
   { code: "de", label: "DE", name: "Deutsch" },

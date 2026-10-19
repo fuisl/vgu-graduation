@@ -322,7 +322,6 @@ export function DisplayScreen({ eventName, eventDate, wishesQrSvg, wishesLink, l
 
   return (
     <div className={`display${showCaptions ? " display--captions" : ""}`}>
-      <h1 className="brand-sr-only">{t("display.heading", { event: eventName })}</h1>
       <header className="display-top">
         <div className="display-brand">
           <span className="display-mark">
@@ -342,6 +341,8 @@ export function DisplayScreen({ eventName, eventDate, wishesQrSvg, wishesLink, l
       </header>
 
       <main className="display-stage">
+        {/* Inside main, so every heading sits in a landmark (QA P2-18). */}
+        <h1 className="brand-sr-only">{t("display.heading", { event: eventName })}</h1>
         {stage.current ? (
           <>
             {stage.leaving ? <SlideView key={`leaving-${stage.leaving.key}`} slide={stage.leaving} leaving t={t} /> : null}

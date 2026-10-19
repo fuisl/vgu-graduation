@@ -25,7 +25,7 @@ export async function getInvitation(token: string): Promise<ApiResult<Invitation
       cache: { mode: "no-store" },
     });
   } catch {
-    return fromLastKnownGood(key) ?? errorResult("network", "Could not reach the API");
+    return fromLastKnownGood(key) ?? errorResult("network", "Could not reach the server");
   }
 
   if (isCredentialRefusal(response.status)) {
@@ -35,18 +35,18 @@ export async function getInvitation(token: string): Promise<ApiResult<Invitation
 
   if (!response.ok) {
     const fallback = mayUseLastKnownGood(response.status) ? fromLastKnownGood(key) : undefined;
-    return fallback ?? errorResult("http", "The API returned an unexpected error", response.status);
+    return fallback ?? errorResult("http", "The server returned an unexpected error", response.status);
   }
 
   let body: unknown;
   try {
     body = await response.json();
   } catch {
-    return errorResult("validation", "The API response was not valid JSON");
+    return errorResult("validation", "The server response was not valid JSON");
   }
   const parsed = invitationSchema.safeParse(body);
   if (!parsed.success) {
-    return errorResult("validation", "The API response did not match the expected shape");
+    return errorResult("validation", "The server response did not match the expected shape");
   }
 
   if (parsed.data.status === "active") lastKnownGood.set(key, parsed.data);

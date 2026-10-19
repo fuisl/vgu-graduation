@@ -9,7 +9,7 @@ export default async function Loading() {
   return (
     <BrandTheme>
       <SiteHeader i18n={i18n} />
-      <main className="invite-main">
+      <main id="main" className="invite-main">
         <Section tone="blue">
           <BrandEyebrow>{i18n.t("invite.eyebrow")}</BrandEyebrow>
           <p className="invite-title" role="status">{i18n.t("invite.loading")}</p>

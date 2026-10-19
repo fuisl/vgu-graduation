@@ -17,7 +17,7 @@ export default async function GalleryPage() {
   return (
     <BrandTheme>
       <SiteHeader i18n={i18n} current="gallery" />
-      <main>
+      <main id="main">
         <Section tone="blue" aria-labelledby="gallery-title">
           <div className="mem-hero">
             <BrandEyebrow ellipsis>{t("gallery.eyebrow")}</BrandEyebrow>

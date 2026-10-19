@@ -1,6 +1,6 @@
 "use client";
 
-import { ACCESSIBILITY_NOTE_MAX_LENGTH, type AccessibilityNeedKey, type AccessibilityNeeds } from "@grad/contract";
+import type { AccessibilityNeedKey, AccessibilityNeeds } from "@grad/contract";
 import { useState } from "react";
 import {
   A11Y_NOTE_FIELD,
@@ -18,7 +18,16 @@ import { sliceTranslator, type MessageSlice } from "../../../lib/i18n/format";
  * already told us something. It only submits `accessibilityTouched=1` once the guest changes it, so
  * an untouched section (or one whose saved needs could not be loaded) never overwrites stored needs.
  */
-export function AccessibilitySection({ saved, messages }: { saved: SavedNeeds; messages: MessageSlice<"rsvp.a11y."> }) {
+export function AccessibilitySection({
+  saved,
+  messages,
+  noteMaxLength,
+}: {
+  saved: SavedNeeds;
+  messages: MessageSlice<"rsvp.a11y.">;
+  /** ACCESSIBILITY_NOTE_MAX_LENGTH from the server: importing it here would ship zod to the browser (QA P2-2). */
+  noteMaxLength: number;
+}) {
   const t = sliceTranslator(messages);
   const initial = saved.status === "ok" && saved.needs ? saved.needs : NO_NEEDS;
   const [needs, setNeeds] = useState<AccessibilityNeeds>(initial);
@@ -66,7 +75,7 @@ export function AccessibilitySection({ saved, messages }: { saved: SavedNeeds; m
             id="rsvp-a11y-note"
             name={A11Y_NOTE_FIELD}
             rows={3}
-            maxLength={ACCESSIBILITY_NOTE_MAX_LENGTH}
+            maxLength={noteMaxLength}
             aria-describedby="rsvp-a11y-note-hint"
             value={needs.note ?? ""}
             onChange={(event) => {
@@ -75,7 +84,7 @@ export function AccessibilitySection({ saved, messages }: { saved: SavedNeeds; m
             }}
             className="invite-input"
           />
-          <p id="rsvp-a11y-note-hint" className="invite-hint">{t("rsvp.a11y.noteHint", { max: ACCESSIBILITY_NOTE_MAX_LENGTH })}</p>
+          <p id="rsvp-a11y-note-hint" className="invite-hint">{t("rsvp.a11y.noteHint", { max: noteMaxLength })}</p>
         </div>
         <p className="invite-assist__more">
           <a className="invite-link" href="/accessibility">{t("rsvp.a11y.more")}</a>

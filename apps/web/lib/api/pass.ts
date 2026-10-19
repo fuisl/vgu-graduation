@@ -15,19 +15,19 @@ export async function getPass(token: string): Promise<ApiResult<PassResponse>> {
       cache: { mode: "no-store" },
     });
   } catch {
-    return errorResult("network", "Could not reach the API");
+    return errorResult("network", "Could not reach the server");
   }
 
   if (response.status === 401 || response.status === 404) return empty();
-  if (!response.ok) return errorResult("http", "The API returned an unexpected error", response.status);
+  if (!response.ok) return errorResult("http", "The server returned an unexpected error", response.status);
 
   let body: unknown;
   try {
     body = await response.json();
   } catch {
-    return errorResult("validation", "The API response was not valid JSON");
+    return errorResult("validation", "The server response was not valid JSON");
   }
   const parsed = passResponseSchema.safeParse(body);
-  if (!parsed.success) return errorResult("validation", "The API response did not match the expected shape");
+  if (!parsed.success) return errorResult("validation", "The server response did not match the expected shape");
   return ok(parsed.data);
 }

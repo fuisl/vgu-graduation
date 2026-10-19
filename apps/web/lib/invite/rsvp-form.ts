@@ -1,4 +1,8 @@
-import type { PutRsvpRequest, Rsvp } from "@grad/contract";
+/*
+ * Server-side (the server action and the page). The client form imports only types from here,
+ * so the value import of @grad/contract below never reaches the browser (QA P2-2).
+ */
+import { ACCESSIBILITY_NOTE_MAX_LENGTH, type PutRsvpRequest, type Rsvp } from "@grad/contract";
 import type { ApiResult } from "../api/result";
 import type { I18n } from "../i18n/dictionary";
 import type { MessageSlice } from "../i18n/format";
@@ -48,7 +52,7 @@ export function parseRsvpForm(fields: { get(name: string): unknown }, maxPlusOne
   const notes = String(fields.get("notes") ?? "").trim();
   if (notes.length > 1000) return invalid(t("rsvp.error.notesLength", { max: 1000 }));
 
-  const needs = parseAccessibilityFields(fields, { t });
+  const needs = parseAccessibilityFields(fields, { t }, ACCESSIBILITY_NOTE_MAX_LENGTH);
   if (!needs.ok) return invalid(needs.message);
 
   const request: PutRsvpRequest = {
@@ -63,7 +67,7 @@ export function parseRsvpForm(fields: { get(name: string): unknown }, maxPlusOne
 }
 
 /** Maps the API result to what the guest sees. Pure. */
-export function mapRsvpResult(result: ApiResult<Rsvp>, { t, locale }: Copy): RsvpFormState {
+export function mapRsvpResult(result: ApiResult<Rsvp>, { t }: Copy): RsvpFormState {
   if (result.status === "ok") {
     return {
       status: "success",
@@ -72,8 +76,8 @@ export function mapRsvpResult(result: ApiResult<Rsvp>, { t, locale }: Copy): Rsv
   }
   if (result.status === "empty") return noTokenState({ t });
   if (result.kind === "http" && result.httpStatus === 400) {
-    // The API explains a rejected answer in English; Vietnamese readers get a general line instead.
-    return { status: "error", kind: "rejected", message: locale === "en" ? result.message : t("rsvp.error.rejected") };
+    // The API explains a rejected answer in its own English (it may say "API"); guests get a plain line (QA P2-5).
+    return { status: "error", kind: "rejected", message: t("rsvp.error.rejected") };
   }
   if (result.kind === "http" && (result.httpStatus === 401 || result.httpStatus === 404 || result.httpStatus === 410)) {
     return {

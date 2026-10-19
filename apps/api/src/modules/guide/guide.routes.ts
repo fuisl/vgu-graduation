@@ -24,10 +24,10 @@ export interface GuideRoutesOptions {
 }
 
 /**
- * The guide is per invitation, so no shared cache may keep it; the guest's own
- * browser may, for five minutes (it rarely changes).
+ * The guide is per invitation and behind the invitation credential, so nothing
+ * may store it: a revoked or expired invitation must stop showing it at once.
  */
-const GUEST_GUIDE_CACHE = "private, max-age=300";
+const GUEST_GUIDE_CACHE = "private, no-store";
 
 const idParams = z.object({ id: z.string().uuid() });
 const notFound = (what: string) => ({ error: "Not Found", message: `${what} not found` });

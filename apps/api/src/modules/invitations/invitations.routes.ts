@@ -58,8 +58,9 @@ export function invitationsRoutes(
             .send({ error: "Not Found", message: "Invalid or revoked invitation" });
         }
 
-        // Vercel can cache up to 60s, tagged with the invitation
-        reply.header("Cache-Control", "public, s-maxage=60, stale-while-revalidate=30");
+        // Personal and credential-bound: no cache (CDN, proxy, the web's fetch cache) may keep it,
+        // or a revoked, rotated or expired invitation would keep resolving from the stored copy.
+        reply.header("Cache-Control", "private, no-store");
         return reply.status(200).send(result.invitation);
       },
     );

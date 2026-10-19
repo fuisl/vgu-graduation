@@ -66,7 +66,26 @@ describe("GET /invitations/me", () => {
     const res = await app.inject({ method: "GET", url: "/invitations/me", headers: { authorization: `Bearer ${TOKEN}` } });
     expect(res.statusCode).toBe(200);
     expect(invitationSchema.safeParse(res.json()).success).toBe(true);
-    expect(res.headers["cache-control"]).toContain("s-maxage=60");
+    // Personal and credential-bound (P2-13): never public, never stored by a CDN or the web's fetch cache.
+    expect(res.headers["cache-control"]).toBe("private, no-store");
+  });
+
+  it("is never stored when resolved from the cookie either", async () => {
+    const app = buildServer({ adminAccounts: approvedTester(), config, invitationsService: fakeService(okFor).service });
+    const res = await app.inject({ method: "GET", url: "/invitations/me", headers: { cookie: `inv=${TOKEN}` } });
+    expect(res.headers["cache-control"]).toBe("private, no-store");
+  });
+
+  it("never lets a cache keep a 401, 404 or 410", async () => {
+    const valid = buildServer({ adminAccounts: approvedTester(), config, invitationsService: fakeService(okFor).service });
+    const expired = buildServer({ adminAccounts: approvedTester(), config, invitationsService: fakeService(() => ({ status: "expired" })).service });
+    const responses = [
+      await valid.inject({ method: "GET", url: "/invitations/me" }),
+      await valid.inject({ method: "GET", url: "/invitations/me", headers: { authorization: "Bearer wrong" } }),
+      await expired.inject({ method: "GET", url: "/invitations/me", headers: { authorization: `Bearer ${TOKEN}` } }),
+    ];
+    expect(responses.map((res) => res.statusCode)).toEqual([401, 404, 410]);
+    for (const res of responses) expect(res.headers["cache-control"]).toBe("no-store");
   });
 
   it("resolves from the inv cookie", async () => {

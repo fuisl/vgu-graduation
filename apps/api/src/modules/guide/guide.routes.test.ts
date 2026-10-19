@@ -104,10 +104,18 @@ describe("GET /invitations/me/guide", () => {
     expect((await expired.inject({ method: "GET", url: "/invitations/me/guide", headers: auth })).statusCode).toBe(410);
   });
 
-  it("shows every active item by default, privately cached", async () => {
+  it("never lets a cache keep a refusal", async () => {
+    const app = server();
+    const missing = await app.inject({ method: "GET", url: "/invitations/me/guide" });
+    const revoked = await app.inject({ method: "GET", url: "/invitations/me/guide", headers: { authorization: "Bearer nope" } });
+    const expired = await server(setup(() => ({ status: "expired" })).service).inject({ method: "GET", url: "/invitations/me/guide", headers: auth });
+    for (const res of [missing, revoked, expired]) expect(res.headers["cache-control"]).toBe("no-store");
+  });
+
+  it("shows every active item by default, never stored by any cache", async () => {
     const res = await server().inject({ method: "GET", url: "/invitations/me/guide", headers: { cookie: `inv=${TOKEN}` } });
     expect(res.statusCode).toBe(200);
-    expect(res.headers["cache-control"]).toBe("private, max-age=300");
+    expect(res.headers["cache-control"]).toBe("private, no-store");
     const guide = guestGuideResponseSchema.parse(res.json());
     expect(guide.tailored).toBe(false);
     expect(guide.items.map((i) => i.title)).toEqual(["Item 1", "Item 2"]);

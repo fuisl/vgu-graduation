@@ -46,13 +46,22 @@ function query(params: Record<string, string>): string {
     .join("&");
 }
 
-export function buildCalendarLinks(event: CalendarEvent, apiOrigin: string = publicApiOrigin()): CalendarLinks {
+/**
+ * `event` is already in the guest's language (localizeEvent), and `directions` is the
+ * `calendar.directions` message, so a Google or Outlook entry reads in that language (#9).
+ * The webcal/.ics feed is one shared file and stays as the API writes it.
+ */
+export function buildCalendarLinks(
+  event: CalendarEvent,
+  apiOrigin: string = publicApiOrigin(),
+  { directions }: { directions: string } = { directions: "Directions: {url}" },
+): CalendarLinks {
   const origin = new URL(apiOrigin).origin;
   const feedPath = "/event/calendar.ics";
   const start = new Date(event.startsAt);
   const end = eventEnd(event);
   const location = [event.venue.name, event.venue.address].filter(Boolean).join(", ");
-  const details = [event.arrivalInfo, `Directions: ${event.venue.mapUrl}`].filter(Boolean).join("\n\n");
+  const details = [event.arrivalInfo, directions.replace("{url}", event.venue.mapUrl)].filter(Boolean).join("\n\n");
 
   return {
     webcal: `webcal://${new URL(origin).host}${feedPath}`,

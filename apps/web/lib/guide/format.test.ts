@@ -1,6 +1,9 @@
 import type { GuideItem } from "@grad/contract";
 import { describe, expect, it } from "vitest";
+import { createI18n } from "../i18n/dictionary";
 import { filterGuide, guideByline, guideCategories, joinNames } from "./format";
+
+const en = createI18n("en");
 
 const item = (id: string, category: GuideItem["category"]): GuideItem => ({
   id,
@@ -38,8 +41,13 @@ describe("joinNames and guideByline", () => {
   });
 
   it("names the graduates only when the guide is tailored", () => {
-    expect(guideByline(true, ["An", "Binh"])).toBe("Tailored for you by An and Binh.");
-    expect(guideByline(false, ["An"])).toMatch(/^Suggestions from the graduates/);
-    expect(guideByline(true, [])).toMatch(/^Suggestions from the graduates/);
+    expect(guideByline(true, ["An", "Binh"], en)).toBe("Tailored for you by An and Binh.");
+    expect(guideByline(false, ["An"], en)).toMatch(/^Suggestions from the graduates/);
+    expect(guideByline(true, [], en)).toMatch(/^Suggestions from the graduates/);
+  });
+
+  it("joins names with the Vietnamese conjunction (#9)", () => {
+    expect(joinNames(["An", "Binh", "Chi"], "vi-VN")).toBe("An, Binh và Chi");
+    expect(guideByline(true, ["An", "Binh"], createI18n("vi"))).toBe("Được An và Binh chọn riêng cho Quý khách.");
   });
 });

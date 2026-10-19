@@ -4,6 +4,7 @@ import { NOISE, REVEAL_MS, revealFrame, revealTimings } from "./decode";
 import AboutPage from "./page";
 import { PORTRAIT_COLS, PORTRAIT_ROWS, PORTRAITS } from "./portraits.generated";
 import { TEAM } from "./team";
+import { en } from "../../lib/i18n/messages/en";
 
 const ART = "  .:@\n#%  \n\n @";
 const fixed = () => 0.5;
@@ -47,14 +48,14 @@ describe("generated portraits", () => {
   });
 });
 
-describe("AboutPage", () => {
-  const out = html(<AboutPage />);
+describe("AboutPage", async () => {
+  const out = html(await AboutPage());
 
   it("credits every developer by GitHub handle and role", () => {
     for (const dev of TEAM) {
       expect(out).toContain(`href="https://github.com/${dev.handle}"`);
       expect(out).toContain(`@${dev.handle}`);
-      expect(out).toContain(dev.roles.join(" · "));
+      expect(out).toContain(dev.roles.map((role) => en[`about.role.${role}`]).join(" · "));
     }
   });
 

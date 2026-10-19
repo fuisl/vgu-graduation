@@ -43,6 +43,13 @@
       "when": 1792344996126,
       "tag": "0005_finish_grad26",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792374874744,
+      "tag": "0006_event_vietnamese",
+      "breakpoints": true
     }
   ]
 }

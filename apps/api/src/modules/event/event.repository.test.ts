@@ -65,6 +65,8 @@ describe("EventRepository", () => {
     expect(updated?.sequence).toBe(startSequence + 1);
     expect(updated?.timeConfirmed).toBe(true);
     expect(updated?.startsAt.toISOString()).toBe("2026-12-12T02:00:00.000Z");
+    // No Vietnamese fields in the body (#9): PUT replaces the document, so they are cleared.
+    expect(updated).toMatchObject({ nameVi: null, venueAddressVi: null, arrivalInfoVi: null });
     expect(updated!.updatedAt.getTime()).toBeGreaterThanOrEqual(seeded!.updatedAt.getTime());
 
     const rows = (await pool.query("SELECT actor, action, target_type, target_id, metadata FROM audit")).rows;

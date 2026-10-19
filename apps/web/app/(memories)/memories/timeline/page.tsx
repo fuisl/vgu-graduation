@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import { BrandEyebrow, BrandTheme, Cta, Section } from "@grad/ui";
 import { getEvent } from "../../../../lib/api/event";
+import { localizeEvent } from "../../../../lib/i18n/event";
 import { getPublicGallery, getPublicWishes } from "../../../../lib/api/public-memories";
 import { publicApiOrigin } from "../../../../lib/calendar/links";
+import type { I18n } from "../../../../lib/i18n/dictionary";
+import { formatRich } from "../../../../lib/i18n/format";
+import { getI18n } from "../../../../lib/i18n/server";
 import { buildTimeline, formatClock, formatDay, type TimelineChapter } from "../../../../lib/memories/timeline";
 import { SiteFooter } from "../../../site/SiteFooter";
 import { SiteHeader } from "../../../site/SiteHeader";
@@ -10,93 +14,88 @@ import { MemoryPhoto } from "../MemoryPhoto";
 import "../archive.css";
 import "./timeline.css";
 
-export const metadata: Metadata = {
-  title: "Timeline | GRAD '26",
-  description: "Graduation day for the VGU Class of 2026, in order: curated photos and wishes from arrival to celebration.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("timeline.metaTitle"), description: t("timeline.metaDescription") };
+}
 
 /**
- * Cohort timeline (#76). Static and cached like /memories: the curated listings
- * (tags `gallery-public`, `wishes-public`) plus GET /event (tag `event`) for the
- * chapter boundaries. If the event config is unavailable it falls back to days
- * or hours instead of failing.
+ * Cohort timeline (#76). Like /memories: the curated listings (tags
+ * `gallery-public`, `wishes-public`) plus GET /event (tag `event`) for the
+ * chapter boundaries, all from the fetch cache; the page itself renders per
+ * request in the guest's language (#9). If the event config is unavailable it
+ * falls back to days or hours instead of failing.
  */
-export const revalidate = 60;
 
 /** The first photo entry loads eagerly; the rest lazily as the guest scrolls. */
 const EAGER_ENTRIES = 1;
 
-function plural(count: number, one: string, many: string) {
-  return `${count} ${count === 1 ? one : many}`;
-}
-
-function chapterSummary(chapter: TimelineChapter): string {
+function chapterSummary(chapter: TimelineChapter, { t }: I18n): string {
   const parts = [];
-  if (chapter.photoCount) parts.push(plural(chapter.photoCount, "photo", "photos"));
-  if (chapter.wishCount) parts.push(plural(chapter.wishCount, "wish", "wishes"));
+  if (chapter.photoCount) parts.push(t.plural("timeline.photos", chapter.photoCount));
+  if (chapter.wishCount) parts.push(t.plural("timeline.wishes", chapter.wishCount));
   return parts.join(" · ");
 }
 
 export default async function TimelinePage() {
-  const [gallery, wishes, eventResult] = await Promise.all([getPublicGallery(), getPublicWishes(), getEvent()]);
+  const [gallery, wishes, eventResult, i18n] = await Promise.all([getPublicGallery(), getPublicWishes(), getEvent(), getI18n()]);
+  const { t } = i18n;
   const origin = publicApiOrigin();
-  const event = eventResult.status === "ok" ? eventResult.data : null;
+  const event = eventResult.status === "ok" ? localizeEvent(eventResult.data, i18n.locale) : null;
   const failed = gallery.status !== "ok" && wishes.status !== "ok";
   const partial = !failed && (gallery.status !== "ok" || wishes.status !== "ok");
   const timeline = buildTimeline({
     photos: gallery.status === "ok" ? gallery.data.items : [],
     wishes: wishes.status === "ok" ? wishes.data.items : [],
     event,
+    i18n,
   });
   const { chapters, timeZone } = timeline;
   let photoEntriesSeen = 0;
 
   return (
     <BrandTheme>
-      <SiteHeader />
+      <SiteHeader i18n={i18n} />
       <main>
         <Section tone="blue" aria-labelledby="timeline-title">
           <div className="mem-hero">
-            <BrandEyebrow ellipsis>Archive / Timeline</BrandEyebrow>
-            <h1 id="timeline-title" className="mem-title">The day, in order.</h1>
+            <BrandEyebrow ellipsis>{t("timeline.eyebrow")}</BrandEyebrow>
+            <h1 id="timeline-title" className="mem-title">{t("timeline.title")}</h1>
             <p className="mem-lead">
-              {event ? `${formatDay(event.startsAt, timeZone)} at ${event.venue.name}. ` : null}
-              Curated photos and wishes, from arrival to the last goodbye.
+              {event ? `${t("timeline.when", { day: formatDay(event.startsAt, timeZone, i18n.intl), venue: event.venue.name })} ` : null}
+              {t("timeline.lead")}
             </p>
-            <Cta tone="on-blue" variant="secondary" href="/memories">Back to the archive</Cta>
+            <Cta tone="on-blue" variant="secondary" href="/memories">{t("timeline.back")}</Cta>
           </div>
         </Section>
 
         <Section tone="white" density="compact" aria-labelledby="timeline-chapters-title">
-          <BrandEyebrow>Chapters</BrandEyebrow>
+          <BrandEyebrow>{t("timeline.chapters")}</BrandEyebrow>
           <h2 id="timeline-chapters-title" className="arc-h2">
-            {chapters.length > 0 ? plural(chapters.length, "chapter", "chapters") : "Nothing curated yet"}
+            {chapters.length > 0 ? t.plural("timeline.chapterCount", chapters.length) : t("memories.empty.title")}
           </h2>
 
           {failed ? (
             <p className="arc-state" role="status">
-              The timeline is temporarily unavailable. <a className="arc-link" href="/memories/timeline">Try again</a>.
+              {formatRich(t("timeline.unavailable"), {
+                retry: <a className="arc-link" href="/memories/timeline">{t("common.tryAgain")}</a>,
+              })}
             </p>
           ) : chapters.length === 0 ? (
             <div className="tl-empty">
-              <p className="arc-state">
-                The timeline fills in after the ceremony, once the organizers choose photos and wishes for the archive.
-                Until then, everything guests share is in the event gallery.
-              </p>
+              <p className="arc-state">{t("timeline.empty")}</p>
               <div className="arc-actions">
-                <Cta tone="on-white" variant="secondary" href="/gallery">Event gallery</Cta>
-                <a className="arc-link arc-link--tap" href="/wishes">Guestbook</a>
+                <Cta tone="on-white" variant="secondary" href="/gallery">{t("memories.eventGallery")}</Cta>
+                <a className="arc-link arc-link--tap" href="/wishes">{t("memories.guestbook")}</a>
               </div>
             </div>
           ) : (
             <>
               {partial ? (
-                <p className="mem-status mem-status--notice" role="status">
-                  Some memories could not be loaded. Showing the ones that are available.
-                </p>
+                <p className="mem-status mem-status--notice" role="status">{t("timeline.partial")}</p>
               ) : null}
               <div className="tl-layout">
-              <nav className="tl-index" aria-label="Chapters">
+              <nav className="tl-index" aria-label={t("timeline.chapters")}>
                 <ol>
                   {chapters.map((chapter) => (
                     <li key={chapter.id}>
@@ -115,7 +114,7 @@ export default async function TimelinePage() {
                     <header className="tl-chapter__head">
                       <BrandEyebrow>{chapter.range}</BrandEyebrow>
                       <h3 id={`${chapter.id}-title`} className="tl-chapter__title">{chapter.title}</h3>
-                      <p className="tl-chapter__summary">{chapterSummary(chapter)}</p>
+                      <p className="tl-chapter__summary">{chapterSummary(chapter, i18n)}</p>
                     </header>
                     <ol className="tl-entries">
                       {chapter.entries.map((entry) => {
@@ -145,7 +144,7 @@ export default async function TimelinePage() {
                                     photo={photo}
                                     origin={origin}
                                     sizes={single ? "(max-width: 960px) 88vw, 560px" : "(max-width: 960px) 44vw, 240px"}
-                                    alt={`Guest photo, ${formatClock(photo.createdAt, timeZone)}`}
+                                    alt={t("timeline.photoAlt", { time: formatClock(photo.createdAt, timeZone) })}
                                     eager={eager}
                                   />
                                 </li>
@@ -163,7 +162,7 @@ export default async function TimelinePage() {
           )}
         </Section>
       </main>
-      <SiteFooter />
+      <SiteFooter i18n={i18n} />
     </BrandTheme>
   );
 }

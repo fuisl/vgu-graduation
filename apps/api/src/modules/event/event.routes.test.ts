@@ -12,17 +12,20 @@ const secret = new TextEncoder().encode("dev-only-change-me");
 
 const base: StoredEvent = {
   name: "Graduation Ceremony 2026",
+  nameVi: null,
   startsAt: new Date("2026-12-12T02:00:00.000Z"),
   endsAt: null,
   timeZone: "Asia/Ho_Chi_Minh",
   timeConfirmed: false,
   venueName: "VGU Main Hall",
   venueAddress: "Binh Duong, Vietnam",
+  venueAddressVi: null,
   venueMapUrl: "https://maps.example.com/vgu",
   contactName: null,
   contactEmail: null,
   contactPhone: null,
   arrivalInfo: null,
+  arrivalInfoVi: null,
   sequence: 0,
   updatedAt: new Date("2026-09-29T00:00:00.000Z"),
 };
@@ -38,17 +41,20 @@ function fakeStore(initial: StoredEvent | null = base) {
       row = {
         ...row,
         name: input.name,
+        nameVi: input.nameVi ?? null,
         startsAt: new Date(input.startsAt),
         endsAt: input.endsAt ? new Date(input.endsAt) : null,
         timeZone: input.timeZone,
         timeConfirmed: input.timeConfirmed,
         venueName: input.venue.name,
         venueAddress: input.venue.address,
+        venueAddressVi: input.venue.addressVi ?? null,
         venueMapUrl: input.venue.mapUrl,
         contactName: input.contact?.name ?? null,
         contactEmail: input.contact?.email ?? null,
         contactPhone: input.contact?.phone ?? null,
         arrivalInfo: input.arrivalInfo,
+        arrivalInfoVi: input.arrivalInfoVi ?? null,
         sequence: row.sequence + 1,
         updatedAt: new Date("2026-10-01T00:00:00.000Z"),
       };
@@ -87,13 +93,15 @@ describe("GET /event", () => {
     const body = eventSchema.parse(res.json());
     expect(body).toEqual({
       name: "Graduation Ceremony 2026",
+      nameVi: null,
       startsAt: "2026-12-12T02:00:00.000Z",
       endsAt: null,
       timeZone: "Asia/Ho_Chi_Minh",
       timeConfirmed: false,
-      venue: { name: "VGU Main Hall", address: "Binh Duong, Vietnam", mapUrl: "https://maps.example.com/vgu" },
+      venue: { name: "VGU Main Hall", address: "Binh Duong, Vietnam", addressVi: null, mapUrl: "https://maps.example.com/vgu" },
       contact: null,
       arrivalInfo: null,
+      arrivalInfoVi: null,
     });
   });
 
@@ -208,6 +216,29 @@ describe("PUT /admin/event", () => {
     expect(res.headers["cache-control"]).toBe("no-store");
     expect(res.json().timeConfirmed).toBe(true);
     expect(updates).toEqual([{ actor: "fuisl" }]);
+  });
+
+  it("stores and serves the optional Vietnamese fields, and older bodies without them still validate (#9)", async () => {
+    const { store } = fakeStore();
+    const app = buildServer({ adminAccounts: approvedTester(), config, eventStore: store });
+    const headers = { authorization: `Bearer ${await adminToken()}` };
+    const withVi = {
+      ...validBody,
+      nameVi: "Lễ tốt nghiệp 2026",
+      venue: { ...validBody.venue, addressVi: "Bình Dương, Việt Nam" },
+      arrivalInfoVi: "Đỗ xe ở cổng 2.",
+    };
+    expect((await app.inject({ method: "PUT", url: "/admin/event", headers, payload: withVi })).statusCode).toBe(200);
+    const got = (await app.inject({ method: "GET", url: "/event" })).json();
+    expect(eventSchema.parse(got)).toMatchObject({
+      nameVi: "Lễ tốt nghiệp 2026",
+      venue: { addressVi: "Bình Dương, Việt Nam" },
+      arrivalInfoVi: "Đỗ xe ở cổng 2.",
+    });
+
+    expect((await app.inject({ method: "PUT", url: "/admin/event", headers, payload: validBody })).statusCode).toBe(200);
+    const cleared = (await app.inject({ method: "GET", url: "/event" })).json();
+    expect(cleared).toMatchObject({ nameVi: null, venue: { addressVi: null }, arrivalInfoVi: null });
   });
 
   it("rejects endsAt not after startsAt", async () => {

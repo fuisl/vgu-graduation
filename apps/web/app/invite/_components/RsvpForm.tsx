@@ -3,12 +3,23 @@
 import type { Invitation } from "@grad/contract";
 import { Cta } from "@grad/ui";
 import { useState, useTransition, type FormEvent } from "react";
-import { IDLE, RETRY_MESSAGE, type RsvpFormState } from "../../../lib/invite/rsvp-form";
+import { sliceTranslator } from "../../../lib/i18n/format";
+import { IDLE, type RsvpFormState, type RsvpMessages } from "../../../lib/invite/rsvp-form";
 import type { SavedNeeds } from "../../../lib/invite/accessibility";
 import { AccessibilitySection } from "./AccessibilitySection";
 import { submitRsvp } from "./rsvp-actions";
 
-export function RsvpForm({ invitation, savedNeeds }: { invitation: Invitation; savedNeeds: SavedNeeds }) {
+export function RsvpForm({
+  invitation,
+  savedNeeds,
+  messages,
+}: {
+  invitation: Invitation;
+  savedNeeds: SavedNeeds;
+  /** `pickMessages(locale, ...RSVP_MESSAGES)`: the form's strings in the guest's language (#9). */
+  messages: RsvpMessages;
+}) {
+  const t = sliceTranslator(messages);
   const { rsvp, maxPlusOnes } = invitation;
   const [attending, setAttending] = useState<"yes" | "no" | "">(rsvp ? (rsvp.attending ? "yes" : "no") : "");
   const [plusOnes, setPlusOnes] = useState(String(rsvp?.plusOnesCount ?? 0));
@@ -26,7 +37,7 @@ export function RsvpForm({ invitation, savedNeeds }: { invitation: Invitation; s
       try {
         setState(await submitRsvp(maxPlusOnes, data));
       } catch {
-        setState({ status: "error", kind: "retry", message: RETRY_MESSAGE });
+        setState({ status: "error", kind: "retry", message: t("rsvp.error.retry") });
       }
     });
   }
@@ -35,12 +46,12 @@ export function RsvpForm({ invitation, savedNeeds }: { invitation: Invitation; s
 
   return (
     <form onSubmit={onSubmit} aria-busy={pending} aria-labelledby="rsvp-form-heading">
-      <h2 id="rsvp-form-heading" className="invite-heading">{rsvp ? "Change your RSVP" : "Respond to the invitation"}</h2>
-      <p>You can change your answer at any time.</p>
+      <h2 id="rsvp-form-heading" className="invite-heading">{rsvp ? t("rsvp.form.change") : t("rsvp.form.respond")}</h2>
+      <p>{t("rsvp.form.anyTime")}</p>
 
       <fieldset disabled={pending} className="invite-fieldset">
         <fieldset className="invite-field invite-choices">
-          <legend className="invite-choices__legend">Will you attend?</legend>
+          <legend className="invite-choices__legend">{t("rsvp.form.attendLegend")}</legend>
           <label className="invite-choice">
             <input
               type="radio"
@@ -50,7 +61,7 @@ export function RsvpForm({ invitation, savedNeeds }: { invitation: Invitation; s
               onChange={() => setAttending("yes")}
               required
             />
-            Yes, I will attend
+            {t("rsvp.form.yes")}
           </label>
           <label className="invite-choice">
             <input
@@ -60,13 +71,13 @@ export function RsvpForm({ invitation, savedNeeds }: { invitation: Invitation; s
               checked={attending === "no"}
               onChange={() => setAttending("no")}
             />
-            No, I cannot attend
+            {t("rsvp.form.no")}
           </label>
         </fieldset>
 
         {showPlusOnes ? (
           <div className="invite-field">
-            <label htmlFor="rsvp-plus-ones">Guests you are bringing (0 to {maxPlusOnes})</label>
+            <label htmlFor="rsvp-plus-ones">{t("rsvp.form.plusOnes", { max: maxPlusOnes })}</label>
             <input
               id="rsvp-plus-ones"
               name="plusOnesCount"
@@ -84,7 +95,7 @@ export function RsvpForm({ invitation, savedNeeds }: { invitation: Invitation; s
 
         {attending === "yes" ? (
           <div className="invite-field">
-            <label htmlFor="rsvp-dietary">Dietary requirements (optional)</label>
+            <label htmlFor="rsvp-dietary">{t("rsvp.form.dietary")}</label>
             <input
               id="rsvp-dietary"
               name="dietaryRequirements"
@@ -98,10 +109,10 @@ export function RsvpForm({ invitation, savedNeeds }: { invitation: Invitation; s
         ) : null}
 
         {/* Not rendered for "No": nothing is submitted, so stored needs stay as they are. */}
-        {attending === "yes" ? <AccessibilitySection saved={savedNeeds} /> : null}
+        {attending === "yes" ? <AccessibilitySection saved={savedNeeds} messages={messages} /> : null}
 
         <div className="invite-field">
-          <label htmlFor="rsvp-notes">Notes (optional)</label>
+          <label htmlFor="rsvp-notes">{t("rsvp.form.notes")}</label>
           <textarea
             id="rsvp-notes"
             name="notes"
@@ -115,13 +126,13 @@ export function RsvpForm({ invitation, savedNeeds }: { invitation: Invitation; s
 
         <div>
           <Cta tone="on-white" type="submit" disabled={pending}>
-            {pending ? "Saving..." : state.status === "error" && state.kind === "retry" ? "Try again" : "Save RSVP"}
+            {pending ? t("rsvp.form.saving") : state.status === "error" && state.kind === "retry" ? t("rsvp.form.retry") : t("rsvp.form.save")}
           </Cta>
         </div>
       </fieldset>
 
       <div role="status" aria-live="polite" className="invite-status">
-        {pending ? "Saving your RSVP..." : state.status === "success" ? state.message : null}
+        {pending ? t("rsvp.form.savingStatus") : state.status === "success" ? state.message : null}
       </div>
       <div role="alert" className="invite-error">
         {!pending && state.status === "error" ? state.message : null}

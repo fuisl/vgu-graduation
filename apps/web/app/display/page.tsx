@@ -2,6 +2,9 @@ import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { BrandTheme } from "@grad/ui";
 import { getEvent } from "../../lib/api/event";
+import { pickMessages } from "../../lib/i18n/dictionary";
+import { localizeEvent } from "../../lib/i18n/event";
+import { getI18n } from "../../lib/i18n/server";
 import { formatEventWhen } from "../../lib/invite/format";
 import { displayLink, publicSiteOrigin, renderLinkQrSvg } from "../../lib/live/site-link";
 import { BRAND_THEME_COLOR } from "../site/theme-color";
@@ -9,10 +12,10 @@ import { parseCaptionSetting } from "./caption-setting";
 import { DisplayScreen } from "./DisplayScreen";
 import "./display.css";
 
-export const metadata: Metadata = {
-  title: "Event display | GRAD '26",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("display.metaTitle"), robots: { index: false, follow: false } };
+}
 
 export const viewport: Viewport = { themeColor: BRAND_THEME_COLOR };
 
@@ -28,21 +31,22 @@ export const dynamic = "force-dynamic";
  * `?captions=off|en|vi|de` picks the caption line (default: the other hall language).
  */
 export default async function DisplayPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const [event, requestHeaders, params] = await Promise.all([getEvent(), headers(), searchParams]);
+  const [event, requestHeaders, params, i18n] = await Promise.all([getEvent(), headers(), searchParams, getI18n()]);
   const origin = publicSiteOrigin(process.env.PUBLIC_ORIGIN, requestHeaders.get("host"), requestHeaders.get("x-forwarded-proto"));
   const wishesUrl = `${origin}/wishes`;
   const wishesQrSvg = await renderLinkQrSvg(wishesUrl);
-  const data = event.status === "ok" ? event.data : null;
+  const data = event.status === "ok" ? localizeEvent(event.data, i18n.locale) : null;
 
   return (
     <BrandTheme>
       <DisplayScreen
         eventName={data?.name ?? "GRAD '26"}
-        eventDate={data ? formatEventWhen(data).date : null}
+        eventDate={data ? formatEventWhen(data, i18n).date : null}
         wishesQrSvg={wishesQrSvg}
         wishesLink={displayLink(wishesUrl)}
         liveLink={displayLink(`${origin}/live`)}
         captions={parseCaptionSetting(params.captions)}
+        messages={pickMessages(i18n.locale, "display.")}
       />
     </BrandTheme>
   );

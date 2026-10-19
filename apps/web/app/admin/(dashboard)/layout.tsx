@@ -26,7 +26,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const owner = me.status === "ok" && me.data.owner;
 
   return (
-    <div className="admin">
+    // Admin is internal and English-only (#9), whatever the site language on <html>.
+    <div className="admin" lang="en">
       <Container>
         <header className="admin-header">
           <div>

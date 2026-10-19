@@ -3,6 +3,8 @@ import { cookies } from "next/headers";
 import { BrandTheme } from "@grad/ui";
 import { getEvent } from "../../lib/api/event";
 import { getInvitation } from "../../lib/api/invitations";
+import { localizeEventResult } from "../../lib/i18n/event";
+import { getI18n } from "../../lib/i18n/server";
 import { INVITATION_COOKIE } from "../../lib/invite/cookie";
 import { selectGuestPageState } from "../../lib/profile/state";
 import { SiteFooter } from "../site/SiteFooter";
@@ -13,29 +15,29 @@ import "../invite/invite.css";
 import "./profile.css";
 
 // Personal page behind the invitation cookie: keep it out of search and never leak the URL.
-export const metadata: Metadata = {
-  title: "Your profile · GRAD '26",
-  robots: { index: false, follow: false },
-  referrer: "no-referrer",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("profile.metaTitle"), robots: { index: false, follow: false }, referrer: "no-referrer" };
+}
 
 /** Guest profile (#139). Signed out, expired or broken invitations get an explainer instead. */
 export default async function ProfilePage() {
   const token = (await cookies()).get(INVITATION_COOKIE)?.value;
-  const [invitation, event] = await Promise.all([token ? getInvitation(token) : null, getEvent()]);
+  const [invitation, eventResult, i18n] = await Promise.all([token ? getInvitation(token) : null, getEvent(), getI18n()]);
+  const event = localizeEventResult(eventResult, i18n.locale);
   const state = selectGuestPageState(Boolean(token), invitation);
 
   return (
     <BrandTheme>
-      <SiteHeader />
+      <SiteHeader i18n={i18n} />
       <main className="profile-main">
         {state.kind === "personal" ? (
-          <GuestProfile invitation={state.invitation} event={event} />
+          <GuestProfile i18n={i18n} invitation={state.invitation} event={event} />
         ) : (
-          <GuestNotice kind={state.kind} event={event} retryHref="/me" eyebrow="Guest portal" />
+          <GuestNotice i18n={i18n} kind={state.kind} event={event} retryHref="/me" eyebrow={i18n.t("header.guestPortal")} />
         )}
       </main>
-      <SiteFooter />
+      <SiteFooter i18n={i18n} />
     </BrandTheme>
   );
 }

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Cta } from "@grad/ui";
+import { formatRich } from "../../../lib/i18n/format";
+import type { MessageKeys, SliceTranslator } from "../../../lib/i18n/format";
 import { printErrorMessage } from "../../../lib/print/messages";
 
 /** GET /api/print: whether the guest print action applies to this visitor (#74). */
@@ -48,7 +50,16 @@ type State =
  * credential). Focus moves with the step so keyboard and screen-reader users
  * never land on a removed button.
  */
-export function PrintRequest({ publicId, availability }: { publicId: string; availability: PrintAvailability | null }) {
+export function PrintRequest({
+  publicId,
+  availability,
+  t,
+}: {
+  publicId: string;
+  availability: PrintAvailability | null;
+  /** The gallery's translator; this component reads only `print.*` (#9). */
+  t: SliceTranslator<MessageKeys<"print.">>;
+}) {
   const [state, setState] = useState<State>({ step: "idle" });
   const rootRef = useRef<HTMLDivElement>(null);
   const moved = useRef(false);
@@ -71,7 +82,9 @@ export function PrintRequest({ publicId, availability }: { publicId: string; ava
     return (
       <div className="gal-print">
         <p className="mem-help">
-          Guests can request a print of this photo at the venue. <Link className="gal-print-link" href="/invite">Open your invitation</Link> first.
+          {formatRich(t("print.signedOut"), {
+            link: <Link className="gal-print-link" href="/invite">{t("print.signedOutLink")}</Link>,
+          })}
         </p>
       </div>
     );
@@ -101,41 +114,41 @@ export function PrintRequest({ publicId, availability }: { publicId: string; ava
           : Number(response.headers.get("Retry-After")) || undefined;
       go({
         step: "error",
-        message: printErrorMessage(response.status, retryAfter, availability.perHour),
+        message: printErrorMessage(response.status, retryAfter, availability.perHour, t),
         canRetry: response.status >= 500,
       });
     } catch {
-      go({ step: "error", message: printErrorMessage(0, undefined, availability.perHour), canRetry: true });
+      go({ step: "error", message: printErrorMessage(0, undefined, availability.perHour, t), canRetry: true });
     }
   };
 
   return (
     <div className="gal-print" ref={rootRef}>
       {state.step === "idle" ? (
-        <Cta tone="on-white" variant="secondary" onClick={() => go({ step: "confirm" })}>Request a print</Cta>
+        <Cta tone="on-white" variant="secondary" onClick={() => go({ step: "confirm" })}>{t("print.request")}</Cta>
       ) : null}
 
       {state.step === "confirm" || state.step === "sending" ? (
         <div className="gal-print-confirm" role="group" aria-labelledby={`print-confirm-${publicId}`}>
           <p id={`print-confirm-${publicId}`} className="gal-print-text">
-            Print one copy of this photo at the venue? Each invitation can request {availability.perHour} prints an hour.
+            {t("print.confirmText", { perHour: availability.perHour })}
           </p>
           <div className="gal-print-actions">
             <Cta tone="on-white" onClick={() => void submit()} disabled={state.step === "sending"}>
-              {state.step === "sending" ? "Sending…" : "Confirm print"}
+              {state.step === "sending" ? t("print.sending") : t("print.confirm")}
             </Cta>
             <Cta tone="on-white" variant="secondary" onClick={() => go({ step: "idle" })} disabled={state.step === "sending"}>
-              Cancel
+              {t("print.cancel")}
             </Cta>
           </div>
-          <p className="brand-sr-only" role="status">{state.step === "sending" ? "Sending your print request" : ""}</p>
+          <p className="brand-sr-only" role="status">{state.step === "sending" ? t("print.sendingStatus") : ""}</p>
         </div>
       ) : null}
 
       {state.step === "done" ? (
         <p className="mem-status mem-status--success" role="status" tabIndex={-1} data-print-message>
           {/* TODO(owner): name where guests collect prints (e.g. "the photo desk by the hall entrance"). */}
-          Your print is in the queue. Collect it at the photo desk.
+          {t("print.done")}
         </p>
       ) : null}
 
@@ -144,7 +157,7 @@ export function PrintRequest({ publicId, availability }: { publicId: string; ava
           <p className="mem-status mem-status--error" role="alert" tabIndex={-1} data-print-message>{state.message}</p>
           {state.canRetry ? (
             <div className="gal-print-actions">
-              <Cta tone="on-white" variant="secondary" onClick={() => go({ step: "confirm" })}>Try again</Cta>
+              <Cta tone="on-white" variant="secondary" onClick={() => go({ step: "confirm" })}>{t("print.retry")}</Cta>
             </div>
           ) : null}
         </div>

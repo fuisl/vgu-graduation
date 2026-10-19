@@ -14,15 +14,17 @@ const PUBLIC_CACHE = "public, s-maxage=300, stale-while-revalidate=60";
 export function toEventConfig(row: StoredEvent): EventConfig {
   return {
     name: row.name,
+    nameVi: row.nameVi,
     startsAt: row.startsAt.toISOString(),
     endsAt: row.endsAt ? row.endsAt.toISOString() : null,
     timeZone: row.timeZone,
     timeConfirmed: row.timeConfirmed,
-    venue: { name: row.venueName, address: row.venueAddress, mapUrl: row.venueMapUrl },
+    venue: { name: row.venueName, address: row.venueAddress, addressVi: row.venueAddressVi, mapUrl: row.venueMapUrl },
     contact: row.contactName
       ? { name: row.contactName, email: row.contactEmail, phone: row.contactPhone }
       : null,
     arrivalInfo: row.arrivalInfo,
+    arrivalInfoVi: row.arrivalInfoVi,
   };
 }
 

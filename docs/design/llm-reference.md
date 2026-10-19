@@ -18,6 +18,18 @@ Before generating UI read `philosophy.md`, `tokens.md`, `components.md` and `ant
 - **Motion:** none by default. The sculpture is the only motif and `DecodeText` stays on the landing headline (`motion.md`). Preserve reduced motion.
 - **Copy:** restrained, confident, warm, concise and slightly technical. Lead with event facts.
 
+## Copy and languages
+
+The guest site reads in English and Vietnamese (#9, `languages.md`, ADR-010). From now on, never hard-code guest-facing text in a component:
+
+1. Add the English message to `apps/web/lib/i18n/messages/en.ts` under a `<surface>.<thing>` key, and the same key with natural, formal Vietnamese (full diacritics, "Quý khách") to `vi.ts`. `tsc` fails if the key sets differ; `lib/i18n/i18n.test.ts` also checks placeholders.
+2. In a server component or page: `const i18n = await getI18n()` (`lib/i18n/server.ts`), then `i18n.t("key", { name })`, `i18n.t.plural("key", n)` for `.one`/`.other` pairs, and `formatRich` for a link inside a sentence. Pass `i18n` to `SiteHeader`, `SiteFooter` and other server components; metadata uses `generateMetadata` with `getI18n()`.
+3. In a client component: take a `messages` prop typed `MessageSlice<"prefix.">`, pass `pickMessages(i18n.locale, "prefix.")` from the server, and format with `sliceTranslator(messages)` (wrap it in `useMemo` if an effect uses it). Never import a dictionary into client code, and never export values other than components from a `"use client"` file.
+4. Dates: `Intl.DateTimeFormat(i18n.intl, …)`. Event prose: `localizeEvent(event, i18n.locale)`.
+5. Cover aria-labels, alt text, titles, loading, empty and error states, and status messages. Map API errors to your own messages by status; do not show an API's English `message`.
+
+Admin (`/admin/*`) is internal and stays English.
+
 ## How to pick tone and density
 
 1. Is the guest reading or acting (forms, lists, RSVP)? White, and compact if it is a working surface.

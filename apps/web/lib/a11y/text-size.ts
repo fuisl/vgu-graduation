@@ -7,11 +7,7 @@
 export const TEXT_SIZES = ["default", "large", "largest"] as const;
 export type TextSize = (typeof TEXT_SIZES)[number];
 
-export const TEXT_SIZE_LABELS: Record<TextSize, string> = {
-  default: "Default",
-  large: "Large",
-  largest: "Largest",
-};
+/* Labels are the `textSize.<size>` messages (#9). */
 
 export const TEXT_SIZE_STORAGE_KEY = "grad26.textSize";
 export const TEXT_SIZE_ATTRIBUTE = "data-text-size";

@@ -2,6 +2,9 @@ import type { GuideItem } from "@grad/contract";
 import { renderToStaticMarkup as html } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { GuideBook } from "./GuideBook";
+import { pickMessages } from "../../lib/i18n/dictionary";
+
+const messages = pickMessages("en", "guide.book.", "guide.category.");
 
 const items: GuideItem[] = [
   {
@@ -25,7 +28,7 @@ const items: GuideItem[] = [
 ];
 
 describe("GuideBook", () => {
-  const out = html(<GuideBook items={items} />);
+  const out = html(<GuideBook messages={messages} items={items} />);
 
   it("renders a filter pill for All and each category present", () => {
     expect(out).toContain('role="group" aria-label="Show"');
@@ -50,6 +53,6 @@ describe("GuideBook", () => {
   });
 
   it("skips the filter when there is only one category", () => {
-    expect(html(<GuideBook items={[items[0]!]} />)).not.toContain('aria-label="Show"');
+    expect(html(<GuideBook messages={messages} items={[items[0]!]} />)).not.toContain('aria-label="Show"');
   });
 });

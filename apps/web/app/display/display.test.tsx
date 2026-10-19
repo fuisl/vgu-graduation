@@ -2,6 +2,7 @@ import { renderToStaticMarkup as html } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { captionLanguage, parseCaptionSetting } from "./caption-setting";
 import { DisplayScreen } from "./DisplayScreen";
+import { pickMessages } from "../../lib/i18n/dictionary";
 
 const props = {
   eventName: "VGU Graduation 2026",
@@ -10,6 +11,7 @@ const props = {
   wishesLink: "grad26.fuisloy.dev/wishes",
   liveLink: "grad26.fuisloy.dev/live",
   captions: "auto" as const,
+  messages: pickMessages("en", "display."),
 };
 
 describe("DisplayScreen (server render, before the feed connects)", () => {

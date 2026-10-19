@@ -20,3 +20,4 @@ Date: YYYY-MM-DD
 - [ADR-007: Venue audio enters through the API](007-venue-audio-ingest.md)
 - [ADR-008: Separate infrastructure repository](008-infrastructure-repository.md)
 - [ADR-009: Direct home network exposure, no Cloudflare Tunnel](009-direct-home-network-exposure.md)
+- [ADR-010: Site languages without locale URLs](010-site-languages.md)

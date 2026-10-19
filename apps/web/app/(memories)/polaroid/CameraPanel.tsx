@@ -1,17 +1,31 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { browserApiOrigin } from "../../../lib/api/browser-origin";
+import { sliceTranslator, type MessageSlice } from "../../../lib/i18n/format";
 import "./polaroid.css";
 
 function jpegBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (blob) resolve(blob);
-      else reject(new Error("The captured photo could not be encoded"));
+      else reject(new Error("encode"));
     }, "image/jpeg", 0.85);
   });
 }
+
+/** What a failed POST /media means for the guest, by status, in their language (#9). Never echoes server detail. */
+function uploadErrorId(status: number) {
+  if (status === 401) return "camera.error.signedOut" as const;
+  if (status === 404) return "camera.error.invalid" as const;
+  if (status === 410) return "camera.error.expired" as const;
+  if (status === 409) return "camera.error.rollFull" as const;
+  if (status === 413) return "camera.error.tooLarge" as const;
+  return "camera.error.upload" as const;
+}
+
+/** An upload failure whose message is already in the guest's language. */
+class UploadError extends Error {}
 
 type UploadMediaResponse = {
   publicId: string;
@@ -29,7 +43,8 @@ function isUploadMediaResponse(value: unknown): value is UploadMediaResponse {
     && response.shotsRemaining >= 0;
 }
 
-export function CameraPanel() {
+export function CameraPanel({ messages }: { messages: MessageSlice<"camera."> }) {
+  const t = useMemo(() => sliceTranslator(messages), [messages]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -52,7 +67,7 @@ export function CameraPanel() {
       try {
         // [FIX APPLIED]: Check if API exists before calling it to prevent undefined crashes
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          setCameraError("Camera blocked. HTTPS or localhost is required.");
+          setCameraError(t("camera.error.insecure"));
           return;
         }
 
@@ -66,7 +81,7 @@ export function CameraPanel() {
         }
       } catch (err) {
         console.error("Camera access denied or failed", err);
-        setCameraError("Camera access denied. Please check permissions.");
+        setCameraError(t("camera.error.denied"));
       }
     };
 
@@ -79,7 +94,7 @@ export function CameraPanel() {
         currentStream.getTracks().forEach((track) => track.stop());
       }
     };
-  }, [photosRemaining, facingMode]);
+  }, [photosRemaining, facingMode, t]);
 
   const handleCaptureAndSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,7 +110,7 @@ export function CameraPanel() {
     // Maintain aspect ratio while standardizing size
     const size = Math.min(video.videoWidth, video.videoHeight);
     if (size <= 0) {
-      setUploadError("The camera is still starting. Please wait a moment and try again.");
+      setUploadError(t("camera.error.starting"));
       setIsSubmitting(false);
       return;
     }
@@ -104,7 +119,7 @@ export function CameraPanel() {
 
     const ctx = canvas.getContext("2d");
     if (!ctx) {
-      setUploadError("This browser could not capture the photo.");
+      setUploadError(t("camera.error.capture"));
       setIsSubmitting(false);
       return;
     }
@@ -132,27 +147,18 @@ export function CameraPanel() {
       });
 
       const body: unknown = await response.json().catch(() => null);
-      if (!response.ok) {
-        const detail = body && typeof body === "object" && "message" in body && typeof body.message === "string"
-          ? body.message
-          : "The photo could not be uploaded. Please try again.";
-        throw new Error(detail);
-      }
+      if (!response.ok) throw new UploadError(t(uploadErrorId(response.status)));
 
-      if (!isUploadMediaResponse(body)) throw new Error("The upload response was invalid. Please try again.");
+      if (!isUploadMediaResponse(body)) throw new UploadError(t("camera.error.upload"));
 
       setIsRolling(true);
       setTimeout(() => {
         setIsRolling(false);
         setPhotosRemaining(body.shotsRemaining);
       }, 400);
-      setUploadSuccess(
-        body.processingStatus === "ready"
-          ? "Photo added to the gallery."
-          : "Photo received. It will appear after processing.",
-      );
+      setUploadSuccess(body.processingStatus === "ready" ? t("camera.added") : t("camera.received"));
     } catch (error) {
-      setUploadError(error instanceof Error ? error.message : "The photo could not be uploaded. Please try again.");
+      setUploadError(error instanceof UploadError ? error.message : t("camera.error.upload"));
     } finally {
       setIsSubmitting(false);
     }
@@ -163,7 +169,7 @@ export function CameraPanel() {
   return (
     <form onSubmit={handleCaptureAndSubmit} className="mem-panel cam-panel">
       <div className="mem-field">
-        <p className="mem-label" id="viewfinder-label">01 / Viewfinder</p>
+        <p className="mem-label" id="viewfinder-label">{t("camera.viewfinder")}</p>
         <div className="cam-viewfinder" role="group" aria-labelledby="viewfinder-label">
           {cameraError ? (
             <div className="cam-message" role="alert">{cameraError}</div>
@@ -173,7 +179,7 @@ export function CameraPanel() {
               autoPlay
               playsInline
               muted
-              aria-label="Camera preview"
+              aria-label={t("camera.preview")}
               className={`cam-video${mirrored ? " is-mirrored" : ""}`}
             />
           )}
@@ -181,7 +187,7 @@ export function CameraPanel() {
           {/* Mechanical odometer: rolls to the new count after each shot */}
           <div
             className="cam-overlay cam-overlay--right cam-counter"
-            aria-label={photosRemaining === null ? "Shots remaining unknown until your first photo" : `${photosRemaining} shots remaining`}
+            aria-label={photosRemaining === null ? t("camera.shotsUnknown") : t.plural("camera.shots", photosRemaining)}
             role="img"
           >
             <div className={`cam-counter-track${isRolling ? " is-rolling" : ""}`} aria-hidden="true">
@@ -194,9 +200,9 @@ export function CameraPanel() {
             type="button"
             onClick={() => setFacingMode((prev) => (prev === "user" ? "environment" : "user"))}
             className="cam-flip cam-overlay cam-overlay--left"
-            aria-label={`Switch to ${mirrored ? "rear" : "selfie"} camera`}
+            aria-label={mirrored ? t("camera.switchToRear") : t("camera.switchToSelfie")}
           >
-            Flip ({mirrored ? "Selfie" : "Rear"})
+            {mirrored ? t("camera.flipSelfie") : t("camera.flipRear")}
           </button>
 
           <div className="cam-shutter">
@@ -204,7 +210,7 @@ export function CameraPanel() {
               type="submit"
               disabled={isSubmitting || !!cameraError || photosRemaining === 0}
               className="cam-shutter-button"
-              aria-label={isSubmitting ? "Uploading photo" : "Take photo"}
+              aria-label={isSubmitting ? t("camera.uploading") : t("camera.take")}
             >
               <span className="cam-shutter-inner" aria-hidden="true" />
             </button>
@@ -212,16 +218,13 @@ export function CameraPanel() {
 
           {photosRemaining === 0 && (
             <div className="cam-film-empty">
-              <span className="mem-label cam-film-empty__label">Film roll empty</span>
-              <p className="cam-film-empty__text">You have used all exposures.</p>
+              <span className="mem-label cam-film-empty__label">{t("camera.empty")}</span>
+              <p className="cam-film-empty__text">{t("camera.emptyBody")}</p>
             </div>
           )}
         </div>
         <canvas ref={canvasRef} hidden />
-        <p className="mem-help">
-          Your photo is public: it may be shown on the event display and gallery, and kept in the four-year
-          graduation archive. Contact an organizer to have something removed.
-        </p>
+        <p className="mem-help">{t("camera.public")}</p>
         {uploadError ? <p role="alert" className="mem-status mem-status--error">{uploadError}</p> : null}
         {uploadSuccess ? <p role="status" className="mem-status mem-status--success">{uploadSuccess}</p> : null}
       </div>

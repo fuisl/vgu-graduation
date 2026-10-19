@@ -3,7 +3,7 @@
 import Link from "next/link";
 import {useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode} from "react";
 import {BrandLogo} from "../logo/BrandLogo";
-import {SITE_NAV, nextTrapIndex, type SiteNavKey} from "./nav";
+import {nextTrapIndex, type SiteNavKey, type SiteNavLink} from "./nav";
 
 const FOCUSABLE = "a[href], button:not([disabled])";
 
@@ -25,8 +25,18 @@ function ThreeBarsIcon() {
   );
 }
 
+type Props = {
+  current?: SiteNavKey;
+  action: ReactNode;
+  /** The EN | VI switch (#9), above the guest chip. */
+  language: ReactNode;
+  /** Nav links with labels in the page's language. */
+  links: readonly SiteNavLink[];
+  labels: {menu: string; close: string; nav: string};
+};
+
 /** Mobile (<= 960px) menu button and full-screen blue sheet. */
-export function MobileMenu({current, action}: {current?: SiteNavKey; action: ReactNode}) {
+export function MobileMenu({current, action, language, links, labels}: Props) {
   const [open, setOpen] = useState(false);
   const sheetId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -72,7 +82,7 @@ export function MobileMenu({current, action}: {current?: SiteNavKey; action: Rea
         ref={buttonRef}
         type="button"
         className="brand-menu-button brand-menu-button--icon"
-        aria-label="Menu"
+        aria-label={labels.menu}
         aria-expanded={open}
         aria-controls={sheetId}
         onClick={() => setOpen(true)}
@@ -85,16 +95,16 @@ export function MobileMenu({current, action}: {current?: SiteNavKey; action: Rea
         className="brand-sheet"
         role="dialog"
         aria-modal="true"
-        aria-label="Menu"
+        aria-label={labels.menu}
         hidden={!open}
         onKeyDown={onKeyDown}
       >
         <div className="brand-header__inner">
           <Link className="brand-wordmark" href="/"><BrandLogo variant="compact" tone="on-blue" /></Link>
-          <button ref={closeRef} type="button" className="brand-menu-button brand-menu-button--icon" aria-label="Close menu" onClick={close}><XIcon /></button>
+          <button ref={closeRef} type="button" className="brand-menu-button brand-menu-button--icon" aria-label={labels.close} onClick={close}><XIcon /></button>
         </div>
-        <nav className="brand-sheet__nav" aria-label="Main">
-          {SITE_NAV.map((item) => (
+        <nav className="brand-sheet__nav" aria-label={labels.nav}>
+          {links.map((item) => (
             <a
               key={item.key}
               className="brand-sheet__link"
@@ -106,7 +116,10 @@ export function MobileMenu({current, action}: {current?: SiteNavKey; action: Rea
             </a>
           ))}
         </nav>
-        <div className="brand-sheet__action">{action}</div>
+        <div className="brand-sheet__action">
+          {language}
+          {action}
+        </div>
       </div>
     </div>
   );

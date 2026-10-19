@@ -96,7 +96,7 @@ describe("runMigrations", () => {
     const applied = await query<{ count: string }>(
       "SELECT count(*) FROM drizzle.__drizzle_migrations",
     );
-    expect(Number(applied[0].count)).toBe(6);
+    expect(Number(applied[0].count)).toBe(7);
 
     // 0004 moves the untouched placeholder date to 20 November 2026 and bumps the calendar sequence once.
     const [event] = await query<{ epoch: string; sequence: number }>(
@@ -104,6 +104,16 @@ describe("runMigrations", () => {
     );
     expect(Number(event.epoch) * 1000).toBe(Date.parse("2026-11-20T09:00:00+07:00"));
     expect(event.sequence).toBe(1);
+
+    // 0006 (#9) translates the untouched placeholder name and address, and nothing else.
+    const [vi] = await query<{ name_vi: string | null; venue_address_vi: string | null; arrival_info_vi: string | null }>(
+      "SELECT name_vi, venue_address_vi, arrival_info_vi FROM event_config WHERE id = 1",
+    );
+    expect(vi).toEqual({
+      name_vi: "Lễ tốt nghiệp GRAD '26",
+      venue_address_vi: "Trường Đại học Việt Đức (địa chỉ đầy đủ sẽ được xác nhận)",
+      arrival_info_vi: null,
+    });
   });
 
   it("serializes concurrent runs", async (ctx) => {

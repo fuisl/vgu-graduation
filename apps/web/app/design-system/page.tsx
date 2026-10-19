@@ -11,7 +11,7 @@ import {SignedOutChip} from "../site/SiteAction";
 import {SiteHeader} from "../site/SiteHeader";
 import {getI18n} from "../../lib/i18n/server";
 
-export const metadata: Metadata = {title: "Design system · GRAD '26"};
+export const metadata: Metadata = {title: "Design system | GRAD '26"};
 
 const SWATCHES = [
   {token: "--brand-blue", cls: "blue", hex: "#1F4BB0", role: "Blue section surface, primary button on white, links on white"},

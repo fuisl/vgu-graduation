@@ -19,5 +19,5 @@ describe("/design-system", async () => {
     expect(out).toContain("brand-footer");
     expect(out).toContain("brand-sheet--preview");
   });
-  it("sets the title", () => expect(metadata.title).toBe("Design system · GRAD '26"));
+  it("sets the title", () => expect(metadata.title).toBe("Design system | GRAD '26"));
 });

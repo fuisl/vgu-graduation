@@ -343,15 +343,21 @@ const SHAPE_DEFS: ShapeDef[] = [
 
 export const SHAPE_NAMES = SHAPE_DEFS.map((def) => def.name) as readonly string[];
 
-export const SHAPES = SHAPE_DEFS.map((def, index) => {
+export const SHAPE_COUNT = SHAPE_DEFS.length;
+
+/** One form of the sequence: point positions and per-point grey (both xyz/rgb triplets). */
+export type ShapeData = { points: Float32Array; shades: Float32Array };
+
+function buildPoints(index: number) {
+  const def = SHAPE_DEFS[index];
   const random = rng(2600 + index * 709);
   const points = new Float32Array(POINT_COUNT * 3);
   for (let i = 0; i < POINT_COUNT; i++) points.set(def.make(i, random), i * 3);
   return points;
-});
+}
 
-export const SHADES = SHAPE_DEFS.map((def, shapeIndex) => {
-  const points = SHAPES[shapeIndex];
+function buildShades(index: number, points: Float32Array) {
+  const def = SHAPE_DEFS[index];
   const shades = new Float32Array(POINT_COUNT * 3);
   for (let i = 0; i < POINT_COUNT; i++) {
     const offset = i * 3;
@@ -436,13 +442,42 @@ export const SHADES = SHAPE_DEFS.map((def, shapeIndex) => {
     shades[offset + 2] = value;
   }
   return shades;
-});
+}
+
+const built: (ShapeData | undefined)[] = [];
+
+/**
+ * The points and shading of form `index`, built on first use and kept. Nothing is generated when
+ * the module loads (the landing server-renders only `SHAPE_NAMES`); `prepareShapes` builds them
+ * all ahead of the canvas, one form per task (#78).
+ */
+export function shapeData(index: number): ShapeData {
+  let data = built[index];
+  if (!data) {
+    const points = buildPoints(index);
+    data = { points, shades: buildShades(index, points) };
+    built[index] = data;
+  }
+  return data;
+}
+
+/**
+ * Builds every form, handing the main thread back after each one (`yieldToMain`), so starting the
+ * sculpture never holds a phone's main thread in one long task (#78). Each form is a few ms.
+ */
+export async function prepareShapes(yieldToMain: () => Promise<void>): Promise<void> {
+  for (let index = 0; index < SHAPE_COUNT; index++) {
+    if (built[index]) continue;
+    shapeData(index);
+    await yieldToMain();
+  }
+}
 
 export function sequenceAt(seconds: number) {
   const cycle = HOLD_SECONDS + MORPH_SECONDS;
   const raw = Math.max(0, seconds) / cycle;
-  const index = Math.floor(raw) % SHAPES.length;
+  const index = Math.floor(raw) % SHAPE_COUNT;
   const elapsed = (raw - Math.floor(raw)) * cycle;
   const morph = Math.max(0, Math.min(1, (elapsed - HOLD_SECONDS) / MORPH_SECONDS));
-  return { index, next: (index + 1) % SHAPES.length, morph };
+  return { index, next: (index + 1) % SHAPE_COUNT, morph };
 }

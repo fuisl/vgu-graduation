@@ -4,12 +4,23 @@ import dynamic from "next/dynamic";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { maySculpt, readSculptureEnvironment } from "./sculpture-gate";
 import { SculptureFallback } from "./SculptureFallback";
+import { yieldToMain } from "./yield";
 
-/* three.js and the shader stay out of the landing's first load; the chunk is fetched only when it will run. */
-const Sculpture = dynamic(() => import("./Sculpture").then((module) => module.Sculpture), {
-  ssr: false,
-  loading: () => <SculptureFallback />,
-});
+/*
+ * three.js and the shader stay out of the landing's first load; the chunks are fetched only when
+ * they will run. Each large module graph is evaluated in its own task (three, then the React
+ * bindings, then the sculpture), not all in the one that finishes the download (#78).
+ */
+const Sculpture = dynamic(
+  async () => {
+    await import("three");
+    await yieldToMain();
+    await import("@react-three/fiber");
+    await yieldToMain();
+    return (await import("./Sculpture")).Sculpture;
+  },
+  { ssr: false, loading: () => <SculptureFallback /> },
+);
 
 /** Long enough for the hero to paint and settle on a slow phone, short enough that the shapes still greet the guest. */
 const IDLE_TIMEOUT_MS = 2500;

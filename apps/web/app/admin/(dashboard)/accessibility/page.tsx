@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 export const revalidate = 0;
 
-export const metadata: Metadata = { title: "Accessibility needs · Admin · GRAD '26" };
+export const metadata: Metadata = { title: "Accessibility needs | Admin | GRAD '26" };
 
 export default async function AccessibilityPage() {
   const { token } = await requireAdminSession();

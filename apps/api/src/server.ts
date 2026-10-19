@@ -17,6 +17,7 @@ import type { GraduatesService } from "./modules/graduates/graduates.service.js"
 import { graduatesRoutes } from "./modules/graduates/graduates.routes.js";
 import { mediaRoutes, type MediaRoutesOptions } from "./modules/media/media.routes.js";
 import { liveRoutes, type LiveRoutesOptions } from "./modules/live/live.routes.js";
+import { mailRoutes, type MailRoutesOptions } from "./modules/mail/mail.routes.js";
 import { invitationsRoutes } from "./modules/invitations/invitations.routes.js";
 import type { InvitationsService } from "./modules/invitations/invitations.service.js";
 import { passRoutes } from "./modules/pass/pass.routes.js";
@@ -39,6 +40,9 @@ export const LOG_REDACT_PATHS = [
   // Accessibility needs (#176) are sensitive: nothing logs them, and this catches a slip.
   "*.accessibility",
   "accessibility",
+  // Guest email addresses (ADR-012): mail code logs ids and statuses only; this catches a slip.
+  "*.email",
+  "email",
 ];
 
 export interface BuildServerOptions {
@@ -61,6 +65,8 @@ export interface BuildServerOptions {
   printService?: PrintRoutesOptions["service"];
   /** Override for tests; defaults to the database-backed service. */
   guideService?: GuideRoutesOptions["service"];
+  /** Overrides for tests: the mail service (SMTP from config) and the calendar email limiter. */
+  mail?: Pick<MailRoutesOptions, "service" | "limiter">;
   /** Override for tests; defaults to the database- and Garage-backed service. */
   mediaService?: MediaRoutesOptions["service"];
   /** Overrides for tests: the display feed's data source and timings, and the translation module's. */
@@ -139,6 +145,7 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
   app.register(liveRoutes, { config, invitationsService: options.invitationsService, ...options.live });
   app.register(printRoutes, { config, service: options.printService });
   app.register(guideRoutes, { service: options.guideService });
+  app.register(mailRoutes, { invitationsService: options.invitationsService, ...options.mail });
 
   return app;
 }

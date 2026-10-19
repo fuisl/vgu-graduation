@@ -1,4 +1,4 @@
-import type { EventConfig } from "@grad/contract";
+import type { EmailStatus, EventConfig } from "@grad/contract";
 import type { FieldErrors } from "./forms";
 
 /** Submitted values echoed back after a failed submit so the form keeps them (React resets forms after an action). */
@@ -24,7 +24,7 @@ export type GraduateFormState = Idle | FormError | { status: "success"; message:
 export type InvitationFormState =
   | Idle
   | FormError
-  | { status: "created"; invitationId: string; guestName: string; inviteUrl: string };
+  | { status: "created"; invitationId: string; guestName: string; inviteUrl: string; emailStatus?: EmailStatus };
 
 /** Edit forms for an existing graduate or invitation, and guide-book items (#170, #140). */
 export type EditFormState = Idle | FormError | { status: "saved"; message: string };
@@ -35,7 +35,7 @@ export type QuickActionState = Idle | { status: "error"; message: string } | { s
 export type InvitationActionState =
   | Idle
   | { status: "error"; message: string }
-  | { status: "rotated"; inviteUrl: string }
+  | { status: "rotated"; inviteUrl: string; emailStatus?: EmailStatus }
   | { status: "revoked" };
 
 /** Approve, reject or revoke one admin account (#119). */

@@ -104,6 +104,34 @@ describe("POST /admin/invitations/:id/revoke", () => {
   });
 });
 
+describe("POST /admin/invitations/:id/rotate (ADR-012)", () => {
+  function rotating() {
+    return build({
+      rotateInvitationToken: async (...args: unknown[]) => {
+        const sendEmail = (args[2] as { sendEmail?: boolean }).sendEmail;
+        return { token: "t", inviteUrl: "https://grad26.example.com/invite/t", ...(sendEmail ? { emailStatus: "sent" } : {}) };
+      },
+    });
+  }
+
+  it("rotates without a body, as before, and sends no email", async () => {
+    const res = await rotating().app.inject({ method: "POST", url: `/admin/invitations/${ID}/rotate`, headers: await adminHeaders() });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).not.toHaveProperty("emailStatus");
+  });
+
+  it("passes sendEmail through and returns how the email went", async () => {
+    const res = await rotating().app.inject({
+      method: "POST",
+      url: `/admin/invitations/${ID}/rotate`,
+      headers: await adminHeaders(),
+      payload: { sendEmail: true },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ emailStatus: "sent" });
+  });
+});
+
 describe("GET /admin/invitations", () => {
   it("requires an admin session", async () => {
     const { app } = build();

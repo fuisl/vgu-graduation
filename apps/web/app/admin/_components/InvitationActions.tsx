@@ -16,7 +16,16 @@ function closeDetails(event: MouseEvent<HTMLButtonElement>) {
  * Rotate and revoke for one active invitation. Each sits behind a
  * <details> confirm step, which works without client JS and by keyboard.
  */
-export function InvitationActions({ invitationId, guestName }: { invitationId: string; guestName: string }) {
+export function InvitationActions({
+  invitationId,
+  guestName,
+  guestEmail,
+}: {
+  invitationId: string;
+  guestName: string;
+  /** Offers to email the new link when the guest has an address (ADR-012). */
+  guestEmail?: string | null;
+}) {
   const [rotateState, rotateAction] = useActionState<InvitationActionState, FormData>(rotateInvitationAction, IDLE);
   const [revokeState, revokeAction] = useActionState<InvitationActionState, FormData>(revokeInvitationAction, IDLE);
   const [dismissed, setDismissed] = useState<InvitationActionState | null>(null);
@@ -33,6 +42,7 @@ export function InvitationActions({ invitationId, guestName }: { invitationId: s
         <InviteLinkNotice
           title={`New link for ${guestName}`}
           inviteUrl={rotateState.inviteUrl}
+          emailStatus={rotateState.emailStatus}
           onDismiss={() => setDismissed(rotateState)}
         />
       ) : null}
@@ -52,6 +62,14 @@ export function InvitationActions({ invitationId, guestName }: { invitationId: s
           <form action={rotateAction}>
             <input type="hidden" name="invitationId" value={invitationId} />
             <p>The current link for {guestName} stops working immediately and a new one is shown once.</p>
+            {guestEmail ? (
+              <label className="admin-check">
+                <input type="checkbox" name="sendEmail" />
+                <span>
+                  Also email the new link to <span className="admin-muted">{guestEmail}</span>
+                </span>
+              </label>
+            ) : null}
             <div className="admin-actions">
               <SubmitButton pendingLabel="Rotating…">Confirm rotate</SubmitButton>
               <button type="button" className="admin-button admin-button--outline" onClick={closeDetails}>

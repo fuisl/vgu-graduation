@@ -1,6 +1,15 @@
 "use client";
 
+import type { EmailStatus } from "@grad/contract";
 import { useEffect, useId, useRef, useState } from "react";
+
+/** What the admin is told when the link was also emailed (ADR-012). Sent means Gmail accepted it. */
+const EMAIL_MESSAGES: Record<EmailStatus, string> = {
+  sent: "Emailed to the guest. Keep a copy anyway, in case it lands in spam.",
+  failed: "The email could not be sent. Copy the link and send it yourself.",
+  not_configured: "Email is not set up on the server, so nothing was sent. Copy the link and send it yourself.",
+  no_address: "This guest has no email address, so nothing was sent. Copy the link and send it yourself.",
+};
 
 /**
  * Shows a freshly issued invite link exactly once. The link is a bearer
@@ -11,10 +20,13 @@ import { useEffect, useId, useRef, useState } from "react";
 export function InviteLinkNotice({
   title,
   inviteUrl,
+  emailStatus,
   onDismiss,
 }: {
   title: string;
   inviteUrl: string;
+  /** Present when the admin asked for the link to be emailed. */
+  emailStatus?: EmailStatus;
   onDismiss?: () => void;
 }) {
   const id = useId();
@@ -45,6 +57,9 @@ export function InviteLinkNotice({
         <strong>Copy this link now. It won&apos;t be shown again.</strong> Anyone with the link can open this
         invitation, so send it only to the guest.
       </p>
+      {emailStatus ? (
+        <p className={emailStatus === "sent" ? undefined : "admin-field-error"}>{EMAIL_MESSAGES[emailStatus]}</p>
+      ) : null}
       <div className="admin-field">
         <label htmlFor={`${id}-link`}>Invite link</label>
         <input

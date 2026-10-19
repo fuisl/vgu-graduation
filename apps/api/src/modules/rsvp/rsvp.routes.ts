@@ -68,6 +68,9 @@ export const rsvpRoutes: FastifyPluginAsync<RsvpRoutesOptions> = async (fastify,
             message: `plusOnesCount exceeds the ${result.maxPlusOnes} allowed for this invitation`,
           });
         case "ok":
+          if (result.confirmation === "failed") {
+            request.log.warn({ rsvpId: result.rsvp.id }, "rsvp confirmation email not queued");
+          }
           return reply.status(200).send(result.rsvp);
       }
     },

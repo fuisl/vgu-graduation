@@ -118,6 +118,7 @@ export const navGroups: readonly NavGroup[] = [
           ["adr/009-direct-home-network-exposure", "ADR-009 Direct network exposure"],
           ["adr/010-site-languages", "ADR-010 Site languages"],
           ["adr/011-no-service-worker", "ADR-011 No service worker"],
+          ["adr/012-guest-email", "ADR-012 Guest email"],
         ],
       },
     ],
@@ -139,7 +140,7 @@ export const navGroups: readonly NavGroup[] = [
   {
     title: "Operations",
     sections: [
-      { items: [["operations/event-runbook", "Event runbook"], ["operations/deployment", "Deployment"], ["operations/archive", "Archive and yearbook"]] },
+      { items: [["operations/event-runbook", "Event runbook"], ["operations/deployment", "Deployment"], ["operations/archive", "Archive and yearbook"], ["operations/email", "Guest email"]] },
     ],
   },
 ];

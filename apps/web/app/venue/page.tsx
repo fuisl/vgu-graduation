@@ -1,14 +1,18 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { BrandEyebrow, BrandTheme, Cta, Section } from "@grad/ui";
 import { getEvent } from "../../lib/api/event";
+import { isMailEnabled } from "../../lib/api/mail";
 import { buildCalendarLinks } from "../../lib/calendar/links";
 import { pickMessages } from "../../lib/i18n/dictionary";
 import { localizeEvent } from "../../lib/i18n/event";
 import { getI18n } from "../../lib/i18n/server";
+import { INVITATION_COOKIE } from "../../lib/invite/cookie";
 import { formatEventWhen } from "../../lib/invite/format";
 import { SiteFooter } from "../site/SiteFooter";
 import { SiteHeader } from "../site/SiteHeader";
 import { AddToCalendar } from "../calendar/AddToCalendar";
+import { CalendarEmailForm } from "./CalendarEmailForm";
 import { CampusFigure } from "./CampusFigure";
 import "./venue.css";
 
@@ -24,7 +28,9 @@ const DRAWN_VENUE = /ceremony hall/i;
 export const dynamic = "force-dynamic";
 
 export default async function VenuePage() {
-  const [result, i18n] = await Promise.all([getEvent(), getI18n()]);
+  const [result, i18n, mailEnabled, cookieStore] = await Promise.all([getEvent(), getI18n(), isMailEnabled(), cookies()]);
+  // The invite email needs an invitation (it is rate-limited per invitation) and a server that can send (ADR-012).
+  const canEmailInvite = mailEnabled && Boolean(cookieStore.get(INVITATION_COOKIE)?.value);
   const { t, locale } = i18n;
 
   if (result.status !== "ok") {
@@ -128,10 +134,12 @@ export default async function VenuePage() {
                 </section>
               ) : null}
 
-              {/* CalendarEmailForm stays out until the invite email really sends (#150, QA P1-3). */}
               <section aria-labelledby="calendar-heading" className="venue-fact">
                 <h2 id="calendar-heading" className="venue-label">{t("venue.calendar")}</h2>
                 <AddToCalendar links={links} messages={pickMessages(locale, "calendar.")} tone="on-blue" />
+                {canEmailInvite ? (
+                  <CalendarEmailForm icsHref={links.ics} messages={pickMessages(locale, "venue.email.")} />
+                ) : null}
               </section>
             </div>
 

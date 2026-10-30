@@ -101,12 +101,15 @@ describe("runMigrations", () => {
     const journal = JSON.parse(fs.readFileSync(path.join(MIGRATIONS_FOLDER, "meta/_journal.json"), "utf8")) as { entries: unknown[] };
     expect(Number(applied[0].count)).toBe(journal.entries.length);
 
-    // 0004 moves the untouched placeholder date to 20 November 2026 and bumps the calendar sequence once.
-    const [event] = await query<{ epoch: string; sequence: number }>(
-      "SELECT extract(epoch FROM starts_at)::bigint AS epoch, sequence FROM event_config WHERE id = 1",
+    // 0004 moves the untouched placeholder date to 20 November 2026; 0009 confirms it as 09:00 to 12:00.
+    // Each bumps the calendar sequence once.
+    const [event] = await query<{ starts: string; ends: string; sequence: number; time_confirmed: boolean }>(
+      "SELECT extract(epoch FROM starts_at)::bigint AS starts, extract(epoch FROM ends_at)::bigint AS ends, sequence, time_confirmed FROM event_config WHERE id = 1",
     );
-    expect(Number(event.epoch) * 1000).toBe(Date.parse("2026-11-20T09:00:00+07:00"));
-    expect(event.sequence).toBe(1);
+    expect(Number(event.starts) * 1000).toBe(Date.parse("2026-11-20T09:00:00+07:00"));
+    expect(Number(event.ends) * 1000).toBe(Date.parse("2026-11-20T12:00:00+07:00"));
+    expect(event.time_confirmed).toBe(true);
+    expect(event.sequence).toBe(2);
 
     // 0006 (#9) translates the untouched placeholder name and address, and nothing else.
     const [vi] = await query<{ name_vi: string | null; venue_address_vi: string | null; arrival_info_vi: string | null }>(
@@ -133,10 +136,10 @@ describe("runMigrations", () => {
     }
   });
 
-  it("seeds exactly one placeholder event with an unconfirmed time", async (ctx) => {
+  it("seeds exactly one event, with the time confirmed by 0009", async (ctx) => {
     if (!admin) return ctx.skip();
     const rows = await query<{ id: number; time_confirmed: boolean }>("SELECT id, time_confirmed FROM event_config");
-    expect(rows).toEqual([{ id: 1, time_confirmed: false }]);
+    expect(rows).toEqual([{ id: 1, time_confirmed: true }]);
   });
 
   it("seeds the four current collaborators as approved admins", async (ctx) => {

@@ -21,3 +21,5 @@ Until now no email went to guests (decided 2026-09-29, `architecture/target/open
 - Mail from a personal address sent by a server can land in spam. The admin notice says so, and the venue form keeps the `.ics` download as the fallback.
 - The API and worker need egress to the internet on port 587 (`allow-mail-egress` in the infrastructure repository); everything else stays default-deny.
 - Revoking the app password in the Google account stops all email at once; the site keeps working and the forms report `failed` until the Secret is updated.
+
+**Update 2026-10-30 (owner):** the invitation and RSVP emails, and every bilingual email after them, now carry English first, then Vietnamese, with the subject, preheader and heading in English.

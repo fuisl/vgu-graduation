@@ -15,6 +15,10 @@ describe("formatEventWhen", () => {
   it("shows the clock time in the event time zone once confirmed", () => {
     expect(formatEventWhen({ ...base, timeConfirmed: true }, en).time).toBe("09:00");
   });
+  it("shows the start and end time when the event has an end", () => {
+    const ranged = { ...base, endsAt: "2026-11-21T12:00:00+07:00", timeConfirmed: true };
+    expect(formatEventWhen(ranged, en).time).toMatch(/^09:00\s*[–-]\s*12:00$/);
+  });
 });
 
 describe("summarizeRsvp", () => {

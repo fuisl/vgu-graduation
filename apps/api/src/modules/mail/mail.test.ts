@@ -56,7 +56,7 @@ describe("MailService", () => {
     expect(await service.sendCalendarInvite({ to: "guest@example.com", locale: "en" })).toBe("not_configured");
   });
 
-  it("mails the invitation link in the body only, in Vietnamese then English", async () => {
+  it("mails the invitation link in the body only, in English then Vietnamese", async () => {
     const { service, sent } = mailService();
     expect(await service.sendInvitation({ to: "guest@example.com", givenName: "An", inviteUrl: INVITE_URL, invitationId: INVITATION_ID, guestName: "Nguyễn An" })).toBe("sent");
     expect(sent).toHaveLength(1);
@@ -64,7 +64,8 @@ describe("MailService", () => {
     expect(message.to).toBe("guest@example.com");
     expect(message.subject).not.toContain("raw-token-value");
     expect(message.text).toContain(INVITE_URL);
-    expect(message.text.indexOf("Kính gửi An")).toBeLessThan(message.text.indexOf("Dear An"));
+    expect(message.subject).toMatch(/^Your invitation/);
+    expect(message.text.indexOf("Dear An")).toBeLessThan(message.text.indexOf("Kính gửi An"));
   });
 
   it("says no_address for a guest without email and failed when SMTP refuses", async () => {
@@ -95,6 +96,8 @@ describe("MailService", () => {
     await service.sendRsvpConfirmation({ to: "guest@example.com", givenName: "An", attending: true, plusOnesCount: 2 });
     expect(sent[0].text).toContain("with 2 guests");
     expect(sent[0].text).toContain("cùng 2 người đi cùng");
+    expect(sent[0].subject).toMatch(/^RSVP confirmed/);
+    expect(sent[0].text.indexOf("Dear An")).toBeLessThan(sent[0].text.indexOf("Kính gửi An"));
   });
 
   it("throws on an RSVP confirmation SMTP failure so the job retries", async () => {
@@ -114,6 +117,13 @@ describe("formatWhen", () => {
     expect(unconfirmed).toMatch(/21 November 2026 \(time to be confirmed\)$/);
     expect(unconfirmed).not.toContain("09:00");
     expect(formatWhen({ ...EVENT, timeConfirmed: false }, "vi")).toContain("giờ sẽ được xác nhận sau");
+  });
+
+  it("shows the start and end time when the event has an end", () => {
+    // 09:00 to 12:00 in Ho Chi Minh City; the dash between them varies with the ICU data.
+    const ranged = { ...EVENT, endsAt: new Date("2026-11-21T05:00:00Z") };
+    expect(formatWhen(ranged, "en")).toMatch(/21 November 2026, 09:00\s*[–-]\s*12:00$/);
+    expect(formatWhen(ranged, "vi")).toMatch(/09:00\s*[–-]\s*12:00$/);
   });
 });
 

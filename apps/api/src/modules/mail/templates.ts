@@ -7,8 +7,8 @@ import type { MailMessage } from "./mailer.js";
  * Guest email copy (ADR-012, ADR-013). Each email is a list of language
  * sections rendered twice by layout.ts: branded HTML and plain text. The
  * invitation and RSVP emails go to guests whose language we don't know, so they
- * carry Vietnamese first, then English; the calendar invite is asked for from
- * the site, so it is in the site's language.
+ * carry English first, then Vietnamese (owner decision 2026-10-30); the calendar
+ * invite is asked for from the site, so it is in the site's language.
  *
  * TODO(owner): the wording is a draft. Review it before the first real send.
  */
@@ -41,7 +41,7 @@ function facts(event: StoredEvent, locale: MailLocale): [string, string][] {
   ];
 }
 
-/** The ceremony's date, with the clock time only once it is confirmed (#83). */
+/** The ceremony's date, with the clock time (start to end) only once it is confirmed (#83). */
 export function formatWhen(event: StoredEvent, locale: MailLocale): string {
   const intl = locale === "vi" ? "vi-VN" : "en-GB";
   const date = new Intl.DateTimeFormat(intl, {
@@ -52,9 +52,8 @@ export function formatWhen(event: StoredEvent, locale: MailLocale): string {
     timeZone: event.timeZone,
   }).format(event.startsAt);
   if (!event.timeConfirmed) return locale === "vi" ? `${date} (giờ sẽ được xác nhận sau)` : `${date} (time to be confirmed)`;
-  const time = new Intl.DateTimeFormat(intl, { hour: "2-digit", minute: "2-digit", timeZone: event.timeZone }).format(
-    event.startsAt,
-  );
+  const clock = new Intl.DateTimeFormat(intl, { hour: "2-digit", minute: "2-digit", timeZone: event.timeZone });
+  const time = event.endsAt ? clock.formatRange(event.startsAt, event.endsAt) : clock.format(event.startsAt);
   return `${date}, ${time}`;
 }
 
@@ -122,11 +121,11 @@ export function invitationEmail(input: {
     signOff: signOff(event, "en"),
   };
   const content: EmailContent = {
-    subject: `Thiệp mời | Your invitation: ${eventName(event, "en")}`,
-    preheader: `${eventName(event, "vi")} · ${formatWhen(event, "en")}`,
-    title: eventName(event, "vi"),
-    subtitle: formatWhen(event, "vi"),
-    sections: [vi, en],
+    subject: `Your invitation | Thiệp mời: ${eventName(event, "en")}`,
+    preheader: `${eventName(event, "en")} · ${formatWhen(event, "en")}`,
+    title: eventName(event, "en"),
+    subtitle: formatWhen(event, "en"),
+    sections: [en, vi],
     siteUrl: input.siteUrl,
   };
   return message(input.to, content, input.calendarRequest ? { calendarRequest: input.calendarRequest } : {});
@@ -220,12 +219,12 @@ export function rsvpConfirmationEmail(input: {
   };
   const content: EmailContent = {
     subject: attending
-      ? `Đã xác nhận | RSVP confirmed: ${eventName(event, "en")}`
-      : `Đã nhận phản hồi | RSVP received: ${eventName(event, "en")}`,
-    preheader: attending ? "Hẹn gặp Quý khách! · See you there!" : "Cảm ơn Quý khách · Thank you for letting us know",
-    title: eventName(event, "vi"),
-    subtitle: formatWhen(event, "vi"),
-    sections: [vi, en],
+      ? `RSVP confirmed | Đã xác nhận: ${eventName(event, "en")}`
+      : `RSVP received | Đã nhận phản hồi: ${eventName(event, "en")}`,
+    preheader: attending ? "See you there! · Hẹn gặp Quý khách!" : "Thank you for letting us know · Cảm ơn Quý khách",
+    title: eventName(event, "en"),
+    subtitle: formatWhen(event, "en"),
+    sections: [en, vi],
     siteUrl: links.siteUrl,
   };
   return message(input.to, content);

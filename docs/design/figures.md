@@ -157,4 +157,4 @@ Reuse `project`, `extrude`, `ellipse`, `rect`, `toPath` and `toPercent` from `ca
 
 | No. | Page | Subject | Source |
 | --- | --- | --- | --- |
-| FIG_001 | `/venue` | Ceremony Hall on Sunrise River, VGU campus | Official VGU campus map (geometry traced; heights illustrative) |
+| FIG_001 | `/venue`; also the share story card on `/me` | Ceremony Hall on Sunrise River, VGU campus | Official VGU campus map (geometry traced; heights illustrative) |

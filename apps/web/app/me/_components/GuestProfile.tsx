@@ -4,13 +4,17 @@ import type { ApiResult } from "../../../lib/api/result";
 import { buildCalendarLinks } from "../../../lib/calendar/links";
 import { pickMessages, type I18n } from "../../../lib/i18n/dictionary";
 import { summarizeRsvp } from "../../../lib/invite/format";
+import { publicSiteOrigin } from "../../../lib/live/site-link";
+import { buildStoryContent } from "../../../lib/share/content";
 import { guestBadgeCard, guestBadgeLabels } from "../../../lib/profile/badge";
 import { AddToCalendar } from "../../calendar/AddToCalendar";
 import { StillAvatar } from "../../guest-avatar/GuestAvatar";
 import { BadgeStage } from "../../guest/badge/BadgeStage";
 import type { PassArt } from "../../guest/badge/card";
 import { NameBadge } from "../../guest/badge/NameBadge";
+import { DRAWN_VENUE } from "../../venue/campus-figure";
 import { GuestLinks } from "./GuestLinks";
+import { StoryShare } from "./StoryShare";
 
 /**
  * The signed-in guest portal (#139): the guest's name badge drops in as the hero, and the only
@@ -58,6 +62,21 @@ export function GuestProfile({ invitation, event, art, i18n }: {
           <GuestLinks headingId="links-heading" art={art} i18n={i18n} />
         </div>
       </Section>
+
+      {/* Sharing "I'll be there" only makes sense once the guest said they're coming, and the card's
+          figure is FIG_001, which may only show while the venue is the hall it draws (figures.md). */}
+      {rsvp?.attending && event.status === "ok" && DRAWN_VENUE.test(event.data.venue.name) ? (
+        <Section tone="white" density="compact" aria-labelledby="share-heading">
+          <div className="profile-block">
+            <h2 id="share-heading" className="profile-heading">{t("share.heading")}</h2>
+            <StoryShare
+              content={buildStoryContent(event.data, inviters, publicSiteOrigin(process.env.PUBLIC_ORIGIN, null, null), i18n)}
+              labels={{ Entrance: t("venue.fig.entrance"), Parking: t("venue.fig.parking") }}
+              messages={pickMessages(i18n.locale, "share.")}
+            />
+          </div>
+        </Section>
+      ) : null}
     </>
   );
 }

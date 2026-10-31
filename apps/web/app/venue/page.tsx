@@ -14,6 +14,7 @@ import { SiteHeader } from "../site/SiteHeader";
 import { AddToCalendar } from "../calendar/AddToCalendar";
 import { CalendarEmailForm } from "./CalendarEmailForm";
 import { CampusFigure } from "./CampusFigure";
+import { DRAWN_VENUE } from "./campus-figure";
 import "./venue.css";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -21,8 +22,6 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("venue.metaTitle"), description: t("venue.metaDescription") };
 }
 
-/** FIG_001 draws the Ceremony Hall; it only shows while the configured venue is that hall. */
-const DRAWN_VENUE = /ceremony hall/i;
 
 // PUBLIC_API_ORIGIN is read at request time; the event itself is cached by getEvent (300 s).
 export const dynamic = "force-dynamic";

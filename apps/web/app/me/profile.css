@@ -139,3 +139,37 @@
   margin: 0;
   padding-left: var(--space-5);
 }
+
+/* Share to Instagram / Facebook: the story preview beside its actions (one column on a phone). */
+[data-theme="brand"] .story-share {
+  display: grid;
+  gap: var(--space-5);
+  align-items: start;
+}
+[data-theme="brand"] .story-share__preview {
+  display: block;
+  width: min(100%, 260px);
+  height: auto;
+  aspect-ratio: 9 / 16;
+  border: 1px solid var(--brand-line);
+}
+[data-theme="brand"] .story-share__body {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+}
+[data-theme="brand"] .story-share__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+[data-theme="brand"] .story-share__hint {
+  margin: 0;
+  max-width: var(--brand-measure);
+  font-size: var(--text-sm);
+  color: var(--brand-muted);
+}
+[data-theme="brand"] .story-share__hint:empty { display: none; }
+@media (min-width: 720px) {
+  [data-theme="brand"] .story-share { grid-template-columns: 260px minmax(0, 1fr); }
+}

@@ -247,3 +247,38 @@ export function toPercent([x, y]: Point): { left: string; top: string } {
     top: `${(((y - VIEW.y) / VIEW.height) * 100).toFixed(3)}%`,
   };
 }
+
+/**
+ * Leader: horizontal from the label, then a vertical drop onto the anchor, ending in an
+ * arrowhead. A label level with its anchor gets a straight horizontal arrow. `point` is where the
+ * label sits in view coordinates (the share card draws labels there); `at` is the same as CSS percentages.
+ */
+export const LEADERS = LABELS.map((label) => {
+  const [ax, ay] = project(label.anchor);
+  const lx = ax + label.offset[0];
+  const ly = ay + label.offset[1];
+  const f = (v: number) => v.toFixed(1);
+  let line: string;
+  let head: string;
+  if (Math.abs(ay - ly) < 1 && !label.also) {
+    const dir = Math.sign(ax - lx) || 1;
+    line = `M${f(lx)} ${f(ly)}H${f(ax - 9 * dir)}`;
+    head = `M${f(ax)} ${f(ay)}l${f(-9 * dir)} -4.5v9Z`;
+  } else {
+    // One horizontal run from the label past every drop, then a vertical drop onto each anchor.
+    const drops = [label.anchor, ...(label.also ?? [])].map(project);
+    const far = drops.reduce((x, [dx]) => (Math.abs(dx - lx) > Math.abs(x - lx) ? dx : x), ax);
+    line = `M${f(lx)} ${f(ly)}H${f(far)}`;
+    head = "";
+    for (const [dx, dy] of drops) {
+      const dir = Math.sign(dy - ly);
+      line += `M${f(dx)} ${f(ly)}V${f(dy - 9 * dir)}`;
+      head += `M${f(dx)} ${f(dy)}l-4.5 ${f(-9 * dir)}h9Z`;
+    }
+  }
+  const point: Point = [lx, ly];
+  return { label, line, head, point, at: toPercent(point) };
+});
+
+/** FIG_001 draws the Ceremony Hall; it only shows (on /venue and the share card) while the configured venue is that hall. */
+export const DRAWN_VENUE = /ceremony hall/i;

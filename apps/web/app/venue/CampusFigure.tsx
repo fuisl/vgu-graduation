@@ -7,6 +7,7 @@ import {
   BUILDINGS,
   CENTRE_LINES,
   LABELS,
+  LEADERS,
   LAWN,
   POND,
   RIVER,
@@ -35,36 +36,6 @@ const FLOW_SECONDS = 14;
 /** Negative begins start each dot part-way along, so they are evenly spaced from the first frame. */
 const ROUTE_DOTS = [0, -2, -4];
 const FLOW_DOTS = [0, -2.8, -5.6, -8.4, -11.2];
-
-/**
- * Leader: horizontal from the label, then a vertical drop onto the anchor, ending in an
- * arrowhead. A label level with its anchor gets a straight horizontal arrow.
- */
-const leaders = LABELS.map((label) => {
-  const [ax, ay] = project(label.anchor);
-  const lx = ax + label.offset[0];
-  const ly = ay + label.offset[1];
-  const f = (v: number) => v.toFixed(1);
-  let line: string;
-  let head: string;
-  if (Math.abs(ay - ly) < 1 && !label.also) {
-    const dir = Math.sign(ax - lx) || 1;
-    line = `M${f(lx)} ${f(ly)}H${f(ax - 9 * dir)}`;
-    head = `M${f(ax)} ${f(ay)}l${f(-9 * dir)} -4.5v9Z`;
-  } else {
-    // One horizontal run from the label past every drop, then a vertical drop onto each anchor.
-    const drops = [label.anchor, ...(label.also ?? [])].map(project);
-    const far = drops.reduce((x, [dx]) => (Math.abs(dx - lx) > Math.abs(x - lx) ? dx : x), ax);
-    line = `M${f(lx)} ${f(ly)}H${f(far)}`;
-    head = "";
-    for (const [dx, dy] of drops) {
-      const dir = Math.sign(dy - ly);
-      line += `M${f(dx)} ${f(ly)}V${f(dy - 9 * dir)}`;
-      head += `M${f(dx)} ${f(dy)}l-4.5 ${f(-9 * dir)}h9Z`;
-    }
-  }
-  return { label, line, head, at: toPercent([lx, ly]) };
-});
 
 /**
  * FIG_001: blueprint of the campus around Sunrise River with the Ceremony Hall filled in.
@@ -163,7 +134,7 @@ export function CampusFigure({ i18n }: { i18n: I18n }) {
             ))}
 
             <g className="campus-fig__leaders">
-              {leaders.map(({ label, line, head }, i) => (
+              {LEADERS.map(({ label, line, head }, i) => (
                 <g key={label.text} data-label={label.text} className={label.minor ? "is-minor" : undefined} style={{ ["--i" as string]: i }}>
                   <path className="campus-fig__leader" d={line} pathLength={1} />
                   <path className="campus-fig__head" d={head} />
@@ -172,7 +143,7 @@ export function CampusFigure({ i18n }: { i18n: I18n }) {
             </g>
           </svg>
 
-          {leaders.map(({ label, at }, i) => (
+          {LEADERS.map(({ label, at }, i) => (
             <span
               key={label.text}
               className={[

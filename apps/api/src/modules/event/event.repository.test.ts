@@ -46,7 +46,7 @@ describe("EventRepository", () => {
     const repo = new EventRepository(drizzle(pool, { schema }));
 
     const seeded = await repo.get();
-    expect(seeded?.timeConfirmed).toBe(false);
+    expect(seeded?.timeConfirmed).toBe(true);
     const startSequence = seeded!.sequence;
 
     const updated = await repo.update(

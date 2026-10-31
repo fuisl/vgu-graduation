@@ -4,6 +4,7 @@ import { recordAudit } from "../../audit/audit.js";
 import { db } from "../../db/index.js";
 import { users } from "../../db/schema.js";
 import { namesForCreate, namesForUpdate } from "../invitations/person-name.js";
+import { joinUrlFor } from "../join/join.service.js";
 
 /** Thrown when a graduate with the same email already exists. */
 export class DuplicateGraduateError extends Error {
@@ -20,13 +21,14 @@ const columns = {
   familyName: users.familyName,
   nameReviewed: users.nameReviewed,
   email: users.email,
+  joinCode: users.joinCode,
   createdAt: users.createdAt,
 };
 
-type Row = Omit<Graduate, "createdAt"> & { createdAt: Date };
+type Row = Omit<Graduate, "createdAt" | "joinUrl"> & { joinCode: string | null; createdAt: Date };
 
-function toGraduate(row: Row): Graduate {
-  return { ...row, createdAt: row.createdAt.toISOString() };
+function toGraduate({ joinCode, ...row }: Row): Graduate {
+  return { ...row, joinUrl: joinCode ? joinUrlFor(joinCode) : null, createdAt: row.createdAt.toISOString() };
 }
 
 export class GraduatesRepository {

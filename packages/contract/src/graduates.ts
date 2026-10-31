@@ -3,6 +3,7 @@ import { timestampSchema } from "./common.js";
 
 /**
  * A graduate: an inviter on invitations. Added by admins one at a time (#32, #42); graduates never sign in.
+ * `joinUrl` is their guest self-registration link (ADR-015), null until one is first issued.
  * `givenName`/`familyName` follow the guest rules (#170): always sent by the API,
  * optional here only so older clients and fixtures still parse.
  */
@@ -14,6 +15,7 @@ export const graduateSchema = z.object({
   /** False while the given/family split is the API's guess. */
   nameReviewed: z.boolean().optional(),
   email: z.string().email(),
+  joinUrl: z.string().url().nullable().optional(),
   createdAt: timestampSchema,
 });
 export type Graduate = z.infer<typeof graduateSchema>;

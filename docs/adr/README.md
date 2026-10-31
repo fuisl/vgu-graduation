@@ -25,3 +25,4 @@ Date: YYYY-MM-DD
 - [ADR-012: Guest email through the owner's Gmail over SMTP](012-guest-email.md)
 - [ADR-013: Branded HTML email and RSVP from the guest's calendar](013-calendar-rsvp-email.md)
 - [ADR-014: Live gallery feed, with Postgres NOTIFY as a wake-up hint](014-live-gallery-feed.md)
+- [ADR-015: Guest self-registration through a graduate's join link](015-guest-self-registration.md)

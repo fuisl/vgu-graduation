@@ -2,7 +2,7 @@
 The schema lives in `apps/api/src/db/schema.ts` (Drizzle); migrations in `apps/api/drizzle/`. Status columns are text with CHECK constraints.
 
 Core concepts:
-- `User`: internal graduate/admin.
+- `User`: internal graduate/admin. A graduate may have a `join_code`, their guest self-registration link (ADR-015).
 - `AdminAccount`: admin access by lowercased GitHub handle (#119). `status` is `pending` (filed by a first sign-in), `approved`, `rejected` or `revoked`, with `decided_by`/`decided_at` for the owner's last decision. Checked on every `/admin` request. Owners (`apps/api/src/modules/admin/owners.ts`) are always admins and can't be changed from the dashboard.
 - `Guest`: external invited person. `name` is the full display name; `given_name` (what the guest is called by), `family_name` (nullable) and `name_reviewed` follow the name rules below (#170).
 - `Invitation`: personalized pass with high-entropy bearer token; store a hash where practical.

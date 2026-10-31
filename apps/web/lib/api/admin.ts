@@ -22,6 +22,7 @@ import {
   retryPrintJobResponseSchema,
   revokeInvitationResponseSchema,
   rotateInvitationResponseSchema,
+  rotateJoinLinkResponseSchema,
   setMediaPublicResponseSchema,
   setWishPublicResponseSchema,
   updateInvitationResponseSchema,
@@ -58,6 +59,7 @@ import {
   type RetryPrintJobResponse,
   type RevokeInvitationResponse,
   type RotateInvitationResponse,
+  type RotateJoinLinkResponse,
   type SetMediaPublicResponse,
   type SetWishPublicResponse,
   type UpdateEventRequest,
@@ -147,6 +149,14 @@ export function updateGraduate(token: string, id: string, input: UpdateGraduateR
     method: "PATCH",
     body: input,
     schema: graduateSchema,
+  });
+}
+
+/** POST /admin/graduates/:id/join-link: a new guest self-registration link (ADR-015); the old one stops working. */
+export function rotateJoinLink(token: string, id: string): Promise<ApiResult<RotateJoinLinkResponse>> {
+  return adminRequest(token, `/admin/graduates/${encodeURIComponent(id)}/join-link`, {
+    method: "POST",
+    schema: rotateJoinLinkResponseSchema,
   });
 }
 

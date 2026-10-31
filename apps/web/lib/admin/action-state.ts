@@ -59,3 +59,6 @@ export function formValues(form: FormData): FormValues {
   }
   return values;
 }
+
+/** A graduate's guest self-registration link (ADR-015), created or replaced by an admin. */
+export type JoinLinkActionState = Idle | { status: "error"; message: string } | { status: "rotated"; joinUrl: string };

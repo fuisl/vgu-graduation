@@ -4,6 +4,7 @@ import { listGraduates } from "../../../../../lib/api/admin";
 import { redirectIfUnauthorized, requireAdminSession } from "../../../../../lib/admin/session";
 import { ConfirmNameButton, NameSplit } from "../../../_components/ConfirmNameButton";
 import { GraduateEditForm } from "../../../_components/EditForms";
+import { JoinLinkPanel } from "../../../_components/JoinLinkPanel";
 import { LoadError } from "../../../_components/LoadError";
 
 /** Edit one graduate (#170). There is no single-graduate GET; the cohort list is small. */
@@ -51,6 +52,7 @@ export default async function GraduatePage({ params }: { params: Promise<{ id: s
               nameReviewed: graduate.nameReviewed ?? true,
             }}
           />
+          <JoinLinkPanel graduateId={graduate.id} graduateName={graduate.givenName ?? graduate.name} joinUrl={graduate.joinUrl ?? null} />
         </>
       )}
     </>

@@ -4,6 +4,7 @@ export * from "./event.js";
 export * from "./graduates.js";
 export * from "./guide.js";
 export * from "./invitations.js";
+export * from "./join.js";
 export * from "./live.js";
 export * from "./mail.js";
 export * from "./media.js";

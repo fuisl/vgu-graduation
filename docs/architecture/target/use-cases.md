@@ -6,6 +6,8 @@ The experience arc from `product/vision.md` is Before, During, After. Each use c
 
 **Personalized invitation.** An admin creates an invitation in the admin UI on behalf of the graduate or graduates (only a few approved admins can; graduates do not sign in); the API generates a token, stores its hash, and links one or more inviters. The guest receives a link carrying the token.
 
+**Guest self-registration (ADR-015).** A graduate types their stored email on `/graduate` and receives their join link, `/join/{code}`, by email. They share it; a guest who opens it types a name and email and the API creates an invitation with that graduate as inviter and emails the invitation link at once. An address that is already invited gets the graduate added as a co-inviter instead of a second invitation. Graduates still do not sign in. With mail down the join page says registration is closed and no form is shown; with the API down it shows the same notice.
+
 ```mermaid
 sequenceDiagram
   participant G as Guest browser

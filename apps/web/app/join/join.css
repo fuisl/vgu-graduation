@@ -1,0 +1,98 @@
+/* Guest self-registration (ADR-015): /join/{code} and /graduate. Brand tokens only; no hex, gradients, blur or shadows. */
+[data-theme="brand"] .join-main {
+  min-height: 100svh;
+  background: var(--brand-white);
+}
+[data-theme="brand"] .join-title {
+  margin: var(--space-4) 0 0;
+  font-size: var(--brand-text-h2);
+  font-weight: 500;
+  line-height: var(--brand-leading-display);
+  letter-spacing: var(--brand-tracking-display);
+  overflow-wrap: anywhere;
+}
+[data-theme="brand"] .join-lead {
+  max-width: var(--brand-measure);
+  margin: var(--space-4) 0 0;
+  font-size: var(--brand-text-lead);
+  color: var(--brand-muted);
+}
+[data-theme="brand"] .join-text {
+  max-width: var(--brand-measure);
+  margin: 0;
+}
+[data-theme="brand"] .join-steps {
+  display: grid;
+  gap: var(--space-2);
+  max-width: var(--brand-measure);
+  margin: var(--space-5) 0 0;
+  padding-left: 1.25em;
+  color: var(--brand-muted);
+}
+
+/* The form sits on white: one column, full-width fields on a phone. */
+[data-theme="brand"] .join-form {
+  display: grid;
+  gap: var(--space-4);
+  width: 100%;
+  max-width: 34rem;
+}
+[data-theme="brand"] .join-field {
+  display: grid;
+  gap: var(--space-2);
+}
+[data-theme="brand"] .join-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--brand-tracking-label);
+  text-transform: uppercase;
+  color: var(--brand-muted);
+}
+[data-theme="brand"] .join-input {
+  width: 100%;
+  min-height: var(--brand-tap);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--brand-line);
+  border-radius: var(--brand-radius);
+  background: var(--brand-white);
+  color: var(--brand-fg);
+  font: inherit;
+}
+[data-theme="brand"] .join-input::placeholder { color: var(--brand-muted); }
+[data-theme="brand"] .join-input:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 2px;
+}
+[data-theme="brand"] .join-input[aria-invalid="true"] { border-color: var(--brand-danger); }
+[data-theme="brand"] .join-hint {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--brand-muted);
+}
+[data-theme="brand"] .join-status {
+  min-height: 1.5em;
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--brand-muted);
+}
+[data-theme="brand"] .join-form:has([aria-invalid="true"]) .join-status { color: var(--brand-danger); }
+/* Off screen rather than display:none, which some bots skip. */
+[data-theme="brand"] .join-honeypot {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+[data-theme="brand"] .join-done {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 34rem;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--brand-line);
+}
+[data-theme="brand"] .join-done__title {
+  margin: 0;
+  font-size: var(--brand-text-h3);
+  font-weight: 500;
+}

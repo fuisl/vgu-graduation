@@ -38,7 +38,12 @@ const personNameColumns = () => ({
   nameReviewed: boolean("name_reviewed").notNull().default(false),
 });
 
-/** Graduates and admins (internal). Graduates do not sign in; admin sign-in access lives in `admin_accounts`. */
+/**
+ * Graduates and admins (internal). Graduates do not sign in; admin sign-in access lives in `admin_accounts`.
+ * `join_code` is a graduate's guest self-registration link (ADR-015). It is stored as is, not hashed:
+ * it is meant to be shared widely and only lets someone register as this graduate's guest, and keeping
+ * it lets the graduate ask for the same link again without breaking the copies already shared.
+ */
 export const users = pgTable(
   "users",
   {
@@ -49,6 +54,7 @@ export const users = pgTable(
     role: text("role", { enum: ["graduate", "admin"] })
       .notNull()
       .default("graduate"),
+    joinCode: text("join_code").unique(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

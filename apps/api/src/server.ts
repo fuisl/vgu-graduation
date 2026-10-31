@@ -19,6 +19,7 @@ import { mediaRoutes, type MediaRoutesOptions } from "./modules/media/media.rout
 import { liveRoutes, type LiveRoutesOptions } from "./modules/live/live.routes.js";
 import { mailRoutes, type MailRoutesOptions } from "./modules/mail/mail.routes.js";
 import { invitationsRoutes } from "./modules/invitations/invitations.routes.js";
+import { joinRoutes, type JoinRoutesOptions } from "./modules/join/join.routes.js";
 import type { InvitationsService } from "./modules/invitations/invitations.service.js";
 import { passRoutes } from "./modules/pass/pass.routes.js";
 import type { PassSigner } from "./modules/pass/pass.signer.js";
@@ -67,6 +68,8 @@ export interface BuildServerOptions {
   guideService?: GuideRoutesOptions["service"];
   /** Overrides for tests: the mail service (SMTP from config) and the calendar email limiter. */
   mail?: Pick<MailRoutesOptions, "service" | "limiter">;
+  /** Overrides for tests: the guest self-registration service and its limiters (ADR-015). */
+  join?: JoinRoutesOptions;
   /** Override for tests; defaults to the database- and Garage-backed service. */
   mediaService?: MediaRoutesOptions["service"];
   /** Overrides for tests: the display feed's data source and timings, and the translation module's. */
@@ -146,6 +149,7 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
   app.register(printRoutes, { config, service: options.printService });
   app.register(guideRoutes, { service: options.guideService });
   app.register(mailRoutes, { invitationsService: options.invitationsService, ...options.mail });
+  app.register(joinRoutes, { ...options.join });
 
   return app;
 }

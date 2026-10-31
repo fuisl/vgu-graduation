@@ -71,6 +71,13 @@
       "when": 1793345527288,
       "tag": "0009_event_time_confirmed",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793412058031,
+      "tag": "0010_graduate_join_code",
+      "breakpoints": true
     }
   ]
 }

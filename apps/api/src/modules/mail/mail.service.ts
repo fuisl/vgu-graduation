@@ -4,7 +4,7 @@ import { buildIcs } from "../event/event.ics.js";
 import { buildInviteRequest } from "./calendar-rsvp.js";
 import { EventRepository, type EventStore } from "../event/event.repository.js";
 import { createMailer, type Mailer, type MailMessage } from "./mailer.js";
-import { calendarInviteEmail, invitationEmail, rsvpConfirmationEmail, type EventLinks } from "./templates.js";
+import { calendarInviteEmail, invitationEmail, joinLinkEmail, rsvpConfirmationEmail, type EventLinks } from "./templates.js";
 
 let shared: Mailer | null | undefined;
 
@@ -105,6 +105,14 @@ export class MailService {
     if (!event) return "no_event";
     const ics = buildIcs(event, { uidDomain: this.links.uidDomain, siteUrl: this.links.siteUrl });
     return this.deliver(calendarInviteEmail({ to: input.to, locale: input.locale, event, ics, links: this.links }));
+  }
+
+  /** A graduate's join link (ADR-015), to their stored address only, in the language of the page they asked from. */
+  async sendJoinLink(input: { to: string; givenName: string; locale: MailLocale; joinUrl: string }): Promise<EmailStatus> {
+    if (!this.mailer) return "not_configured";
+    const event = await this.events.get();
+    if (!event) return "failed";
+    return this.deliver(joinLinkEmail({ ...input, event, siteUrl: this.links.siteUrl }));
   }
 
   /**

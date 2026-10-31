@@ -8,6 +8,7 @@ import {
   decideAdminAccount,
   revokeInvitation,
   rotateInvitation,
+  rotateJoinLink,
   updateEvent,
 } from "../../lib/api/admin";
 import { forgetInvitation } from "../../lib/api/invitations";
@@ -19,6 +20,7 @@ import {
   type GraduateFormState,
   type InvitationActionState,
   type InvitationFormState,
+  type JoinLinkActionState,
 } from "../../lib/admin/action-state";
 import { parseEventForm, parseGraduateForm, parseInvitationForm } from "../../lib/admin/forms";
 import { redirectIfUnauthorized, requireAdminSession } from "../../lib/admin/session";
@@ -123,6 +125,20 @@ export async function revokeInvitationAction(
   forgetInvitation(id);
   revalidateAdmin();
   return { status: "revoked" };
+}
+
+/** Creates or replaces a graduate's guest link (ADR-015). Links already shared stop working. */
+export async function rotateJoinLinkAction(_previous: JoinLinkActionState, form: FormData): Promise<JoinLinkActionState> {
+  const { token } = await requireAdminSession();
+  const id = form.get("graduateId");
+  if (typeof id !== "string" || !UUID.test(id)) return { status: "error", message: "Unknown graduate." };
+
+  const result = await rotateJoinLink(token, id);
+  redirectIfUnauthorized(result);
+  if (result.status !== "ok") return { status: "error", message: failureMessage(result) };
+
+  revalidateAdmin();
+  return { status: "rotated", joinUrl: result.data.joinUrl };
 }
 
 export async function updateEventAction(_previous: EventFormState, form: FormData): Promise<EventFormState> {

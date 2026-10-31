@@ -229,3 +229,60 @@ export function rsvpConfirmationEmail(input: {
   };
   return message(input.to, content);
 }
+
+/**
+ * A graduate's join link (ADR-015), sent when they ask for it on the site, so in the site's
+ * language. Unlike an invitation link it is meant to be shared: the notes say so plainly.
+ */
+export function joinLinkEmail(input: {
+  to: string;
+  givenName: string;
+  locale: MailLocale;
+  joinUrl: string;
+  event: StoredEvent;
+  siteUrl: string;
+}): MailMessage {
+  const { givenName, locale, joinUrl, event } = input;
+  const name = eventName(event, locale);
+  const section: EmailSection =
+    locale === "vi"
+      ? {
+          lang: "vi",
+          greeting: `Chào ${givenName},`,
+          paragraphs: [
+            `Đây là đường dẫn mời khách của bạn cho ${name}. Hãy gửi cho gia đình và bạn bè: mỗi người nhập tên và email, và nhận ngay thiệp mời riêng, với bạn là người mời.`,
+          ],
+          facts: facts(event, locale),
+          cta: { label: "Mở đường dẫn mời khách", href: joinUrl },
+          notes: [
+            `Đường dẫn: ${joinUrl}`,
+            "Bất kỳ ai có đường dẫn này đều có thể đăng ký làm khách của bạn, nên chỉ gửi cho người bạn muốn mời.",
+            "Bạn nhận được email này vì đã yêu cầu trên trang sự kiện. Nếu không phải bạn, hãy bỏ qua email này.",
+          ],
+          signOff: signOff(event, locale),
+        }
+      : {
+          lang: "en",
+          greeting: `Hi ${givenName},`,
+          paragraphs: [
+            `Here is your guest link for ${name}. Send it to your family and friends: each of them types their name and email and gets their own invitation straight away, from you.`,
+          ],
+          facts: facts(event, locale),
+          cta: { label: "Open your guest link", href: joinUrl },
+          notes: [
+            `The link: ${joinUrl}`,
+            "Anyone with this link can register as your guest, so only send it to people you want to invite.",
+            "You received this because it was requested on the event site. If that wasn't you, you can ignore this email.",
+          ],
+          signOff: signOff(event, locale),
+        };
+  const content: EmailContent = {
+    subject: locale === "vi" ? `Đường dẫn mời khách của bạn: ${name}` : `Your guest link: ${name}`,
+    preheader: formatWhen(event, locale),
+    title: name,
+    subtitle: formatWhen(event, locale),
+    sections: [section],
+    siteUrl: input.siteUrl,
+  };
+  return message(input.to, content);
+}

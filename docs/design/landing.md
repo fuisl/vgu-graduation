@@ -1,18 +1,53 @@
 # Landing and sculpture
 
-The public root route (`/`) is an event-first page on the blue-and-white brand theme ([redesign-2026-10.md](redesign-2026-10.md)). This page documents `/` as shipped, plus the technical detail of the sculpture, the ASCII renderer and the experimental routes that share them. Treat it as the reference for future changes, not a changelog.
+The public root route (`/`) is a story page on the blue-and-white brand theme ([redesign-2026-10.md](redesign-2026-10.md)): the sculpture, one line, then the journey. This page documents `/` as shipped, plus the technical detail of the sculpture, the ASCII renderer and the experimental routes that share them. Treat it as the reference for future changes, not a changelog.
 
 ## Composition
 
-Owner brief (2026-10): "Too much information and text is being displayed, and information is duplicated everywhere. Put it in the menubar. It is not intuitive what to expect when entering the website." The landing therefore says what the site is for and where to go, and nothing the menubar already holds.
+Owner brief (2026-11): tell a story; the menu holds where to go. The layout was approved by the owner from wireframes, and is inspired in structure only by the GitHub Universe highlights section: no assets or colours are copied. It builds on the 2026-10 brief ("Too much information and text is being displayed, and information is duplicated everywhere. Put it in the menubar."), which still holds: nothing the menubar holds is repeated here.
 
-`/` renders inside `BrandTheme` with `SiteHeader current="home"` (no nav item is current; the mark is the way home) and `SiteFooter`. Styles are route-local in `apps/web/app/landing.css`, brand tokens only. Sections, in order:
+`/` renders inside `BrandTheme` with `SiteHeader current="home"` (no nav item is current; the mark is the way home) and `SiteFooter`. Styles are route-local, brand tokens only: `apps/web/app/landing.css` for the hero and `apps/web/app/journey/journey.css` for the band. Sections, in order:
 
-1. **Blue hero** (`Section tone="blue"`, airy). The hero fills the viewport (`100svh`, including the strip behind the overlaid header); the sculpture stage (`.home-visual`, never taller than wide, at least 280px, 160px at 960px and below) takes the height left over by the `Graduation ’26` headline and one sentence on what the site is for (`landing.lead`). The entry points start below the fold (owner decision, 2026-10-19). No date, venue, countdown or calendar action: the menubar holds the event essentials.
-2. **White "Start here"** (`Section tone="white" density="compact"`). Four entry points as large rows (title, one line, pixel arrow, hairlines between; the guest profile's quick-link pattern), two columns above 960px and one below, in the order of `AGENTS.md`: **My invitation** (`/me`, which opens the invitation or explains how to), **Venue and calendar** (`/venue`; its line is the date and venue, "Friday 20 November · Ceremony Hall", or "Date, directions and the campus map." when the event API fails), **Open camera** (`/gallery`, which opens the shared camera) and **Wishes** (`/wishes`).
+1. **Blue hero** (`Section tone="blue"`, airy). The hero fills the viewport (`100svh`, including the strip behind the overlaid header); the sculpture stage (`.home-visual`, never taller than wide, at least 280px, 160px at 960px and below) takes the height left over by the `Graduation ’26` headline and one line in the owner's voice (`landing.lead`). The journey starts below the fold. No date, venue, countdown or calendar action: the menubar holds the event essentials.
+2. **`the-journey/`** (`Section tone="white" density="compact"`, labelled by its heading, no bottom padding so the rows meet the footer). The heading is `--brand-text-h2` (below the hero's headline at every width) and reads `the-journey/` in both languages. Below, see "The journey".
 3. **Footer** (`SiteFooter`, deep blue, minimal).
 
-The page is server-rendered and `force-dynamic`; it makes one API call, `GET /event` (cached 300 s and shared with the header's essentials). When it fails the entry points stay and only the venue line falls back. Removed in the 2026-10 pass: the mono meta block (campus, city, date, live countdown), the hero's "Add to calendar", the "When and where" band, and the gallery and wishes teasers (the gallery and wishes pages are the home of that content; `/memories` stays linked from the footer and the gallery). Earlier removals: the ASCII graduation chapter, the aurora, twinkle field, grid cells, pointer parallax, glow text-shadows, the animated VGU logo and the "Coming soon in November" sweep.
+The page is server-rendered and `force-dynamic`; it makes no API call of its own (the header reads `GET /event` for its essentials), so the band does not depend on the API. Removed in 2026-11: "Start here" and its four entry points (My invitation, Venue and calendar, Open camera, Wishes), which remain in the menu (owner decision). Removed in the 2026-10 pass: the mono meta block (campus, city, date, live countdown), the hero's "Add to calendar", the "When and where" band, and the gallery and wishes teasers (the gallery and wishes pages are the home of that content; `/memories` stays linked from the footer and the gallery). Earlier removals: the ASCII graduation chapter, the aurora, twinkle field, grid cells, pointer parallax, glow text-shadows, the animated VGU logo and the "Coming soon in November" sweep.
+
+**No JavaScript on a phone.** The menu sheet needs JavaScript, so until it loads (or without it) a phone reaches only Camera from the bar, and Memories, Accessibility and Credits from the footer. `/venue`, `/me` and `/wishes` are not reachable from `/` in that state; invitation links open `/invite` directly and are unaffected. This follows from the owner's decision to move the entry points to the menu.
+
+## The journey
+
+A list of entries, each a mono filename (`01_the_film.mp4`, `02_[first_year].jpg`, ...), that opens one at a time: the film is first and open on load, then the photo chapters. Everything is in `apps/web/app/journey/`, route-local because nothing else uses it: `entries.ts` (the data), `view.ts` (data plus the page's language), `selection.ts` (the state, pure), `JourneyList.tsx` (the one client component) and `journey.css`. The number of entries is a data change only.
+
+- **One DOM, two layouts.** Each row button is followed by its panel, inside an `ol` (`display: contents` on the items). Up to 960px the panel opens in place under its row. From 961px the same grid puts the rows in the left column and the one open panel in the right, spanning all rows; two equal columns divided by the panel's left hairline.
+- **Row.** A stripe on the left edge, a thumbnail and a mono filename, at least 72px high (112px on desktop). Open: solid `--brand-blue` stripe, `--brand-blue-soft` fill. Closed: `--brand-blue-soft` stripe. One blue only. The button has `aria-expanded` and `aria-controls` on both layouts, and its name is the filename and then the title. As in the wireframe, one entry is always open: pressing the open row leaves it open.
+- **Panel.** The video or photo on a 16:9 plate; up to four flashback buttons (`aria-pressed`, the photo's thumbnail, or its number while there is no photo) when the chapter has several; the title (`h3`) with `←` and `Next →` (secondary `Cta`s, desktop only, wrapping round the ends); a mono date and place line; a dashed hairline; the story. Photos use `object-fit: contain` on the `--brand-blue-soft` plate, so they are never cropped.
+- **Empty media.** With no path set, the plate is a quiet bordered `--brand-blue-soft` box with a mono label ("Film to come", "Photo 2 of 4 to come"), and the row's thumbnail is a white box labelled Video or Photo. The layout is the same with or without media.
+- **Film.** A native `<video>` with `controls`, `preload="none"`, `playsInline`, a poster and caption tracks in English and Vietnamese (the page's language is the default track). Nothing autoplays. Moving to another entry pauses it. If it fails to load, the plate says so.
+- **Poor networks.** Photos go through `next/image` from `public/journey/`, so a phone gets a phone-sized file. All photos are `loading="lazy"` except the open entry's current one; hidden panels load nothing. The poster is one fixed 828px-wide optimized image. Plates and thumbnails have a fixed shape, so nothing shifts as they arrive. The default caption file is a small request on load; the video itself loads only when the guest presses play.
+- **Without JavaScript.** Every panel and photo is in the HTML. `@media (scripting: none)` stacks them all as one column on any screen and hides the controls that need script. A browser too old for that query shows the first entry only. Until the script has loaded, the rows do nothing and the film stays readable.
+- **Focus and scrolling.** `←` and `Next →` live in the panel they hide, so focus moves to the same control in the new panel and a status message announces the new title. On a phone, the panel above a tapped row may close: the page scrolls by the same amount, instantly, so the row stays under the finger.
+- **Motion.** None: state changes are instant.
+
+### What the owner fills in
+
+Words, in `apps/web/lib/i18n/messages/en.ts` and `vi.ts` (the same keys in both; each is a `[bracketed]` placeholder until written, marked `TODO(owner)`):
+
+| Key | What it is |
+| --- | --- |
+| `landing.lead` | The one line under the headline |
+| `landing.journey.film.title`, `.date`, `.story`, `.alt` | The film: title, length line, introduction, and a short description for screen readers |
+| `landing.journey.firstYear.*`, `.secondYear.*`, `.thirdYear.*`, `.finalYear.*` | Each chapter: `.title`, `.date` (date and place), `.story`, and `.photo1` to `.photo4` (what each photo shows, as alt text) |
+
+A blank line in a story (`\n\n`) starts a new paragraph.
+
+Media, in `apps/web/app/journey/entries.ts` (each `TODO(owner)` is there):
+
+- **Photos and poster:** put the files in `apps/web/public/journey/` and write the path, `"/journey/my-photo.jpg"`, in `src` or `poster`. A chapter shows at most four photos. Next.js resizes them, so export them around 2000px wide.
+- **Film:** `src` is the video's URL, on whichever host is chosen; hosting is undecided, and video files do not go in the repo.
+- **Captions:** two WebVTT files in `apps/web/public/journey/`, on the site's own host, because a browser refuses caption files from another host unless that host allows it.
+- **Chapters and filenames:** add or remove a block in `JOURNEY_ENTRIES`, with its keys in both languages. No component changes. Rename `file` to match your years; it stays plain ASCII in both languages.
 
 ## Add to calendar
 
@@ -91,7 +126,7 @@ The route sits on the blue-and-white brand theme (`BrandTheme`, `SiteHeader`, `S
 
 ## Reference captures
 
-Captures of the shipped landing live in `docs/design/reference/`: `landing-desktop.png` (1440px wide) and `landing-mobile.png` (390px wide), full page. They are stills of a live, animated page (2026-10 menubar pass, full-viewport hero) against `apps/web/scripts/mock-live-api.mjs` (24 October, VGU Campus, Main Hall), in a software-rendered browser, so the sculpture shows its static motif.
+Captures of the landing live in `docs/design/reference/`: `landing-desktop.png` (1440px wide) and `landing-mobile.png` (390px wide), full page. They predate the journey band and are worth retaking once the owner's content is in. They are stills of a live, animated page (2026-10 menubar pass, full-viewport hero) against `apps/web/scripts/mock-live-api.mjs` (24 October, VGU Campus, Main Hall), in a software-rendered browser, so the sculpture shows its static motif.
 
 ## Name badge
 

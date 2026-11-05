@@ -244,6 +244,9 @@
   [data-theme="brand"] .journey-media[hidden] {
     display: block;
   }
+  [data-theme="brand"] .journey-media {
+    max-width: 40rem;
+  }
   [data-theme="brand"] .journey-flashbacks,
   [data-theme="brand"] .journey-nav {
     display: none;

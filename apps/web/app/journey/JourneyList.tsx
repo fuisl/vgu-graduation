@@ -134,8 +134,8 @@ function Film({ video, locale, t }: { video: NonNullable<JourneyEntryView["video
   const [failed, setFailed] = useState(false);
   if (!video.src) return <div className="journey-media"><Plate label={t("landing.journey.ui.empty.video")} /></div>;
   if (failed) return <div className="journey-media"><Plate label={t("landing.journey.ui.videoFailed")} /></div>;
-  // A <video> poster is a plain URL: ask the image optimizer for one sized like the plate.
-  const poster = video.poster ? getImageProps({ src: video.poster, alt: "", width: 640, height: 360 }).props.src : undefined;
+  // A <video> poster is a plain URL with no srcset: ask the image optimizer for one size that suits a phone (828px wide).
+  const poster = video.poster ? getImageProps({ src: video.poster, alt: "", width: 414, height: 233 }).props.src : undefined;
   return (
     <div className="journey-media">
       <video className="journey-video" controls preload="none" playsInline poster={poster} src={video.src} aria-label={video.label} onError={() => setFailed(true)}>

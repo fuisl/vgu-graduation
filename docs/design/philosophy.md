@@ -3,7 +3,7 @@
 GRAD '26 combines engineering precision with the emotional weight of graduation. Everything a guest sees speaks one language: saturated royal blue and white, quiet grotesk type, small mono labels, and one signature visual. The decision record is [redesign-2026-10.md](redesign-2026-10.md).
 
 ## Character
-Precise, quiet, technical, editorial, warm without becoming sentimental. Event-first: the date, the venue and the invitation come before anything decorative.
+Precise, quiet, technical, editorial, warm without becoming sentimental. Event-first: on every working page the date, the venue and the invitation come before anything decorative, and the menubar holds them on every page. The one nuance is the landing (owner brief, 2026-11): it tells a story, the journey of four years, and leaves where to go to the menu (`landing.md`). Event-first still decides priority when the two compete: the story must never slow or block the invitation, the RSVP or the venue.
 
 ## Two languages
 - **Brand (guest-facing):** the blue-and-white theme. It covers `/`, `/gallery`, `/wishes`, `/memories`, `/memories/timeline`, `/me`, `/guide`, `/accessibility`, `/invite`, `/invite/demo`, `/venue`, the pass, `/display`, `/live`, `/ascii-live`, `/guest/prototype`, `/design-system` and the 404 page. See `tokens.md`.

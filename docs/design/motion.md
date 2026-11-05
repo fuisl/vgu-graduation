@@ -21,6 +21,8 @@ Always respect `prefers-reduced-motion`. Do not autoplay distracting loops aroun
 | Buttons, pills, arrow tile | Background, colour and arrow-tile transitions over `--motion-fast`. | `tokens.css` shortens all transitions and animations under reduced motion. |
 | `/guest/prototype` badge | The name badge with demo data; as above. | CSS badge fallback. |
 
+The landing's journey list (`landing.md`) has no motion of its own: rows, panels and photos change instantly, and the film never autoplays.
+
 ## Rules
 - Every new animation needs a stated purpose (state, space, physical behavior or narrative) and a reduced-motion behaviour.
 - No ambient background motion: no drifting blobs, twinkles, pulsing grids or pointer parallax (`anti-patterns.md`).

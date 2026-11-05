@@ -1,6 +1,6 @@
 "use client";
 
-import type { Invitation } from "@grad/contract";
+import type { Invitation, InviteAnswer } from "@grad/contract";
 import { Cta } from "@grad/ui";
 import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import { sliceTranslator } from "../../../lib/i18n/format";
@@ -12,6 +12,7 @@ import { submitRsvp } from "./rsvp-actions";
 export function RsvpForm({
   invitation,
   savedNeeds,
+  linkAnswer,
   status,
   allowance,
   messages,
@@ -19,6 +20,8 @@ export function RsvpForm({
 }: {
   invitation: Invitation;
   savedNeeds: SavedNeeds;
+  /** The answer an email link pre-selected (ADR-016). Nothing is saved until the guest submits. */
+  linkAnswer: InviteAnswer | null;
   /** The saved answer in a sentence (`summarizeRsvp`), or null before the guest has answered. */
   status: string | null;
   /** Who the invitation covers (`invite.plusOnes` / `invite.plusOnesNone`), formatted on the server. */
@@ -30,7 +33,10 @@ export function RsvpForm({
 }) {
   const t = sliceTranslator(messages);
   const { rsvp, maxPlusOnes } = invitation;
-  const [attending, setAttending] = useState<"yes" | "no" | "">(rsvp ? (rsvp.attending ? "yes" : "no") : "");
+  const savedAnswer = rsvp ? (rsvp.attending ? "yes" : "no") : null;
+  const [attending, setAttending] = useState<"yes" | "no" | "">(linkAnswer ?? savedAnswer ?? "");
+  // Cleared once the guest has saved, so the page stops asking them to confirm.
+  const [fromLink, setFromLink] = useState(linkAnswer);
   const [plusOnes, setPlusOnes] = useState(String(rsvp?.plusOnesCount ?? 0));
   const [dietary, setDietary] = useState(rsvp?.dietaryRequirements ?? "");
   const [notes, setNotes] = useState(rsvp?.notes ?? "");
@@ -56,7 +62,13 @@ export function RsvpForm({
     submittedRef.current = true;
     startTransition(async () => {
       try {
-        setState(await submitRsvp(maxPlusOnes, data));
+        const result = await submitRsvp(maxPlusOnes, data);
+        setState(result);
+        if (result.status === "success" && fromLink) {
+          setFromLink(null);
+          // A reload must not bring the link's answer back over the one just saved.
+          window.history.replaceState(null, "", "/invite");
+        }
       } catch {
         setState({ status: "error", kind: "retry", message: t("rsvp.error.retry") });
       }
@@ -64,6 +76,7 @@ export function RsvpForm({
   }
 
   const showPlusOnes = maxPlusOnes > 0 && attending === "yes";
+  const awaitingConfirmation = fromLink !== null && attending === fromLink && fromLink !== savedAnswer;
 
   return (
     <form onSubmit={onSubmit} aria-busy={pending} aria-labelledby="rsvp-form-heading" className="invite-body">
@@ -96,6 +109,13 @@ export function RsvpForm({
             {t("rsvp.form.no")}
           </label>
         </fieldset>
+
+        {awaitingConfirmation ? (
+          <p className="invite-rsvp-status">
+            {t(`rsvp.form.pending.${fromLink}`)}
+            {savedAnswer ? ` ${t("rsvp.form.pending.keeps")}` : null}
+          </p>
+        ) : null}
 
         {showPlusOnes ? (
           <div className="invite-field">
@@ -148,7 +168,7 @@ export function RsvpForm({
 
         <div>
           <Cta tone="on-white" type="submit" disabled={pending}>
-            {pending ? t("rsvp.form.saving") : state.status === "error" && state.kind === "retry" ? t("rsvp.form.retry") : t("rsvp.form.save")}
+            {pending ? t("rsvp.form.saving") : state.status === "error" && state.kind === "retry" ? t("rsvp.form.retry") : awaitingConfirmation ? t("rsvp.form.confirm") : t("rsvp.form.save")}
           </Cta>
         </div>
       </fieldset>

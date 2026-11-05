@@ -6,6 +6,7 @@ import { deriveHandler } from "./modules/media/derivatives.js";
 import { DERIVE_JOB } from "./modules/media/media.repository.js";
 import { runCalendarReplyPoller } from "./modules/mail/calendar-replies.js";
 import { RSVP_CONFIRMATION_JOB, rsvpConfirmationHandler } from "./modules/mail/rsvp-confirmation.js";
+import type { PollLogger } from "./modules/mail/calendar-replies.js";
 import { JobQueue } from "./worker/queue.js";
 import { runWorker, type JobHandlers, type WorkerLogger } from "./worker/worker.js";
 
@@ -26,7 +27,7 @@ const handlers: JobHandlers = {
 const LEVELS = ["trace", "debug", "info", "warn", "error", "fatal"] as const;
 
 /** Structured JSON lines, matching the API's log shape. Fields carry ids only, never payloads. */
-function jsonLogger(level: string): WorkerLogger {
+function jsonLogger(level: string): WorkerLogger & PollLogger {
   const min = LEVELS.indexOf(level as (typeof LEVELS)[number]);
   const write = (lvl: (typeof LEVELS)[number], fields: Record<string, unknown>, msg: string) => {
     if (level === "silent" || LEVELS.indexOf(lvl) < min) return;
@@ -34,6 +35,7 @@ function jsonLogger(level: string): WorkerLogger {
   };
   return {
     info: (fields, msg) => write("info", fields, msg),
+    warn: (fields, msg) => write("warn", fields, msg),
     error: (fields, msg) => write("error", fields, msg),
   };
 }
@@ -70,7 +72,7 @@ async function main() {
         log: { warn: (fields, message) => logger.info(fields, message) },
       }),
     }),
-    // Calendar RSVP replies (ADR-013): reads the organizer's inbox, only when turned on.
+    // Calendar RSVP replies (ADR-013): reads the organizer's inbox, only when turned on (off by default, ADR-016).
     config.mail.calendarRsvp ? runCalendarReplyPoller({ pool, signal: controller.signal, logger }) : Promise.resolve(),
   ]);
   await pool.end();

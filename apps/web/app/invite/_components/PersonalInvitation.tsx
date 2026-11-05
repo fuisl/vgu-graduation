@@ -1,4 +1,4 @@
-import { ACCESSIBILITY_NOTE_MAX_LENGTH, type EventConfig, type Invitation } from "@grad/contract";
+import { ACCESSIBILITY_NOTE_MAX_LENGTH, type EventConfig, type Invitation, type InviteAnswer } from "@grad/contract";
 import { BrandEyebrow, Section } from "@grad/ui";
 import type { ApiResult } from "../../../lib/api/result";
 import { pickMessages, type I18n } from "../../../lib/i18n/dictionary";
@@ -20,11 +20,14 @@ export function PersonalInvitation({
   event,
   savedNeeds,
   i18n,
+  linkAnswer = null,
 }: {
   invitation: Invitation;
   event: ApiResult<EventConfig>;
   savedNeeds: SavedNeeds;
   i18n: I18n;
+  /** The answer an email link pre-selected; not saved until the guest confirms (ADR-016). */
+  linkAnswer?: InviteAnswer | null;
 }) {
   const { t } = i18n;
   const inviters = invitation.inviters.map((inviter) => inviter.name);
@@ -41,6 +44,7 @@ export function PersonalInvitation({
           <RsvpForm
             invitation={invitation}
             savedNeeds={savedNeeds}
+            linkAnswer={linkAnswer}
             status={invitation.rsvp ? summarizeRsvp(invitation.rsvp, i18n) : null}
             allowance={invitation.maxPlusOnes > 0 ? t.plural("invite.plusOnes", invitation.maxPlusOnes) : t("invite.plusOnesNone")}
             messages={pickMessages(i18n.locale, ...RSVP_MESSAGES)}

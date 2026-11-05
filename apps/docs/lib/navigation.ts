@@ -122,6 +122,7 @@ export const navGroups: readonly NavGroup[] = [
           ["adr/013-calendar-rsvp-email", "ADR-013 Calendar RSVP by email"],
           ["adr/014-live-gallery-feed", "ADR-014 Live gallery feed"],
           ["adr/015-guest-self-registration", "ADR-015 Guest self-registration"],
+          ["adr/016-email-rsvp-links", "ADR-016 Yes / No links in the email"],
         ],
       },
     ],

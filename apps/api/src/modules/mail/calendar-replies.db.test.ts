@@ -85,4 +85,58 @@ describe("calendar replies (real Postgres)", () => {
     await repository.saveCursor("INBOX", 7, 42);
     expect(await repository.getCursor("INBOX")).toEqual({ uidValidity: 7, lastUid: 42 });
   });
+
+  it("confirms an applied reply through the real queue, and the job finds it is the newest save", async (ctx) => {
+    if (!admin) return ctx.skip();
+    const { rows } = await pool!.query<{ id: string }>(
+      `WITH g AS (INSERT INTO guests (name, email) VALUES ('Binh Le', 'binh@example.com') RETURNING id)
+       INSERT INTO invitations (guest_id, token_hash, max_plus_ones) SELECT id, $1, 0 FROM g RETURNING id`,
+      [hashToken("calendar-reply-db-test-2")],
+    );
+    const id = rows[0]!.id;
+    const { JobQueue } = await import("../../worker/queue.js");
+    const { pollCalendarReplies } = await import("./calendar-replies.js");
+    const { RSVP_CONFIRMATION_JOB, rsvpConfirmationHandler } = await import("./rsvp-confirmation.js");
+    const queue = new JobQueue(pool!);
+    const reply = [
+      "BEGIN:VCALENDAR",
+      "METHOD:REPLY",
+      "BEGIN:VEVENT",
+      `UID:invite-${id}@grad26.example.com`,
+      "DTSTAMP:20261020T081500Z",
+      "ATTENDEE;PARTSTAT=ACCEPTED:mailto:binh@example.com",
+      "END:VEVENT",
+      "END:VCALENDAR",
+    ].join("\r\n");
+
+    const counts = await pollCalendarReplies({
+      reader: {
+        read: async () => ({
+          uidValidity: 7,
+          uidNext: 100,
+          messages: [
+            { uid: 99, from: "binh@example.com", authenticationResults: "mx.google.com; dmarc=pass header.from=example.com", calendarParts: [reply] },
+          ],
+        }),
+      },
+      store: repository,
+      uidDomain: "grad26.example.com",
+      authservId: "mx.google.com",
+      logger: { info: () => {}, warn: () => {}, error: () => {} },
+      confirmations: queue,
+    });
+    expect(counts.applied).toBe(1);
+
+    const jobs = await pool!.query<{ payload: { invitationId: string; rsvpUpdatedAt: string }; type: string }>(
+      "SELECT type, payload FROM jobs WHERE payload->>'invitationId' = $1",
+      [id],
+    );
+    expect(jobs.rows).toHaveLength(1);
+    expect(jobs.rows[0]!.type).toBe(RSVP_CONFIRMATION_JOB);
+    expect(Object.keys(jobs.rows[0]!.payload).sort()).toEqual(["invitationId", "rsvpUpdatedAt"]);
+
+    const sendRsvpConfirmation = vi.fn(async () => "sent" as const);
+    await rsvpConfirmationHandler({ mail: { sendRsvpConfirmation } })({ payload: jobs.rows[0]!.payload } as never);
+    expect(sendRsvpConfirmation).toHaveBeenCalledWith(expect.objectContaining({ to: "binh@example.com", attending: true }));
+  });
 });

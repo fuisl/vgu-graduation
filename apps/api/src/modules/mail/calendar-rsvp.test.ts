@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { StoredEvent } from "../event/event.repository.js";
 import {
   applyCalendarReply,
@@ -14,6 +14,7 @@ import { buildInviteRequest, invitationIdFromUid, inviteUid, parseCalendarReply 
 import { escapeHtml, renderHtml, renderText, type EmailContent } from "./layout.js";
 import { MailService } from "./mail.service.js";
 import { fakeMailer } from "./mailer.fake.js";
+import { RSVP_CONFIRMATION_JOB } from "./rsvp-confirmation.js";
 
 const ID = "3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e6f";
 const DOMAIN = "grad26.example.com";
@@ -97,12 +98,15 @@ describe("the invitation's calendar request", () => {
     expect(on.sent[0].calendarRequest).toContain(`mailto:${GUEST}`);
     expect(on.sent[0].text).toContain("Yes / Maybe / No");
     expect(on.sent[0].html).toContain("Open your invitation");
+    expect(on.sent[0].text).toContain(`https://${DOMAIN}/invite/t?answer=yes`);
+    expect(on.sent[0].attachments).toBeUndefined();
 
     const off = fakeMailer();
     await new MailService(off.mailer, { get: async () => EVENT }, { publicOrigin: `https://${DOMAIN}`, apiOrigin: `https://api.${DOMAIN}` })
       .sendInvitation({ to: GUEST, givenName: "An", inviteUrl: `https://${DOMAIN}/invite/t`, invitationId: ID, guestName: "Nguyễn An" });
     expect(off.sent[0].calendarRequest).toBeUndefined();
     expect(off.sent[0].text).not.toContain("Yes / Maybe / No");
+    expect(off.sent[0].attachments?.[0].content).toContain("METHOD:PUBLISH");
   });
 });
 
@@ -208,7 +212,8 @@ describe("pollCalendarReplies", () => {
     };
     return { store, saved };
   }
-  const logger = { info: vi.fn(), error: vi.fn() };
+  const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+  beforeEach(() => vi.clearAllMocks());
   const reader = (messages: InboxMessage[], uidValidity = 7, uidNext = 100): MailboxReader => ({
     read: async () => ({ uidValidity, uidNext, messages }),
   });
@@ -228,6 +233,83 @@ describe("pollCalendarReplies", () => {
     expect(counts).toEqual({ messages: 2, applied: 1 });
     expect(saved).toEqual([[7, 41], [7, 42]]);
     expect(JSON.stringify(logger.info.mock.calls)).not.toContain(GUEST);
+  });
+
+  const poll = (message: InboxMessage, store: CalendarReplyStore, confirmations?: { enqueue: ReturnType<typeof vi.fn> }) =>
+    pollCalendarReplies({
+      reader: reader([message]),
+      store,
+      uidDomain: DOMAIN,
+      authservId: "mx.google.com",
+      logger,
+      ...(confirmations ? { confirmations: confirmations as never } : {}),
+    });
+
+  it("logs turned-away replies at warn, with ids and the outcome only", async () => {
+    const { store } = fakeStore({ uidValidity: 7, lastUid: 40 });
+    await poll({ uid: 41, from: "someone@gmail.com", authenticationResults: GMAIL_AUTH, calendarParts: [gmailReply()] }, store);
+    await poll({ uid: 42, from: GUEST, authenticationResults: "mx.google.com; dkim=fail", calendarParts: [gmailReply()] }, store);
+    await poll(
+      {
+        uid: 43,
+        from: GUEST,
+        authenticationResults: GMAIL_AUTH,
+        calendarParts: [gmailReply("ACCEPTED", "20261020T081500Z", "foreign-uid@elsewhere.example.com")],
+      },
+      store,
+    );
+    expect(logger.warn.mock.calls).toEqual([
+      [{ invitationId: ID, outcome: "wrong_attendee" }, "calendar reply"],
+      [{ invitationId: ID, outcome: "unauthenticated" }, "calendar reply"],
+      [{ outcome: "not_ours" }, "calendar reply"],
+    ]);
+    expect(logger.info).not.toHaveBeenCalled();
+  });
+
+  it("logs an applied reply at info and queues the same confirmation PUT /rsvp queues", async () => {
+    const updatedAt = new Date("2026-10-20T09:00:00.123Z");
+    const { store } = fakeStore({ uidValidity: 7, lastUid: 40 });
+    store.findInvitation = vi
+      .fn()
+      .mockResolvedValueOnce({ guestEmail: GUEST, status: "active", validUntil: null, rsvp: null })
+      .mockResolvedValueOnce({ guestEmail: GUEST, status: "active", validUntil: null, rsvp: { attending: true, updatedAt } });
+    const confirmations = { enqueue: vi.fn(async () => "job-1") };
+    await poll({ uid: 41, from: GUEST, authenticationResults: GMAIL_AUTH, calendarParts: [gmailReply()] }, store, confirmations);
+    expect(logger.info).toHaveBeenCalledWith({ invitationId: ID, outcome: "applied" }, "calendar reply");
+    expect(logger.warn).not.toHaveBeenCalled();
+    expect(confirmations.enqueue).toHaveBeenCalledTimes(1);
+    expect(confirmations.enqueue).toHaveBeenCalledWith(
+      RSVP_CONFIRMATION_JOB,
+      { invitationId: ID, rsvpUpdatedAt: updatedAt.toISOString() },
+      expect.objectContaining({ maxAttempts: 5 }),
+    );
+    expect(JSON.stringify(confirmations.enqueue.mock.calls)).not.toContain(GUEST);
+  });
+
+  it("queues nothing for a reply that changed nothing", async () => {
+    const { store } = fakeStore({ uidValidity: 7, lastUid: 40 });
+    store.findInvitation = async () => ({
+      guestEmail: GUEST,
+      status: "active",
+      validUntil: null,
+      rsvp: { attending: true, updatedAt: new Date("2026-10-19T00:00:00Z") },
+    });
+    const confirmations = { enqueue: vi.fn(async () => "job-1") };
+    await poll({ uid: 41, from: GUEST, authenticationResults: GMAIL_AUTH, calendarParts: [gmailReply()] }, store, confirmations);
+    expect(confirmations.enqueue).not.toHaveBeenCalled();
+  });
+
+  it("still moves the cursor when the confirmation can't be queued: the answer is saved", async () => {
+    const { store, saved } = fakeStore({ uidValidity: 7, lastUid: 40 });
+    store.findInvitation = vi
+      .fn()
+      .mockResolvedValueOnce({ guestEmail: GUEST, status: "active", validUntil: null, rsvp: null })
+      .mockResolvedValueOnce({ guestEmail: GUEST, status: "active", validUntil: null, rsvp: { attending: true, updatedAt: new Date() } });
+    const confirmations = { enqueue: vi.fn(async () => Promise.reject(new Error(`could not queue for ${GUEST}`))) };
+    const counts = await poll({ uid: 41, from: GUEST, authenticationResults: GMAIL_AUTH, calendarParts: [gmailReply()] }, store, confirmations);
+    expect(counts.applied).toBe(1);
+    expect(saved).toEqual([[7, 41]]);
+    expect(logger.warn).toHaveBeenCalledWith({ invitationId: ID }, "calendar reply confirmation not queued");
   });
 
   it("starts at the end of the mailbox on a first run with nothing recent", async () => {

@@ -8,13 +8,7 @@ import { MailService } from "./mail.service.js";
 import { mailErrorCode } from "./mailer.js";
 import { fakeMailer } from "./mailer.fake.js";
 import { SlidingWindowLimiter } from "./rate-limit.js";
-import {
-  RSVP_CONFIRMATION_DELAY_MS,
-  RSVP_CONFIRMATION_JOB,
-  queueRsvpConfirmation,
-  rsvpConfirmationHandler,
-  type RsvpRecipient,
-} from "./rsvp-confirmation.js";
+import { RSVP_CONFIRMATION_JOB, drainRsvpConfirmation } from "./rsvp-confirmation.js";
 import { formatWhen } from "./templates.js";
 
 const EVENT: StoredEvent = {
@@ -139,22 +133,6 @@ describe("MailService", () => {
     expect(sent).toHaveLength(0);
   });
 
-  it("confirms an RSVP with attendance and plus-ones only", async () => {
-    const { service, sent } = mailService();
-    await service.sendRsvpConfirmation({ to: "guest@example.com", givenName: "An", attending: true, plusOnesCount: 2 });
-    expect(sent[0].text).toContain("with 2 guests");
-    expect(sent[0].text).toContain("cùng 2 người đi cùng");
-    expect(sent[0].subject).toMatch(/^RSVP confirmed/);
-    expect(sent[0].text.indexOf("Dear An")).toBeLessThan(sent[0].text.indexOf("Kính gửi An"));
-  });
-
-  it("throws on an RSVP confirmation SMTP failure so the job retries", async () => {
-    const { service, fail } = mailService();
-    fail();
-    await expect(
-      service.sendRsvpConfirmation({ to: "guest@example.com", givenName: "An", attending: false, plusOnesCount: 0 }),
-    ).rejects.toThrow();
-  });
 });
 
 describe("formatWhen", () => {
@@ -239,56 +217,17 @@ describe("InvitationsService emails", () => {
   });
 });
 
-describe("RSVP confirmation", () => {
+describe("RSVP answers send no email", () => {
   const savedAt = new Date("2026-10-19T08:00:00.000Z");
-  const recipient = (overrides: Partial<RsvpRecipient> = {}): RsvpRecipient => ({
-    email: "guest@example.com",
-    givenName: "An",
-    invitationStatus: "active",
-    attending: true,
-    plusOnesCount: 1,
-    rsvpUpdatedAt: savedAt,
-    ...overrides,
-  });
-  const job = { id: "job-1", type: RSVP_CONFIRMATION_JOB, attempts: 1, maxAttempts: 5, payload: { invitationId: INVITATION_ID, rsvpUpdatedAt: savedAt.toISOString() } };
 
-  it("queues ids and a timestamp only, a little later", async () => {
-    const enqueue = vi.fn(async () => "job-1");
-    await queueRsvpConfirmation({ enqueue }, INVITATION_ID, savedAt.toISOString(), () => 1_000);
-    expect(enqueue).toHaveBeenCalledWith(
-      RSVP_CONFIRMATION_JOB,
-      { invitationId: INVITATION_ID, rsvpUpdatedAt: savedAt.toISOString() },
-      { runAt: new Date(1_000 + RSVP_CONFIRMATION_DELAY_MS), maxAttempts: 5 },
-    );
+  it("drains a job queued before confirmations stopped, sending nothing and without failing", async () => {
+    const { sent } = mailService();
+    const job = { id: "job-1", type: RSVP_CONFIRMATION_JOB, attempts: 1, maxAttempts: 5, payload: { invitationId: INVITATION_ID, rsvpUpdatedAt: savedAt.toISOString() } };
+    await expect(drainRsvpConfirmation(job as never)).resolves.toBeUndefined();
+    expect(sent).toHaveLength(0);
   });
 
-  it("sends for the newest answer and skips stale, revoked or address-less ones", async () => {
-    const send = vi.fn(async () => "sent" as const);
-    const run = (row: RsvpRecipient | null) =>
-      rsvpConfirmationHandler({ mail: { sendRsvpConfirmation: send }, recipients: { find: async () => row } })(job);
-
-    await run(recipient());
-    expect(send).toHaveBeenCalledWith({ to: "guest@example.com", givenName: "An", attending: true, plusOnesCount: 1 });
-    send.mockClear();
-    await run(recipient({ rsvpUpdatedAt: new Date(savedAt.getTime() + 1) }));
-    await run(recipient({ invitationStatus: "revoked" }));
-    await run(recipient({ email: null }));
-    await run(null);
-    expect(send).not.toHaveBeenCalled();
-  });
-
-  it("fails with a bare code so the queue never stores an SMTP reply", async () => {
-    const send = vi.fn(async () => {
-      throw Object.assign(new Error("550 5.1.1 guest@example.com does not exist"), { code: "EENVELOPE" });
-    });
-    const handler = rsvpConfirmationHandler({ mail: { sendRsvpConfirmation: send }, recipients: { find: async () => recipient() } });
-    const error = await handler(job).catch((e: Error) => e);
-    expect(error).toBeInstanceOf(Error);
-    expect((error as Error).message).toBe("rsvp confirmation not sent: EENVELOPE");
-  });
-
-  it("is queued by PUT /rsvp only for a guest with an address", async () => {
-    const enqueue = vi.fn(async () => "job-1");
+  it("PUT /rsvp saves the answer and reports no confirmation, whether or not the guest has an address", async () => {
     const rsvp = { id: INVITATION_ID, attending: true, plusOnesCount: 0, dietaryRequirements: null, notes: null, updatedAt: savedAt, accessibility: null };
     const service = (email: string | null) =>
       new RsvpService(
@@ -308,19 +247,12 @@ describe("RSVP confirmation", () => {
           }),
         },
         { upsert: async () => rsvp, listAll: async () => [], findForInvitation: async () => null, listAccessibility: async () => [] },
-        { enqueue },
       );
 
-    expect(await service(null).putByToken("t", { attending: true, plusOnesCount: 0 })).not.toHaveProperty("confirmation");
-    expect(enqueue).not.toHaveBeenCalled();
-    expect(await service("guest@example.com").putByToken("t", { attending: true, plusOnesCount: 0 })).toMatchObject({
-      status: "ok",
-      confirmation: "queued",
-    });
-    enqueue.mockRejectedValueOnce(new Error("db down"));
-    expect(await service("guest@example.com").putByToken("t", { attending: true, plusOnesCount: 0 })).toMatchObject({
-      status: "ok",
-      confirmation: "failed",
-    });
+    for (const email of [null, "guest@example.com"]) {
+      const result = await service(email).putByToken("t", { attending: true, plusOnesCount: 0 });
+      expect(result).toMatchObject({ status: "ok" });
+      expect(result).not.toHaveProperty("confirmation");
+    }
   });
 });

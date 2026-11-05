@@ -7,20 +7,11 @@ import {
   type PutRsvpRequest,
   type PutRsvpResponse,
 } from "@grad/contract";
-import { config } from "../../config.js";
-import { pool } from "../../db/index.js";
-import { JobQueue } from "../../worker/queue.js";
 import { InvitationsService } from "../invitations/invitations.service.js";
-import { queueRsvpConfirmation } from "../mail/rsvp-confirmation.js";
 import { RsvpRepository, type StoredGuestRsvp, type StoredRsvp } from "./rsvp.repository.js";
 
-/**
- * `confirmation` says whether a confirmation email was queued (ADR-012): absent
- * when none applies (mail off, no stored address), `failed` when queueing threw.
- * The RSVP is saved either way.
- */
 export type PutRsvpResult =
-  | { status: "ok"; rsvp: PutRsvpResponse; confirmation?: "queued" | "failed" }
+  | { status: "ok"; rsvp: PutRsvpResponse }
   | { status: "invalid" }
   | { status: "expired" }
   | { status: "over_limit"; maxPlusOnes: number };
@@ -41,13 +32,12 @@ export class RsvpService {
   constructor(
     private readonly invitations: Pick<InvitationsService, "resolveByToken"> = new InvitationsService(),
     private readonly repository: Repository = new RsvpRepository(),
-    /** Queues RSVP confirmation emails; null while mail is off. */
-    private readonly confirmations: Pick<JobQueue, "enqueue"> | null = config.mail.enabled ? new JobQueue(pool) : null,
   ) {}
 
   /**
    * Creates or replaces the RSVP of the invitation behind `token`. No deadline:
    * editable until the event. Accessibility needs follow `putRsvpRequestSchema`.
+   * Answering sends no email (ADR-012 amendment): the page confirms it.
    */
   async putByToken(token: string, dto: PutRsvpRequest): Promise<PutRsvpResult> {
     const resolved = await this.invitations.resolveByToken(token);
@@ -56,14 +46,7 @@ export class RsvpService {
     const { id, maxPlusOnes } = resolved.invitation;
     if (dto.plusOnesCount > maxPlusOnes) return { status: "over_limit", maxPlusOnes };
 
-    const saved = toGuestRsvp(await this.repository.upsert(id, dto));
-    if (!this.confirmations || !resolved.invitation.guest.email) return { status: "ok", rsvp: saved };
-    try {
-      await queueRsvpConfirmation(this.confirmations, id, saved.updatedAt);
-      return { status: "ok", rsvp: saved, confirmation: "queued" };
-    } catch {
-      return { status: "ok", rsvp: saved, confirmation: "failed" };
-    }
+    return { status: "ok", rsvp: toGuestRsvp(await this.repository.upsert(id, dto)) };
   }
 
   /** GET /rsvp: the guest's own answer and accessibility needs, never anyone else's. */

@@ -28,3 +28,5 @@ The owner had decided in advance what happens if calendar replies can't be made 
 - The language switch returns to `/invite` without a query, by design (`safeReturnPath`), so switching language before confirming clears the pre-selection. Nothing is saved or lost; the guest picks again.
 - Turning the flag off is a deployment change on both the API and the worker. Deploy this code first, or invitations go out for a while with neither calendar buttons nor email buttons.
 - How mail apps show the `METHOD:PUBLISH` attachment was not tested in real clients for this decision. It is the attachment the venue email already sends.
+## Amendment (2026-11-05)
+Confirming an answer from a Yes or No link no longer leads to a confirmation email, and neither does a calendar reply (ADR-012 amendment). The saved state on the page is the confirmation.

@@ -210,58 +210,6 @@ export function calendarInviteEmail(input: {
 }
 
 /**
- * Confirms an RSVP to the guest's stored address. Attendance and plus-ones only:
- * accessibility needs, dietary requirements and notes stay out of the mailbox.
- */
-export function rsvpConfirmationEmail(input: {
-  to: string;
-  givenName: string;
-  attending: boolean;
-  plusOnesCount: number;
-  event: StoredEvent;
-  links: EventLinks;
-}): MailMessage {
-  const { givenName, attending, plusOnesCount, event, links } = input;
-  const vi: EmailSection = {
-    lang: "vi",
-    greeting: `Kính gửi ${givenName},`,
-    paragraphs: [
-      attending
-        ? `Cảm ơn Quý khách đã xác nhận tham dự ${eventName(event, "vi")}${plusOnesCount > 0 ? ` cùng ${plusOnesCount} người đi cùng` : ""}.`
-        : `Cảm ơn Quý khách đã phản hồi. Chúng tôi rất tiếc vì Quý khách không thể tham dự ${eventName(event, "vi")}.`,
-    ],
-    facts: attending ? facts(event, "vi") : undefined,
-    cta: attending ? { label: "Thông tin sự kiện", href: `${links.siteUrl}/venue` } : undefined,
-    notes: ["Quý khách có thể thay đổi câu trả lời bất cứ lúc nào bằng đường dẫn trong thiệp mời."],
-    signOff: signOff(event, "vi"),
-  };
-  const en: EmailSection = {
-    lang: "en",
-    greeting: `Dear ${givenName},`,
-    paragraphs: [
-      attending
-        ? `Thank you for confirming you will attend ${eventName(event, "en")}${plusOnesCount > 0 ? ` with ${plusOnesCount} guest${plusOnesCount === 1 ? "" : "s"}` : ""}.`
-        : `Thank you for letting us know. We're sorry you can't make it to ${eventName(event, "en")}.`,
-    ],
-    facts: attending ? facts(event, "en") : undefined,
-    cta: attending ? { label: "Event details", href: `${links.siteUrl}/venue` } : undefined,
-    notes: ["You can change your answer any time from the link in your invitation."],
-    signOff: signOff(event, "en"),
-  };
-  const content: EmailContent = {
-    subject: attending
-      ? `RSVP confirmed | Đã xác nhận: ${eventName(event, "en")}`
-      : `RSVP received | Đã nhận phản hồi: ${eventName(event, "en")}`,
-    preheader: attending ? "See you there! · Hẹn gặp Quý khách!" : "Thank you for letting us know · Cảm ơn Quý khách",
-    title: eventName(event, "en"),
-    subtitle: formatWhen(event, "en"),
-    sections: [en, vi],
-    siteUrl: links.siteUrl,
-  };
-  return message(input.to, content);
-}
-
-/**
  * A graduate's join link (ADR-015), sent when they ask for it on the site, so in the site's
  * language. Unlike an invitation link it is meant to be shared: the notes say so plainly.
  */

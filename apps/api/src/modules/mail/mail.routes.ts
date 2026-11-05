@@ -23,9 +23,8 @@ export interface MailRoutesOptions {
 }
 
 /**
- * Mail module (ADR-012): GET /mail/status and POST /calendar/email. The other two
- * emails ride on existing routes: the invitation link on issue and rotate, the
- * RSVP confirmation as a worker job queued by PUT /rsvp.
+ * Mail module (ADR-012): GET /mail/status and POST /calendar/email. The invitation
+ * email rides on existing routes: issue and rotate.
  */
 export const mailRoutes: FastifyPluginAsync<MailRoutesOptions> = async (fastify, options) => {
   const service = options.service ?? new MailService();

@@ -1,0 +1,29 @@
+meta {
+  name: Invite Guest
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{apiOrigin}}/graduate/guests
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{graduateSessionToken}}
+}
+
+body:json {
+  {
+    "name": "Jane Doe",
+    "email": "jane@example.com"
+  }
+}
+
+docs {
+  `invited` means an email went; `already_invited` means this graduate
+  joined as co-inviter and no email went. Sends real email if SMTP is
+  real: use Mailpit locally.
+}

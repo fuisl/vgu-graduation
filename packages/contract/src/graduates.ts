@@ -2,7 +2,7 @@ import { z } from "zod";
 import { timestampSchema } from "./common.js";
 
 /**
- * A graduate: an inviter on invitations. Added by admins one at a time (#32, #42); graduates never sign in.
+ * A graduate: an inviter on invitations. Added by admins one at a time (#32, #42); they sign in to the portal by email only (ADR-017).
  * `joinUrl` is their guest self-registration link (ADR-015), null until one is first issued.
  * `givenName`/`familyName` follow the guest rules (#170): always sent by the API,
  * optional here only so older clients and fixtures still parse.

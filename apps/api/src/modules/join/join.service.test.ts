@@ -51,6 +51,9 @@ function mail(sendInvitation = vi.fn(async (): Promise<EmailStatus> => "sent"), 
 
 const register = { name: "Bao Tran", email: "bao@example.com" };
 
+const SIGN_IN_TOKEN = "sign-in-token-0123456";
+const issuer = () => ({ issue: vi.fn(async () => SIGN_IN_TOKEN) });
+
 describe("JoinService.register", () => {
   it("invites a new guest with the graduate as inviter and mails the invitation link", async () => {
     const s = store();
@@ -94,33 +97,65 @@ describe("JoinService.register", () => {
   });
 });
 
+describe("JoinService.inviteForGraduate", () => {
+  it("says whether an email went, and names the graduate in the audit", async () => {
+    const s = store();
+    const m = mail();
+    const service = new JoinService(s as JoinStore, m, ORIGIN);
+    expect(await service.inviteForGraduate(GRADUATE.id, register, "graduate:x")).toBe("invited");
+    expect(s.register).toHaveBeenCalledWith(expect.objectContaining({ graduateId: GRADUATE.id, actor: "graduate:x" }));
+    expect(m.sendInvitation).toHaveBeenCalledOnce();
+
+    const again = mail();
+    const existing = new JoinService(store({}, { kind: "existing", invitationId: INVITATION_ID }), again, ORIGIN);
+    expect(await existing.inviteForGraduate(GRADUATE.id, register, "graduate:x")).toBe("already_invited");
+    expect(again.sendInvitation).not.toHaveBeenCalled();
+  });
+
+  it("keeps nothing when the email fails, and refuses while mail is off", async () => {
+    const s = store();
+    const failing = new JoinService(s, mail(vi.fn(async (): Promise<EmailStatus> => "failed")), ORIGIN);
+    expect(await failing.inviteForGraduate(GRADUATE.id, register, "graduate:x")).toBe("send_failed");
+    expect(s.discard).toHaveBeenCalledWith(expect.objectContaining({ invitationId: INVITATION_ID, actor: "graduate:x" }));
+    const off = store();
+    expect(await new JoinService(off, mail(undefined, false), ORIGIN).inviteForGraduate(GRADUATE.id, register)).toBe("not_configured");
+    expect(off.register).not.toHaveBeenCalled();
+  });
+});
+
 describe("JoinService.requestLink", () => {
   it("issues a code on the first request and mails the link to the graduate's stored address", async () => {
     const s = store();
     const m = mail();
-    const service = new JoinService(s, m, ORIGIN, () => "fresh-code-1");
+    const i = issuer();
+    const service = new JoinService(s, m, ORIGIN, () => "fresh-code-1", i);
     expect(await service.requestLink({ email: "ann@example.com", locale: "vi" })).toBe("sent");
     expect(s.ensureJoinCode).toHaveBeenCalledWith(GRADUATE.id, "fresh-code-1");
+    expect(i.issue).toHaveBeenCalledWith(GRADUATE.id);
     expect(m.sendJoinLink).toHaveBeenCalledWith({
       to: "ann@example.com",
       givenName: "Ann",
       locale: "vi",
       joinUrl: "https://grad26.example.com/join/fresh-code-1",
+      dashboardUrl: `https://grad26.example.com/graduate/sign-in/${SIGN_IN_TOKEN}`,
     });
   });
 
   it("re-sends the same link when the graduate already has one", async () => {
     const s = store({ findGraduateByEmail: vi.fn(async () => ({ ...GRADUATE, email: "ann@example.com", joinCode: "kept-code-1" })) });
     const m = mail();
-    await new JoinService(s, m, ORIGIN).requestLink({ email: "ann@example.com", locale: "en" });
+    await new JoinService(s, m, ORIGIN, undefined, issuer()).requestLink({ email: "ann@example.com", locale: "en" });
     expect(s.ensureJoinCode).not.toHaveBeenCalled();
+    expect(s.rotateJoinCode).not.toHaveBeenCalled();
     expect(m.sendJoinLink).toHaveBeenCalledWith(expect.objectContaining({ joinUrl: "https://grad26.example.com/join/kept-code-1" }));
   });
 
   it("sends nothing to an address that is not a graduate", async () => {
     const m = mail();
-    expect(await new JoinService(store(), m, ORIGIN).requestLink({ email: "who@example.com", locale: "en" })).toBe("not_graduate");
+    const i = issuer();
+    expect(await new JoinService(store(), m, ORIGIN, undefined, i).requestLink({ email: "who@example.com", locale: "en" })).toBe("not_graduate");
     expect(m.sendJoinLink).not.toHaveBeenCalled();
+    expect(i.issue).not.toHaveBeenCalled();
   });
 });
 
@@ -129,15 +164,20 @@ describe("join link email", () => {
     const fake = fakeMailer();
     const service = new MailService(fake.mailer, { get: async () => EVENT }, { publicOrigin: ORIGIN, apiOrigin: "https://api.example.com" });
     const joinUrl = `${ORIGIN}/join/abc-def-123`;
-    expect(await service.sendJoinLink({ to: "ann@example.com", givenName: "Ann", locale: "en", joinUrl })).toBe("sent");
+    const dashboardUrl = `${ORIGIN}/graduate/sign-in/${SIGN_IN_TOKEN}`;
+    expect(await service.sendJoinLink({ to: "ann@example.com", givenName: "Ann", locale: "en", joinUrl, dashboardUrl })).toBe("sent");
     expect(fake.sent[0].subject).toBe("Your guest link: VGU Graduation Ceremony 2026");
     expect(fake.sent[0].text).toContain(joinUrl);
     expect(fake.sent[0].text).toContain("Anyone with this link can register as your guest");
     expect(fake.sent[0].html).toContain(joinUrl);
+    expect(fake.sent[0].text).toContain(`Open your guest dashboard: ${dashboardUrl}`);
+    expect(fake.sent[0].html).toContain(dashboardUrl);
+    expect(fake.sent[0].text).toContain("expires in 30 minutes");
 
-    await service.sendJoinLink({ to: "ann@example.com", givenName: "Ann", locale: "vi", joinUrl });
+    await service.sendJoinLink({ to: "ann@example.com", givenName: "Ann", locale: "vi", joinUrl, dashboardUrl });
     expect(fake.sent[1].subject).toContain("Lễ Tốt nghiệp VGU 2026");
     expect(fake.sent[1].text).toContain("Chào Ann");
+    expect(fake.sent[1].text).toContain(dashboardUrl);
   });
 });
 

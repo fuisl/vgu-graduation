@@ -239,10 +239,12 @@ export function joinLinkEmail(input: {
   givenName: string;
   locale: MailLocale;
   joinUrl: string;
+  /** A sign-in link for the guest dashboard (ADR-017): personal, unlike the join link. */
+  dashboardUrl: string;
   event: StoredEvent;
   siteUrl: string;
 }): MailMessage {
-  const { givenName, locale, joinUrl, event } = input;
+  const { givenName, locale, joinUrl, dashboardUrl, event } = input;
   const name = eventName(event, locale);
   const section: EmailSection =
     locale === "vi"
@@ -257,6 +259,8 @@ export function joinLinkEmail(input: {
           notes: [
             `Đường dẫn: ${joinUrl}`,
             "Bất kỳ ai có đường dẫn này đều có thể đăng ký làm khách của bạn, nên chỉ gửi cho người bạn muốn mời.",
+            `Mở trang quản lý khách mời của bạn: ${dashboardUrl}`,
+            "Đường dẫn quản lý này chỉ dành riêng cho bạn, xin đừng chia sẻ. Đường dẫn dùng được một lần và hết hạn sau 30 phút.",
             "Bạn nhận được email này vì đã yêu cầu trên trang sự kiện. Nếu không phải bạn, hãy bỏ qua email này.",
           ],
           signOff: signOff(event, locale),
@@ -272,6 +276,8 @@ export function joinLinkEmail(input: {
           notes: [
             `The link: ${joinUrl}`,
             "Anyone with this link can register as your guest, so only send it to people you want to invite.",
+            `Open your guest dashboard: ${dashboardUrl}`,
+            "The dashboard link is for you alone, so please don't share it. It works once and expires in 30 minutes.",
             "You received this because it was requested on the event site. If that wasn't you, you can ignore this email.",
           ],
           signOff: signOff(event, locale),

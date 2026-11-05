@@ -26,3 +26,4 @@ Date: YYYY-MM-DD
 - [ADR-013: Branded HTML email and RSVP from the guest's calendar](013-calendar-rsvp-email.md)
 - [ADR-014: Live gallery feed, with Postgres NOTIFY as a wake-up hint](014-live-gallery-feed.md)
 - [ADR-015: Guest self-registration through a graduate's join link](015-guest-self-registration.md)
+- [ADR-017: Graduate portal, signed in by email](017-graduate-portal.md)

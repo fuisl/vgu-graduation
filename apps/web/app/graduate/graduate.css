@@ -1,0 +1,154 @@
+/* Graduate portal (ADR-017): /graduate/dashboard. Builds on join.css. Brand tokens only; no hex, gradients, blur or shadows. */
+
+/* The working bands are all white, so a hairline tells them apart (density is the point, llm-reference.md). */
+[data-theme="brand"] .portal-main .brand-section--white + .brand-section--white {
+  border-top: 1px solid var(--brand-line);
+}
+[data-theme="brand"] .portal-heading {
+  margin: var(--space-2) 0 var(--space-4);
+  font-size: var(--brand-text-h3);
+  font-weight: 500;
+  line-height: var(--brand-leading-display);
+  letter-spacing: var(--brand-tracking-display);
+}
+[data-theme="brand"] .portal-actions {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+[data-theme="brand"] .portal-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+[data-theme="brand"] .portal-status {
+  min-height: 1.5em;
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--brand-muted);
+}
+[data-theme="brand"] .portal-status:focus { outline: none; }
+[data-theme="brand"] .portal-status--problem { color: var(--brand-danger); }
+
+/* Summary: three counts in the greeting band, one row even on a phone. */
+[data-theme="brand"] .portal-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  max-width: 40rem;
+  margin: var(--space-5) 0 0;
+}
+[data-theme="brand"] .portal-summary > div {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--brand-line);
+}
+[data-theme="brand"] .portal-summary dt {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--brand-tracking-label);
+  text-transform: uppercase;
+  color: var(--brand-muted);
+}
+[data-theme="brand"] .portal-summary dd {
+  margin: 0;
+  font-size: var(--brand-text-h2);
+  font-weight: 500;
+  line-height: var(--brand-leading-display);
+}
+
+/* Guest link */
+[data-theme="brand"] .portal-link,
+[data-theme="brand"] .portal-invite,
+[data-theme="brand"] .portal-guests {
+  display: grid;
+  gap: var(--space-4);
+}
+[data-theme="brand"] .portal-link { max-width: 40rem; }
+[data-theme="brand"] .portal-link__input {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+}
+
+/* Guests */
+[data-theme="brand"] .portal-empty {
+  display: grid;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--brand-line);
+}
+[data-theme="brand"] .portal-empty__title {
+  margin: 0;
+  font-size: var(--brand-text-h3);
+  font-weight: 500;
+}
+[data-theme="brand"] .portal-controls {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 40rem;
+}
+[data-theme="brand"] .portal-count {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--brand-muted);
+}
+[data-theme="brand"] .portal-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--brand-line);
+}
+[data-theme="brand"] .portal-guest {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--brand-line);
+}
+[data-theme="brand"] .portal-guest p { margin: 0; }
+[data-theme="brand"] .portal-guest__who,
+[data-theme="brand"] .portal-guest__answer { min-width: 0; }
+[data-theme="brand"] .portal-guest__name {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+[data-theme="brand"] .portal-guest__email,
+[data-theme="brand"] .portal-guest__date {
+  font-size: var(--text-sm);
+  color: var(--brand-muted);
+  overflow-wrap: anywhere;
+}
+[data-theme="brand"] .portal-guest__status {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--brand-tracking-label);
+  text-transform: uppercase;
+  color: var(--brand-muted);
+}
+[data-theme="brand"] .portal-guest__status--attending { color: var(--brand-success); }
+
+/* The confirmation opens in the row, spanning it. */
+[data-theme="brand"] .portal-confirm {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3) 0 var(--space-1);
+  border-top: 1px solid var(--brand-line);
+}
+[data-theme="brand"] .portal-confirm__question {
+  max-width: var(--brand-measure);
+}
+[data-theme="brand"] .portal-confirm__question--warn { color: var(--brand-danger); }
+[data-theme="brand"] .portal-confirm__question:focus { outline: none; }
+
+@media (max-width: 960px) {
+  [data-theme="brand"] .portal-guest { grid-template-columns: minmax(0, 1fr); }
+  [data-theme="brand"] .portal-guest__action { justify-self: start; }
+}

@@ -15,6 +15,7 @@ import type { EventStore } from "./modules/event/event.repository.js";
 import { createEventRoutes } from "./modules/event/event.routes.js";
 import type { GraduatesService } from "./modules/graduates/graduates.service.js";
 import { graduatesRoutes } from "./modules/graduates/graduates.routes.js";
+import { graduatePortalRoutes, type GraduatePortalRoutesOptions } from "./modules/graduate-portal/graduate-portal.routes.js";
 import { mediaRoutes, type MediaRoutesOptions } from "./modules/media/media.routes.js";
 import { liveRoutes, type LiveRoutesOptions } from "./modules/live/live.routes.js";
 import { mailRoutes, type MailRoutesOptions } from "./modules/mail/mail.routes.js";
@@ -70,6 +71,8 @@ export interface BuildServerOptions {
   mail?: Pick<MailRoutesOptions, "service" | "limiter">;
   /** Overrides for tests: the guest self-registration service and its limiters (ADR-015). */
   join?: JoinRoutesOptions;
+  /** Overrides for tests: the graduate portal's service and limiters (ADR-017). */
+  graduatePortal?: GraduatePortalRoutesOptions;
   /** Override for tests; defaults to the database- and Garage-backed service. */
   mediaService?: MediaRoutesOptions["service"];
   /** Overrides for tests: the display feed's data source and timings, and the translation module's. */
@@ -150,6 +153,7 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
   app.register(guideRoutes, { service: options.guideService });
   app.register(mailRoutes, { invitationsService: options.invitationsService, ...options.mail });
   app.register(joinRoutes, { ...options.join });
+  app.register(graduatePortalRoutes, { ...options.graduatePortal });
 
   return app;
 }

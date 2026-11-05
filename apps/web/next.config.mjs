@@ -38,6 +38,14 @@ const nextConfig = {
     return config;
   },
   ...(asciifyInstalled ? {} : { turbopack: { resolveAlias: { "asciify/*": "./vendor/asciify-stub/*" } } }),
+  // Graduate portal (ADR-017): personal pages, kept out of search whatever else renders.
+  async headers() {
+    const noindex = [{ key: "X-Robots-Tag", value: "noindex, nofollow" }];
+    return [
+      { source: "/graduate/dashboard", headers: noindex },
+      { source: "/graduate/sign-in/:path*", headers: noindex },
+    ];
+  },
   async rewrites() {
     if (!docsOrigin) return [];
 

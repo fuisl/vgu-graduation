@@ -1,0 +1,21 @@
+meta {
+  name: Remove Guest
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{apiOrigin}}/graduate/guests/{{graduateGuestId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{graduateSessionToken}}
+}
+
+docs {
+  `revoked`: this graduate was the only inviter, so the invitation's
+  link stops working. `unlinked`: the invitation is untouched. 404 for
+  someone else's guest. `graduateGuestId` is an `id` from List Guests.
+}

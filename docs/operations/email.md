@@ -1,12 +1,13 @@
 # Guest email
 
-The API sends three emails to guests from the owner's Gmail account (ADR-012). Each has a branded HTML part in the site's blue-and-white theme and a plain-text part with the same content (ADR-013):
+The API sends three emails to guests, and one to graduates, from the owner's Gmail account (ADR-012). Each has a branded HTML part in the site's blue-and-white theme and a plain-text part with the same content (ADR-013):
 
 | Email | When | Goes to | Path |
 | --- | --- | --- | --- |
 | Invitation link | An admin ticks "Email the link to the guest" when creating an invitation, or "Also email the new link" when rotating one | The guest's stored address | Sent by the API before it answers; the admin sees the result next to the link |
 | Calendar invite | A guest with an invitation uses "Get the calendar invite by email" on `/venue` | The address the guest types | Sent by the API; at most 5 per invitation per day |
 | RSVP confirmation | A guest saves an RSVP and their guest record has an address | The guest's stored address | Worker job, two minutes later; only the latest answer is confirmed |
+| Guest link and dashboard sign-in | A graduate asks on `/graduate` (ADR-015, ADR-017) | The graduate's stored address | Sent by the API after it has answered 202; at most 3 per address per day |
 
 With calendar RSVP on (`MAIL_CALENDAR_RSVP=true`, ADR-013), the invitation email is also a calendar invitation: Gmail, Outlook and Apple Mail show **Yes / Maybe / No**, and the worker reads the replies from the same inbox and records Yes and No as the guest's RSVP. See [Calendar RSVP](#calendar-rsvp) below.
 
@@ -47,6 +48,14 @@ With no SMTP credentials, nothing is sent: the admin notice says email is not se
 4. **Outcomes in the logs** (`calendar reply`, by invitation id): `applied`, `unchanged`, `maybe`, `stale` (the site answer is newer), `unauthenticated`, `wrong_attendee` (forwarded invitation, or a different address), `inactive` (revoked or expired). `calendar replies polled` counts each pass; `calendar reply poll failed` carries an error code only.
 5. **Keep replies in the inbox.** The worker reads the INBOX only, from the newest message it has seen (its position is in the `mail_cursors` table). A Gmail filter that archives "Accepted:" mail would hide replies. To re-read, `DELETE FROM mail_cursors;` makes the next pass look back 30 days; re-applying a reply changes nothing.
 6. **Turn it off:** set `MAIL_CALENDAR_RSVP` to `false` and roll both. Invitations go out as normal emails again; replies to earlier calendar invitations stay in the inbox unread by the worker.
+
+## Graduates: guest link and dashboard sign-in
+
+The email a graduate asks for on `/graduate` carries two links:
+- **Their guest link** (`/join/{code}`), the same one every time. It is meant to be shared.
+- **"Open your guest dashboard"** (`/graduate/sign-in/{token}`), new with each email. It is personal, works once and expires after 30 minutes. Opening it spends nothing, so a mail scanner can't use it up: the graduate presses a button on the page it opens. Only the token's hash is stored, but the Sent folder holds the link until it expires (ADR-017).
+
+A graduate can also invite a guest from the dashboard. That sends the normal invitation email, limited to 20 per graduate per hour and 300 per day across the portal. An address that is already invited gets no email. **An existing guest's invitation email can't be resent from the portal**, because only the token's hash is stored and resending would mean replacing the link the guest holds.
 
 ## Day to day
 

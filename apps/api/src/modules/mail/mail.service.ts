@@ -108,7 +108,7 @@ export class MailService {
   }
 
   /** A graduate's join link (ADR-015), to their stored address only, in the language of the page they asked from. */
-  async sendJoinLink(input: { to: string; givenName: string; locale: MailLocale; joinUrl: string }): Promise<EmailStatus> {
+  async sendJoinLink(input: { to: string; givenName: string; locale: MailLocale; joinUrl: string; dashboardUrl: string }): Promise<EmailStatus> {
     if (!this.mailer) return "not_configured";
     const event = await this.events.get();
     if (!event) return "failed";

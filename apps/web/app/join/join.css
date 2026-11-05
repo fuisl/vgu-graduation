@@ -30,6 +30,13 @@
   color: var(--brand-muted);
 }
 
+[data-theme="brand"] .graduate-signed-in {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
 /* The form sits on white: one column, full-width fields on a phone. */
 [data-theme="brand"] .join-form {
   display: grid;

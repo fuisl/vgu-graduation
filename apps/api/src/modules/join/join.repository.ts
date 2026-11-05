@@ -96,7 +96,8 @@ export class JoinRepository implements JoinStore {
    * Registers a guest through a graduate's join link. An address that already has an active
    * invitation is not invited twice: the graduate joins it as a co-inviter. A transaction-scoped
    * advisory lock on the address keeps two simultaneous submissions from creating two invitations.
-   * Audited with ids only.
+   * Audited with ids only. Both rows are marked as the graduate's own (ADR-017); a link an admin
+   * already added stays admin-added, so retyping the address can't make that guest removable.
    */
   async register(input: RegisterInput): Promise<RegisterResult> {
     const actor = input.actor ?? JOIN_ACTOR;
@@ -113,7 +114,7 @@ export class JoinRepository implements JoinStore {
       if (existing) {
         const added = await tx
           .insert(invitationInviters)
-          .values({ invitationId: existing.id, userId: input.graduateId })
+          .values({ invitationId: existing.id, userId: input.graduateId, addedBy: "graduate" })
           .onConflictDoNothing()
           .returning({ invitationId: invitationInviters.invitationId });
         if (added.length > 0) {
@@ -134,9 +135,9 @@ export class JoinRepository implements JoinStore {
         .returning({ id: guests.id, givenName: guests.givenName });
       const [invitation] = await tx
         .insert(invitations)
-        .values({ guestId: guest.id, tokenHash: input.tokenHash, maxPlusOnes: 0 })
+        .values({ guestId: guest.id, tokenHash: input.tokenHash, maxPlusOnes: 0, createdBy: "graduate" })
         .returning({ id: invitations.id });
-      await tx.insert(invitationInviters).values({ invitationId: invitation.id, userId: input.graduateId });
+      await tx.insert(invitationInviters).values({ invitationId: invitation.id, userId: input.graduateId, addedBy: "graduate" });
       await recordAudit(tx, {
         actor,
         action: "invitation.join_create",

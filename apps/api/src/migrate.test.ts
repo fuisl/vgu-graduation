@@ -221,6 +221,101 @@ describe("runMigrations", () => {
     }
   });
 
+  it("0012 marks as a graduate's only what the audit proves, and writes no token, code or timestamp", async (ctx) => {
+    if (!admin) return ctx.skip();
+    const name = `${scratchName}_0012`;
+    await admin.query(`CREATE DATABASE ${name}`);
+    const url = new URL(config.databaseUrl);
+    url.pathname = `/${name}`;
+    const before0012 = migrationsUpTo(12);
+    const client = new pg.Client({ connectionString: url.toString() });
+    try {
+      await runMigrations(url.toString(), before0012);
+      await client.connect();
+      const one = async (text: string, values: unknown[] = []) => (await client.query(text, values)).rows[0] as Record<string, string>;
+      const graduate = async (n: string) =>
+        (await one("INSERT INTO users (name, given_name, email, role, join_code) VALUES ($1, $1, $2, 'graduate', $3) RETURNING id", [n, `${n}@example.com`, `code-${n}`])).id;
+      const ann = await graduate("ann");
+      const bea = await graduate("bea");
+
+      /** One invitation and link in one transaction, as the real code writes them, plus its audit row. */
+      async function seed(hash: string, inviter: string, entry: { actor: string; action: string; metadata: object } | null) {
+        await client.query("BEGIN");
+        const guest = await one("INSERT INTO guests (name) VALUES ($1) RETURNING id", [`Guest ${hash}`]);
+        const invitation = await one("INSERT INTO invitations (guest_id, token_hash) VALUES ($1, $2) RETURNING id", [guest.id, hash]);
+        await client.query("INSERT INTO invitation_inviters (invitation_id, user_id) VALUES ($1, $2)", [invitation.id, inviter]);
+        if (entry) {
+          await client.query("INSERT INTO audit (actor, action, target_type, target_id, metadata) VALUES ($1, $2, 'invitation', $3, $4)", [
+            entry.actor,
+            entry.action,
+            invitation.id,
+            JSON.stringify(entry.metadata),
+          ]);
+        }
+        await client.query("COMMIT");
+        return invitation.id;
+      }
+      const adminMade = await seed("a".repeat(64), ann, { actor: "tester", action: "invitation.create", metadata: { inviterUserIds: [ann] } });
+      const joined = await seed("b".repeat(64), ann, { actor: "join-link", action: "invitation.join_create", metadata: { inviterUserId: ann } });
+      const portal = await seed("c".repeat(64), ann, { actor: `graduate:${ann}`, action: "invitation.join_create", metadata: { inviterUserId: ann } });
+      const noAudit = await seed("d".repeat(64), ann, null);
+      // An audit row with another graduate's id, or from another actor, proves nothing about this link.
+      const otherUser = await seed("e".repeat(64), ann, { actor: "join-link", action: "invitation.join_create", metadata: { inviterUserId: bea } });
+      const oddActor = await seed("f".repeat(64), ann, { actor: "tester", action: "invitation.join_create", metadata: { inviterUserId: ann } });
+
+      // A graduate who joined an admin's invitation by typing the address: their link only.
+      await client.query("BEGIN");
+      await client.query("INSERT INTO invitation_inviters (invitation_id, user_id) VALUES ($1, $2)", [adminMade, bea]);
+      await client.query("INSERT INTO audit (actor, action, target_type, target_id, metadata) VALUES ($1, 'invitation.join_add_inviter', 'invitation', $2, $3)", [
+        `graduate:${bea}`,
+        adminMade,
+        JSON.stringify({ inviterUserId: bea }),
+      ]);
+      await client.query("COMMIT");
+
+      // A link whose audit row is from an earlier time: it was added later by something else.
+      const relinked = await seed("9".repeat(64), ann, { actor: "tester", action: "invitation.create", metadata: { inviterUserIds: [ann] } });
+      await client.query("INSERT INTO audit (actor, action, target_type, target_id, metadata, created_at) VALUES ('join-link', 'invitation.join_add_inviter', 'invitation', $1, $2, now() - interval '1 day')", [
+        relinked,
+        JSON.stringify({ inviterUserId: bea }),
+      ]);
+      await client.query("INSERT INTO invitation_inviters (invitation_id, user_id) VALUES ($1, $2)", [relinked, bea]);
+
+      const protectedRows = async () => ({
+        invitations: (await client.query("SELECT id, token_hash, updated_at, status, created_at FROM invitations ORDER BY id")).rows,
+        codes: (await client.query("SELECT id, join_code FROM users WHERE role = 'graduate' ORDER BY id")).rows,
+        links: (await client.query("SELECT invitation_id, user_id, created_at FROM invitation_inviters ORDER BY 1, 2")).rows,
+      });
+      const before = await protectedRows();
+
+      await runMigrations(url.toString());
+
+      expect(await protectedRows()).toEqual(before);
+      const createdBy = async (id: string) => (await one("SELECT created_by FROM invitations WHERE id = $1", [id])).created_by;
+      const addedBy = async (id: string, user: string) => (await one("SELECT added_by FROM invitation_inviters WHERE invitation_id = $1 AND user_id = $2", [id, user])).added_by;
+      expect(await createdBy(adminMade)).toBe("admin");
+      expect(await addedBy(adminMade, ann)).toBe("admin");
+      expect(await addedBy(adminMade, bea)).toBe("graduate");
+      expect(await createdBy(joined)).toBe("graduate");
+      expect(await addedBy(joined, ann)).toBe("graduate");
+      expect(await createdBy(portal)).toBe("graduate");
+      expect(await addedBy(portal, ann)).toBe("graduate");
+      expect(await createdBy(noAudit)).toBe("admin");
+      expect(await addedBy(noAudit, ann)).toBe("admin");
+      expect(await addedBy(otherUser, ann)).toBe("admin");
+      expect(await addedBy(oddActor, ann)).toBe("admin");
+      expect(await createdBy(oddActor)).toBe("admin");
+      expect(await addedBy(relinked, bea)).toBe("admin");
+
+      // The checks are real, and a new row defaults to the safe side.
+      await expect(client.query("UPDATE invitations SET created_by = 'someone' WHERE id = $1", [noAudit])).rejects.toThrow();
+      await expect(client.query("UPDATE invitation_inviters SET added_by = 'someone' WHERE invitation_id = $1", [noAudit])).rejects.toThrow();
+    } finally {
+      await client.end().catch(() => {});
+      await admin.query(`DROP DATABASE IF EXISTS ${name} WITH (FORCE)`);
+    }
+  });
+
   it("requires a given name and defaults public flags to off", async (ctx) => {
     if (!admin) return ctx.skip();
     const columns = await query<{ table_name: string; column_name: string; is_nullable: string; column_default: string | null }>(

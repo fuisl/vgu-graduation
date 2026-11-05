@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const SESSION = "session-token-0123456789";
 const ID = "9b2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e6f";
-const LIST = { items: [{ id: ID, name: "Bao Tran", email: "bao@example.com", status: "pending", answeredAt: null, soleInviter: true }] };
+const LIST = { items: [{ id: ID, name: "Bao Tran", email: "bao@example.com", status: "pending", answeredAt: null, removal: "revoke" }] };
 
 const store = {
   get: vi.fn((name: string) => (name === "grad_portal" ? { value: SESSION } : undefined)),

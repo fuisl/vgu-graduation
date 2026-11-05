@@ -133,12 +133,12 @@ export class InvitationsRepository {
       const maxPlusOnes = dto.maxPlusOnes ?? 0;
       const [invitation] = await tx
         .insert(invitations)
-        .values({ guestId: guest.id, tokenHash, maxPlusOnes })
+        .values({ guestId: guest.id, tokenHash, maxPlusOnes, createdBy: "admin" })
         .returning({ id: invitations.id });
 
       await tx
         .insert(invitationInviters)
-        .values(inviterIds.map((userId) => ({ invitationId: invitation.id, userId })))
+        .values(inviterIds.map((userId) => ({ invitationId: invitation.id, userId, addedBy: "admin" as const })))
         .onConflictDoNothing();
 
       await recordAudit(tx, {

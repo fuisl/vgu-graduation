@@ -45,6 +45,7 @@ const unauthorized = { error: "Unauthorized", message: "Missing, invalid or expi
 const unavailable = { error: "Service Unavailable", message: "Email is not available" };
 const limited = { error: "Too Many Requests", message: "Too many requests, try again later" };
 const notFound = { error: "Not Found", message: "Guest not found" };
+const organizerAdded = { error: "Forbidden", message: "The organizers added this guest" };
 
 /**
  * The graduate portal API (ADR-017). The credential is a session token as `Authorization: Bearer`,
@@ -165,8 +166,9 @@ export const graduatePortalRoutes: FastifyPluginAsync<GraduatePortalRoutesOption
 
   /**
    * DELETE /graduate/guests/:id: takes this graduate off the guest's inviters, revoking the
-   * invitation if nobody is left (ADR-017). 404, never 403, for someone else's guest or an unknown
-   * id, so the answer doesn't confirm that an invitation exists.
+   * invitation only if nobody is left and a graduate created it (ADR-017). 403 with no change when
+   * an admin added this link: only ever this graduate's own guest, so it reveals nothing new. 404
+   * for someone else's guest or an unknown id, so the answer doesn't confirm that an invitation exists.
    */
   app.delete(
     "/graduate/guests/:id",
@@ -178,6 +180,7 @@ export const graduatePortalRoutes: FastifyPluginAsync<GraduatePortalRoutesOption
           200: graduateRemoveGuestResponseSchema,
           400: errorResponseSchema,
           401: errorResponseSchema,
+          403: errorResponseSchema,
           404: errorResponseSchema,
           429: errorResponseSchema,
         },
@@ -189,6 +192,7 @@ export const graduatePortalRoutes: FastifyPluginAsync<GraduatePortalRoutesOption
       const outcome = await service.removeGuest(graduateId, request.params.id);
       request.log.info({ graduateId, invitationId: request.params.id, graduateRemove: outcome ?? "not_found" }, "graduate remove guest");
       if (!outcome) return reply.status(404).send(notFound);
+      if (outcome === "organizer_added") return reply.status(403).send(organizerAdded);
       return reply.status(200).send({ outcome });
     },
   );

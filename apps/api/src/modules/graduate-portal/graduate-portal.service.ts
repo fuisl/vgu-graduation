@@ -16,6 +16,12 @@ import {
   type StoredPortalGuest,
 } from "./graduate-portal.repository.js";
 
+/** What removing this guest would do (ADR-017); the repository applies the same rule when it happens. */
+function removalFor(stored: StoredPortalGuest): GraduateGuest["removal"] {
+  if (stored.linkAddedBy !== "graduate") return "not_allowed";
+  return stored.soleInviter && stored.invitationCreatedBy === "graduate" ? "revoke" : "unlink";
+}
+
 function toGuest(stored: StoredPortalGuest): GraduateGuest {
   return {
     id: stored.id,
@@ -23,7 +29,7 @@ function toGuest(stored: StoredPortalGuest): GraduateGuest {
     email: stored.email,
     status: stored.attending === null ? "pending" : stored.attending ? "attending" : "declined",
     answeredAt: stored.answeredAt?.toISOString() ?? null,
-    soleInviter: stored.soleInviter,
+    removal: removalFor(stored),
   };
 }
 

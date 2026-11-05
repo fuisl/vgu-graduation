@@ -116,7 +116,7 @@ export async function inviteGraduateGuest(session: string, body: { name: string;
 }
 
 /** How removing a guest went, as the list shows it. */
-export type GraduateRemoveOutcome = "revoked" | "unlinked" | "not_found" | "signed_out" | "limited" | "failed";
+export type GraduateRemoveOutcome = "revoked" | "unlinked" | "organizer_added" | "not_found" | "signed_out" | "limited" | "failed";
 
 /** DELETE /graduate/guests/{id}. */
 export async function removeGraduateGuest(session: string, id: string): Promise<GraduateRemoveOutcome> {
@@ -135,6 +135,8 @@ export async function removeGraduateGuest(session: string, id: string): Promise<
     return parsed.success ? parsed.data.outcome : "failed";
   }
   switch (response.status) {
+    case 403:
+      return "organizer_added";
     case 400:
     case 404:
       return "not_found";

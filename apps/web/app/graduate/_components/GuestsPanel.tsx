@@ -25,7 +25,8 @@ type Notice = { tone: "ok" | "problem"; text: string };
 /**
  * The guest list (ADR-017): search and filter run here on what the server sent, so they work on a
  * bad venue network. A stacked list at every width, never a wide table. Removing a guest asks first,
- * in the row itself, and says what will happen, which depends on whether anyone else invited them.
+ * in the row itself, and says what will happen, which the API works out per guest. A guest the
+ * organizers added has no Remove, only a note saying so.
  */
 export function GuestsPanel({ intl, messages, fallback }: { intl: string; messages: MessageSlice<"graduatePortal.guests.">; fallback: ReactNode }) {
   const t = sliceTranslator(messages);
@@ -48,13 +49,20 @@ export function GuestsPanel({ intl, messages, fallback }: { intl: string; messag
     try {
       const { outcome, guests: fresh } = await removeGuest(guest.id);
       // If the re-read failed the removal still happened: take the row off what we have.
-      if (outcome !== "failed" && outcome !== "limited") setGuests(fresh ?? guests.filter((g) => g.id !== guest.id));
+      if (outcome === "organizer_added") {
+        if (fresh) setGuests(fresh);
+      } else if (outcome !== "failed" && outcome !== "limited") {
+        setGuests(fresh ?? guests.filter((g) => g.id !== guest.id));
+      }
       switch (outcome) {
         case "revoked":
           next = { tone: "ok", text: t("graduatePortal.guests.removedRevoked", { name: guest.name }) };
           break;
         case "unlinked":
           next = { tone: "ok", text: t("graduatePortal.guests.removedUnlinked", { name: guest.name }) };
+          break;
+        case "organizer_added":
+          next = { tone: "problem", text: t("graduatePortal.guests.removeRefused", { name: guest.name }) };
           break;
         case "not_found":
           next = { tone: "ok", text: t("graduatePortal.guests.removeNotFound") };
@@ -182,12 +190,14 @@ function GuestRow({
         <p className={`portal-guest__status portal-guest__status--${guest.status}`}>{t(statusKey)}</p>
         <p className="portal-guest__date">{answered}</p>
       </div>
-      {confirming ? (
+      {guest.removal === "not_allowed" ? (
+        <p className="portal-guest__date portal-guest__action">{t("graduatePortal.guests.addedByOrganizers")}</p>
+      ) : confirming ? (
         <div className="portal-confirm" role="group" aria-labelledby={`${id}-question`}>
-          <p id={`${id}-question`} ref={confirmRef} tabIndex={-1} className={`portal-confirm__question${guest.soleInviter ? " portal-confirm__question--warn" : ""}`}>
-            {guest.soleInviter
+          <p id={`${id}-question`} ref={confirmRef} tabIndex={-1} className={`portal-confirm__question${guest.removal === "revoke" ? " portal-confirm__question--warn" : ""}`}>
+            {guest.removal === "revoke"
               ? t("graduatePortal.guests.confirmSole", { name: guest.name })
-              : t("graduatePortal.guests.confirmShared", { name: guest.name })}
+              : t("graduatePortal.guests.confirmUnlink", { name: guest.name })}
           </p>
           <div className="portal-row">
             <Cta tone="on-white" variant="secondary" onClick={onRemove} disabled={removing}>

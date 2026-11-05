@@ -1,0 +1,251 @@
+/* The landing's journey band (owner brief 2026-11). Route-local, brand tokens only. Mobile-first: rows open in place. */
+[data-theme="brand"] .home > .brand-section:last-child {
+  padding-bottom: 0;
+}
+[data-theme="brand"] .journey-title {
+  margin: 0 0 var(--space-5);
+  font-size: var(--brand-text-h2);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: var(--brand-tracking-display);
+}
+/* The rows run out to the edges of the band: the stripes sit on its edge. */
+[data-theme="brand"] .journey {
+  margin-inline: calc(var(--gutter) * -1);
+}
+[data-theme="brand"] .journey-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--brand-line);
+}
+[data-theme="brand"] .journey-entry {
+  display: contents;
+}
+[data-theme="brand"] .journey-row {
+  display: grid;
+  grid-template-columns: 0.75rem 4.5rem minmax(0, 1fr);
+  align-items: stretch;
+  width: 100%;
+  min-height: 4.5rem;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--brand-line);
+  background: var(--brand-white);
+  color: var(--brand-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+[data-theme="brand"] .journey-row:hover,
+[data-theme="brand"] .journey-row[aria-expanded="true"] {
+  background: var(--brand-blue-soft);
+}
+[data-theme="brand"] .journey-row:focus-visible,
+[data-theme="brand"] .journey-flashback:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: -2px;
+}
+[data-theme="brand"] .journey-row__stripe {
+  background: var(--brand-blue-soft);
+}
+[data-theme="brand"] .journey-row[aria-expanded="true"] .journey-row__stripe {
+  background: var(--brand-blue);
+}
+[data-theme="brand"] .journey-row__thumb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 3.75rem;
+  height: 3rem;
+  /* Clear of a landscape notch, which the stripe may run under. */
+  margin: var(--space-3) 0 var(--space-3) max(var(--space-3), calc(env(safe-area-inset-left, 0px) - 0.75rem));
+  overflow: hidden;
+  border: 1px solid var(--brand-line);
+  border-radius: var(--brand-radius-sm);
+  background: var(--brand-white);
+}
+[data-theme="brand"] .journey-row__image,
+[data-theme="brand"] .journey-flashback__image {
+  object-fit: cover;
+}
+[data-theme="brand"] .journey-row__kind {
+  color: var(--brand-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--brand-tracking-label);
+  text-transform: uppercase;
+}
+[data-theme="brand"] .journey-row__file {
+  align-self: center;
+  min-width: 0;
+  padding: var(--space-3);
+  color: var(--brand-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+[data-theme="brand"] .journey-row[aria-expanded="true"] .journey-row__file {
+  color: var(--brand-ink);
+}
+[data-theme="brand"] .journey-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: var(--space-4) var(--gutter) var(--space-6);
+  border-bottom: 1px solid var(--brand-line);
+}
+[data-theme="brand"] .journey-panel[hidden],
+[data-theme="brand"] .journey-media[hidden] {
+  display: none;
+}
+/* The plate's shape is fixed, so nothing moves when a photo arrives. Whole photos: contain, never crop. */
+[data-theme="brand"] .journey-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--brand-radius-sm);
+  background: var(--brand-blue-soft);
+}
+[data-theme="brand"] .journey-media__image {
+  object-fit: contain;
+}
+[data-theme="brand"] .journey-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--brand-blue-deep);
+}
+[data-theme="brand"] .journey-plate {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: var(--space-4);
+  border: 1px solid var(--brand-line);
+  border-radius: var(--brand-radius-sm);
+  text-align: center;
+}
+[data-theme="brand"] .journey-photos {
+  display: grid;
+  gap: var(--space-4);
+}
+[data-theme="brand"] .journey-flashbacks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+[data-theme="brand"] .journey-flashback {
+  position: relative;
+  width: 4rem;
+  height: 3rem;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--brand-line);
+  border-radius: var(--brand-radius-sm);
+  background: var(--brand-white);
+  color: var(--brand-muted);
+  font: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+[data-theme="brand"] .journey-flashback:hover {
+  background: var(--brand-blue-soft);
+}
+[data-theme="brand"] .journey-flashback[aria-pressed="true"] {
+  border: 2px solid var(--brand-blue);
+  color: var(--brand-blue);
+}
+[data-theme="brand"] .journey-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+[data-theme="brand"] .journey-panel__title {
+  margin: 0;
+  font-size: var(--brand-text-h3);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+/* Phones scroll the rows themselves: no ← or Next →. */
+[data-theme="brand"] .journey-nav {
+  display: none;
+  gap: var(--space-2);
+}
+[data-theme="brand"] .journey-nav__arrow {
+  margin-left: var(--space-2);
+}
+[data-theme="brand"] .journey-panel__story {
+  margin: 0;
+  max-width: var(--brand-measure);
+  padding-top: var(--space-4);
+  border-top: 1px dashed var(--brand-line);
+  color: var(--brand-muted);
+  white-space: pre-line;
+}
+
+/* Two columns: the rows on the left, the one open panel on the right, spanning them and the filler row. */
+@media (min-width: 961px) {
+  [data-theme="brand"] .journey-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(var(--journey-count), auto) 1fr;
+  }
+  [data-theme="brand"] .journey-row {
+    grid-column: 1;
+    grid-template-columns: 1.5rem 8.25rem minmax(0, 1fr);
+    min-height: 7rem;
+  }
+  [data-theme="brand"] .journey-row__thumb {
+    width: 7.25rem;
+    height: 4.5rem;
+    margin: var(--space-4) 0 var(--space-4) var(--space-4);
+  }
+  [data-theme="brand"] .journey-row__file {
+    align-self: start;
+    padding: var(--space-4);
+    font-size: var(--text-base);
+  }
+  [data-theme="brand"] .journey-panel {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    padding: var(--space-5);
+    border-bottom: 0;
+    border-left: 1px solid var(--brand-line);
+  }
+  [data-theme="brand"] .journey-nav {
+    display: flex;
+  }
+}
+
+/* Without JavaScript the rows cannot switch anything: every entry and photo is shown, one after the other. */
+@media (scripting: none) {
+  [data-theme="brand"] .journey-list {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+  }
+  [data-theme="brand"] .journey-row,
+  [data-theme="brand"] .journey-panel {
+    grid-column: 1;
+    grid-row: auto;
+    border-left: 0;
+  }
+  [data-theme="brand"] .journey-row {
+    cursor: default;
+  }
+  [data-theme="brand"] .journey-panel[hidden] {
+    display: flex;
+  }
+  [data-theme="brand"] .journey-media[hidden] {
+    display: block;
+  }
+  [data-theme="brand"] .journey-flashbacks,
+  [data-theme="brand"] .journey-nav {
+    display: none;
+  }
+}

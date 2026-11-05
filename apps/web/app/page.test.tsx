@@ -30,7 +30,6 @@ async function render() {
 }
 
 const main = (out: string) => out.split('<main id="main"')[1]?.split("</main>")[0] ?? "";
-const entries = (out: string) => [...main(out).matchAll(/<a class="home-entry" href="([^"]+)">.*?home-entry__title">([^<]+)<\/span><span class="home-entry__description">([^<]+)</g)].map((m) => [m[1], m[2], m[3]]);
 
 describe("/", () => {
   beforeEach(() => {
@@ -38,33 +37,36 @@ describe("/", () => {
     event.mockResolvedValue(okEvent);
   });
 
-  it("says what the site is for in one headline and one sentence", async () => {
+  it("opens with one headline and one placeholder line in the owner's voice", async () => {
     const out = await render();
     expect(out.match(/<h1/g)).toHaveLength(1);
     expect(out).toContain('aria-label="Graduation ’26"');
-    expect(main(out)).toContain("Your invitation, the way to the venue, and a shared camera for the VGU Class of 2026 graduation.");
+    expect(main(out)).toContain("[Your one-line opening, in your own words.]");
   });
 
-  it("offers four entry points, invitation and venue first", async () => {
-    const out = await render();
-    expect(entries(out)).toEqual([
-      ["/me", "My invitation", "Reply, and keep your pass for the day."],
-      ["/venue", "Venue and calendar", "Friday 20 November · Ceremony Hall"],
-      ["/gallery", "Open camera", "Take photos for the shared gallery."],
-      ["/wishes", "Wishes", "Leave a few words for the graduates."],
-    ]);
+  it("labels the journey band by its heading, below the hero", async () => {
+    const out = main(await render());
+    expect(out).toMatch(/<section aria-labelledby="home-journey"[^>]*brand-section--white/);
+    expect(out).toMatch(/<h2 id="home-journey"[^>]*>the-journey\/<\/h2>/);
+    expect(out.indexOf("home-title")).toBeLessThan(out.indexOf("home-journey"));
   });
 
-  it("keeps the entry points when the API is down", async () => {
+  it("has no entry points any more", async () => {
+    const out = main(await render());
+    expect(out).not.toContain("Start here");
+    expect(out).not.toContain("home-entry");
+    for (const href of ["/me", "/venue", "/gallery", "/wishes"]) expect(out).not.toContain(`href="${href}"`);
+  });
+
+  it("keeps the whole band when the API is down", async () => {
     event.mockResolvedValue(error);
-    const out = await render();
-    expect(entries(out)).toHaveLength(4);
-    expect(main(out)).toContain("Date, directions and the campus map.");
+    const out = main(await render());
+    expect(out).toContain("the-journey/");
+    expect(out).toContain("01_the_film.mp4");
   });
 
   it("leaves the facts and teasers to the menubar and their own pages", async () => {
     const out = main(await render());
-    // No address, calendar options, countdown, photo or wish teasers on the landing.
     expect(out).not.toContain("VGU Campus, Binh Duong");
     expect(out).not.toContain("webcal");
     expect(out).not.toContain('role="timer"');
@@ -73,17 +75,17 @@ describe("/", () => {
     expect(wishes).not.toHaveBeenCalled();
   });
 
-  it("renders in Vietnamese", async () => {
+  it("renders in Vietnamese, with the same heading and filenames", async () => {
     vi.resetModules();
     vi.doMock("next/headers", () => ({
       cookies: async () => ({ get: (name: string) => (name === "lang" ? { name, value: "vi" } : undefined) }),
       headers: async () => new Headers(),
     }));
     const { default: VietnameseHome } = await import("./page");
-    const out = html(await VietnameseHome());
-    expect(main(out)).toContain("Thư mời của Quý khách");
-    expect(main(out)).toContain("Mở máy ảnh");
-    expect(main(out)).toMatch(/Thứ Sáu, 20 tháng 11 · Ceremony Hall/);
+    const out = main(html(await VietnameseHome()));
+    expect(out).toContain("the-journey/");
+    expect(out).toContain("02_[first_year].jpg");
+    expect(out).toContain("Bộ phim");
     vi.doUnmock("next/headers");
   });
 });

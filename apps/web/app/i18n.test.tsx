@@ -29,14 +29,14 @@ describe("pages in Vietnamese", () => {
 
   it("renders header, page and footer copy in Vietnamese, with VI marked current", async () => {
     const out = html(await HomePage());
-    expect(out).toContain("Bắt đầu từ đây");
+    expect(out).toContain("Phim sẽ được cập nhật sau");
     expect(out).toContain(">Máy ảnh<");
     expect(out).toContain(">Lời chúc<");
     expect(out).toContain(">Thư mời<");
     expect(out).toContain("Lễ tốt nghiệp VGU · Khóa 2026");
     expect(out).toMatch(/<button[^>]*value="vi"[^>]*lang="vi"[^>]*aria-label="VI, Tiếng Việt"[^>]*aria-current="true"/);
     expect(out).not.toMatch(/value="en"[^>]*aria-current/);
-    expect(out).not.toContain("Start here");
+    expect(out).not.toContain("Film to come");
   });
 
   it("renders the wishes composer in Vietnamese", async () => {

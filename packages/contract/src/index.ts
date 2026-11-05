@@ -1,6 +1,7 @@
 export * from "./admin.js";
 export * from "./common.js";
 export * from "./event.js";
+export * from "./graduate-portal.js";
 export * from "./graduates.js";
 export * from "./guide.js";
 export * from "./invitations.js";

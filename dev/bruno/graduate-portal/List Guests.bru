@@ -1,0 +1,19 @@
+meta {
+  name: List Guests
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{apiOrigin}}/graduate/guests
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{graduateSessionToken}}
+}
+
+docs {
+  Only guests linked to this graduate with an active invitation.
+}

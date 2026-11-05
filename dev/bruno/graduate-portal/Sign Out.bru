@@ -1,0 +1,19 @@
+meta {
+  name: Sign Out
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{apiOrigin}}/graduate/sessions/current
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{graduateSessionToken}}
+}
+
+docs {
+  Ends this session at once.
+}

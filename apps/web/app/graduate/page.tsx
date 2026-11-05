@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
-import { BrandEyebrow, BrandTheme, Section } from "@grad/ui";
+import { cookies } from "next/headers";
+import { BrandEyebrow, BrandTheme, Cta, Section } from "@grad/ui";
+import { getGraduateMe } from "../../lib/api/graduate";
 import { isMailEnabled } from "../../lib/api/mail";
+import { GRADUATE_SESSION_COOKIE } from "../../lib/graduate/cookie";
 import { pickMessages } from "../../lib/i18n/dictionary";
 import { getI18n } from "../../lib/i18n/server";
 import { JoinLinkForm } from "../join/_components/JoinLinkForm";
@@ -18,10 +21,14 @@ export const dynamic = "force-dynamic";
 /**
  * /graduate: a graduate gets their guest link by email (ADR-015). How it works in three steps on
  * blue, the one-field form on white. While mail is off the form is replaced by the organizers' note.
+ * The same request signs them in to their guest dashboard (ADR-017); someone already signed in gets
+ * a link straight there as well.
  */
 export default async function GraduatePage() {
-  const [mailEnabled, i18n] = await Promise.all([isMailEnabled(), getI18n()]);
+  const [mailEnabled, i18n, store] = await Promise.all([isMailEnabled(), getI18n(), cookies()]);
   const { t, locale } = i18n;
+  const session = store.get(GRADUATE_SESSION_COOKIE)?.value;
+  const signedIn = session ? (await getGraduateMe(session)).status === "ok" : false;
 
   return (
     <BrandTheme>
@@ -36,6 +43,12 @@ export default async function GraduatePage() {
             <li>{t("graduate.step2")}</li>
             <li>{t("graduate.step3")}</li>
           </ol>
+          {signedIn ? (
+            <div className="graduate-signed-in">
+              <p className="join-lead">{t("graduate.dashboardLead")}</p>
+              <Cta tone="on-blue" variant="secondary" href="/graduate/dashboard">{t("graduate.dashboardCta")}</Cta>
+            </div>
+          ) : null}
         </Section>
         <Section tone="white" density="compact" narrow>
           {mailEnabled ? (

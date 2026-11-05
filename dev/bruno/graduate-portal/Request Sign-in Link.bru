@@ -1,0 +1,29 @@
+meta {
+  name: Request Sign-in Link
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{apiOrigin}}/join-links/request
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "graduate@example.com",
+    "locale": "en"
+  }
+}
+
+docs {
+  Always 202. A graduate's stored address gets their join link and a
+  sign-in link. Copy the token from the emailed
+  /graduate/sign-in/{token} link into the `graduateSignInToken` secret
+  var. Use Mailpit locally, never a real mailbox.
+}

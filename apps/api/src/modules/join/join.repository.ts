@@ -22,13 +22,22 @@ export type RegisterResult =
   | { kind: "created"; invitationId: string; guestId: string; givenName: string }
   | { kind: "existing"; invitationId: string };
 
+export interface RegisterInput {
+  graduateId: string;
+  name: string;
+  email: string;
+  tokenHash: string;
+  /** Who is writing, for the audit row; the join link unless the graduate did it in the portal (ADR-017). */
+  actor?: string;
+}
+
 export interface JoinStore {
   findGraduateByCode(code: string): Promise<JoinGraduate | null>;
   findGraduateByEmail(email: string): Promise<GraduateForLink | null>;
   ensureJoinCode(graduateId: string, candidate: string): Promise<string>;
   rotateJoinCode(graduateId: string, code: string, actor: string): Promise<boolean>;
-  register(input: { graduateId: string; name: string; email: string; tokenHash: string }): Promise<RegisterResult>;
-  discard(input: { invitationId: string; guestId: string; graduateId: string }): Promise<void>;
+  register(input: RegisterInput): Promise<RegisterResult>;
+  discard(input: { invitationId: string; guestId: string; graduateId: string; actor?: string }): Promise<void>;
 }
 
 const graduateColumns = { id: users.id, name: users.name, givenName: users.givenName };
@@ -89,7 +98,8 @@ export class JoinRepository implements JoinStore {
    * advisory lock on the address keeps two simultaneous submissions from creating two invitations.
    * Audited with ids only.
    */
-  async register(input: { graduateId: string; name: string; email: string; tokenHash: string }): Promise<RegisterResult> {
+  async register(input: RegisterInput): Promise<RegisterResult> {
+    const actor = input.actor ?? JOIN_ACTOR;
     return db.transaction(async (tx) => {
       await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`join:${input.email}`}))`);
 
@@ -108,7 +118,7 @@ export class JoinRepository implements JoinStore {
           .returning({ invitationId: invitationInviters.invitationId });
         if (added.length > 0) {
           await recordAudit(tx, {
-            actor: JOIN_ACTOR,
+            actor,
             action: "invitation.join_add_inviter",
             targetType: "invitation",
             targetId: existing.id,
@@ -128,7 +138,7 @@ export class JoinRepository implements JoinStore {
         .returning({ id: invitations.id });
       await tx.insert(invitationInviters).values({ invitationId: invitation.id, userId: input.graduateId });
       await recordAudit(tx, {
-        actor: JOIN_ACTOR,
+        actor,
         action: "invitation.join_create",
         targetType: "invitation",
         targetId: invitation.id,
@@ -142,12 +152,12 @@ export class JoinRepository implements JoinStore {
    * Removes a registration whose invitation email could not be sent. The token went nowhere, so
    * nothing can use the invitation; dropping it lets the guest simply try again.
    */
-  async discard(input: { invitationId: string; guestId: string; graduateId: string }): Promise<void> {
+  async discard(input: { invitationId: string; guestId: string; graduateId: string; actor?: string }): Promise<void> {
     await db.transaction(async (tx) => {
       // Deleting the guest cascades to the invitation and its inviters.
       await tx.delete(guests).where(eq(guests.id, input.guestId));
       await recordAudit(tx, {
-        actor: JOIN_ACTOR,
+        actor: input.actor ?? JOIN_ACTOR,
         action: "invitation.join_discard",
         targetType: "invitation",
         targetId: input.invitationId,

@@ -503,3 +503,39 @@ export const mailCursors = pgTable("mail_cursors", {
   lastUid: bigint("last_uid", { mode: "number" }).notNull(),
   updatedAt: updatedAt(),
 });
+
+/**
+ * Graduate portal sign-in links (ADR-017). Only the SHA-256 hash of the 128-bit token is stored.
+ * Spent by the confirmation POST, never by opening the link, so a mail scanner can't use one up.
+ * Separate from `graduate_sessions` so one can never be presented as the other.
+ */
+export const graduateSignInTokens = pgTable(
+  "graduate_sign_in_tokens",
+  {
+    id: id(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tokenHash: varchar("token_hash", { length: 64 }).notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("idx_graduate_sign_in_tokens_user").on(t.userId)],
+);
+
+/** Graduate portal sessions (ADR-017): about 30 days, revocable, only the token's SHA-256 hash stored. */
+export const graduateSessions = pgTable(
+  "graduate_sessions",
+  {
+    id: id(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tokenHash: varchar("token_hash", { length: 64 }).notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("idx_graduate_sessions_user").on(t.userId)],
+);

@@ -77,6 +77,38 @@ const guestColumns = {
   phone: guests.phone,
 };
 
+type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * The one way an invitation is revoked, inside the caller's transaction: an admin's revoke and a
+ * graduate removing their last-invited guest (ADR-017) behave the same. Only the status changes;
+ * the token hash and the RSVP stay.
+ */
+export async function revokeInvitationInTransaction(tx: Transaction, invitationId: string, actor: string): Promise<RevokedInvitation | null> {
+  const now = new Date();
+  const [updated] = await tx
+    .update(invitations)
+    .set({ status: "revoked", revokedAt: now, updatedAt: now })
+    .where(and(eq(invitations.id, invitationId), eq(invitations.status, "active")))
+    .returning({ id: invitations.id, revokedAt: invitations.revokedAt });
+
+  if (updated) {
+    await recordAudit(tx, {
+      actor,
+      action: "invitation.revoke",
+      targetType: "invitation",
+      targetId: invitationId,
+    });
+    return { id: updated.id, revokedAt: updated.revokedAt ?? now };
+  }
+
+  const [existing] = await tx
+    .select({ id: invitations.id, revokedAt: invitations.revokedAt, updatedAt: invitations.updatedAt })
+    .from(invitations)
+    .where(and(eq(invitations.id, invitationId), eq(invitations.status, "revoked")));
+  return existing ? { id: existing.id, revokedAt: existing.revokedAt ?? existing.updatedAt } : null;
+}
+
 export class InvitationsRepository {
   async createInvitation(
     dto: CreateInvitationRequest,
@@ -183,30 +215,7 @@ export class InvitationsRepository {
 
   /** Revokes an invitation. Idempotent: an already revoked one is returned unchanged and not re-audited. */
   async revoke(invitationId: string, actor: string): Promise<RevokedInvitation | null> {
-    return db.transaction(async (tx) => {
-      const now = new Date();
-      const [updated] = await tx
-        .update(invitations)
-        .set({ status: "revoked", revokedAt: now, updatedAt: now })
-        .where(and(eq(invitations.id, invitationId), eq(invitations.status, "active")))
-        .returning({ id: invitations.id, revokedAt: invitations.revokedAt });
-
-      if (updated) {
-        await recordAudit(tx, {
-          actor,
-          action: "invitation.revoke",
-          targetType: "invitation",
-          targetId: invitationId,
-        });
-        return { id: updated.id, revokedAt: updated.revokedAt ?? now };
-      }
-
-      const [existing] = await tx
-        .select({ id: invitations.id, revokedAt: invitations.revokedAt, updatedAt: invitations.updatedAt })
-        .from(invitations)
-        .where(and(eq(invitations.id, invitationId), eq(invitations.status, "revoked")));
-      return existing ? { id: existing.id, revokedAt: existing.revokedAt ?? existing.updatedAt } : null;
-    });
+    return db.transaction((tx) => revokeInvitationInTransaction(tx, invitationId, actor));
   }
 
   /**

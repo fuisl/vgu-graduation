@@ -11,6 +11,8 @@ const EXPECTED_TABLES = [
   "admin_accounts",
   "audit",
   "event_config",
+  "graduate_sessions",
+  "graduate_sign_in_tokens",
   "guests",
   "guide_items",
   "invitation_guide_items",

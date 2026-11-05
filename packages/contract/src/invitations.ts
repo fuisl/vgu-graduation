@@ -34,6 +34,14 @@ export const rsvpSchema = z.object({
 });
 export type Rsvp = z.infer<typeof rsvpSchema>;
 
+/**
+ * The answer an invitation link can carry (ADR-016): `/invite/<token>?answer=yes`. It only
+ * pre-selects the RSVP form; a GET never saves. The values are the form's own `attending` field.
+ */
+export const INVITE_ANSWER_PARAM = "answer";
+export const INVITE_ANSWERS = ["yes", "no"] as const;
+export type InviteAnswer = (typeof INVITE_ANSWERS)[number];
+
 /** GET /invitations/me — 200 response */
 export const invitationSchema = z.object({
   id: z.string().uuid(),

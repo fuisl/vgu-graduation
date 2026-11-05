@@ -68,6 +68,54 @@ describe("MailService", () => {
     expect(message.text.indexOf("Dear An")).toBeLessThan(message.text.indexOf("Kính gửi An"));
   });
 
+  it("puts Yes and No links in both languages, in the text and the HTML, and keeps the plain link", async () => {
+    const { service, sent } = mailService();
+    await service.sendInvitation({ to: "guest@example.com", givenName: "An", inviteUrl: INVITE_URL, invitationId: INVITATION_ID, guestName: "Nguyễn An" });
+    const [message] = sent;
+    for (const expected of [
+      `Yes, I will attend:\n${INVITE_URL}?answer=yes`,
+      `No, I cannot attend:\n${INVITE_URL}?answer=no`,
+      `Có, tôi sẽ tham dự:\n${INVITE_URL}?answer=yes`,
+      `Không, tôi không thể tham dự:\n${INVITE_URL}?answer=no`,
+      `Open your invitation:\n${INVITE_URL}\n`,
+      `Mở thiệp mời:\n${INVITE_URL}\n`,
+    ]) {
+      expect(message.text).toContain(expected);
+    }
+    expect(message.html?.match(new RegExp(`href="${INVITE_URL}\\?answer=yes"`, "g"))).toHaveLength(2);
+    expect(message.html?.match(new RegExp(`href="${INVITE_URL}\\?answer=no"`, "g"))).toHaveLength(2);
+    expect(message.html?.match(new RegExp(`href="${INVITE_URL}"`, "g"))).toHaveLength(2);
+    expect(message.subject).not.toContain("answer=");
+  });
+
+  it("makes the calendar part add-only with calendar RSVP off: a PUBLISH file nobody can answer", async () => {
+    const { service, sent } = mailService();
+    await service.sendInvitation({ to: "guest@example.com", givenName: "An", inviteUrl: INVITE_URL, invitationId: INVITATION_ID, guestName: "Nguyễn An" });
+    const [message] = sent;
+    expect(message.calendarRequest).toBeUndefined();
+    expect(message.attachments).toHaveLength(1);
+    const [file] = message.attachments!;
+    expect(file).toMatchObject({ filename: "grad26.ics", contentType: "text/calendar; charset=utf-8; method=PUBLISH" });
+    expect(file.content).toContain("METHOD:PUBLISH");
+    expect(file.content).toContain("UID:event-1@grad26.example.com");
+    for (const answerable of ["METHOD:REQUEST", "ATTENDEE", "ORGANIZER", "RSVP=", "guest@example.com", "raw-token-value"]) {
+      expect(file.content).not.toContain(answerable);
+    }
+    expect(message.text).not.toContain("Yes / Maybe / No");
+    expect(message.text).toContain("The attached calendar file");
+    expect(message.text).toContain("Tệp lịch đính kèm");
+  });
+
+  it("offers the calendar feed with the file only while the time is unconfirmed", async () => {
+    const webcal = "webcal://api.grad26.example.com/event/calendar.ics";
+    const confirmed = mailService();
+    await confirmed.service.sendInvitation({ to: "guest@example.com", givenName: "An", inviteUrl: INVITE_URL, invitationId: INVITATION_ID, guestName: "Nguyễn An" });
+    expect(confirmed.sent[0].text).not.toContain(webcal);
+    const unconfirmed = mailService({ ...EVENT, timeConfirmed: false });
+    await unconfirmed.service.sendInvitation({ to: "guest@example.com", givenName: "An", inviteUrl: INVITE_URL, invitationId: INVITATION_ID, guestName: "Nguyễn An" });
+    expect(unconfirmed.sent[0].text).toContain(webcal);
+  });
+
   it("says no_address for a guest without email and failed when SMTP refuses", async () => {
     const { service, fail } = mailService();
     expect(await service.sendInvitation({ to: null, givenName: "An", inviteUrl: INVITE_URL, invitationId: INVITATION_ID, guestName: "Nguyễn An" })).toBe("no_address");

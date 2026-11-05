@@ -35,6 +35,11 @@ export interface EmailSection {
   /** Label and value rows, e.g. When / Where. */
   facts?: [string, string][];
   cta?: { label: string; href: string };
+  /**
+   * Answer buttons in place of the CTA button (ADR-016): the first is primary, the rest outlined,
+   * stacked so they fit a phone. With these, `cta` becomes a quiet text link below them.
+   */
+  answers?: { prompt: string; options: { label: string; href: string }[] };
   /** Smaller lines under the button: a privacy note, a fallback link. */
   notes?: string[];
   signOff: string[];
@@ -92,6 +97,29 @@ function button(cta: { label: string; href: string }): string {
 </a></td></tr></table>`;
 }
 
+/** The brand's secondary CTA: outlined, no arrow tile. The padding lets a long label wrap on a small phone. */
+function outlinedButton(cta: { label: string; href: string }): string {
+  const href = safeHref(cta.href);
+  if (!href) return "";
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0">
+<tr><td style="background:${BRAND.white};border:1px solid ${BRAND.blue};border-radius:4px">
+<a href="${href}" style="display:block;padding:12px 16px;text-decoration:none;color:${BRAND.blue};font-family:${SANS};font-size:16px;font-weight:500;line-height:20px">${escapeHtml(cta.label)}</a>
+</td></tr></table>`;
+}
+
+function answerButtons(answers: NonNullable<EmailSection["answers"]>): string {
+  const [first, ...rest] = answers.options;
+  return `<p style="margin:24px 0 0;font-family:${SANS};font-size:16px;line-height:1.5;color:${BRAND.ink}">${escapeHtml(answers.prompt)}</p>${
+    first ? button(first).replace("margin:24px 0 8px", "margin:16px 0 8px") : ""
+  }${rest.map(outlinedButton).join("")}`;
+}
+
+function textLink(cta: { label: string; href: string }): string {
+  const href = safeHref(cta.href);
+  if (!href) return "";
+  return `<p style="margin:16px 0;font-family:${SANS};font-size:16px;line-height:1.5"><a href="${href}" style="color:${BRAND.blue};text-decoration:underline">${escapeHtml(cta.label)}</a></p>`;
+}
+
 function section(content: EmailSection, index: number): string {
   const p = (text: string) =>
     `<p style="margin:0 0 16px;font-family:${SANS};font-size:16px;line-height:1.5;color:${BRAND.ink}">${linkify(text, BRAND.blue)}</p>`;
@@ -115,8 +143,13 @@ function section(content: EmailSection, index: number): string {
   const signOff = `<p style="margin:24px 0 0;font-family:${SANS};font-size:16px;line-height:1.5;color:${BRAND.ink}">${content.signOff
     .map((line) => linkify(line, BRAND.blue))
     .join("<br>")}</p>`;
+  const action = content.answers
+    ? answerButtons(content.answers) + (content.cta ? textLink(content.cta) : "")
+    : content.cta
+      ? button(content.cta)
+      : "";
   return `<tr><td lang="${content.lang}" style="padding:32px 32px 32px;${index > 0 ? `border-top:1px solid ${BRAND.lineOnWhite};` : ""}" class="pad">
-${label}${content.greeting ? p(content.greeting) : ""}${content.paragraphs.map(p).join("")}${facts}${content.cta ? button(content.cta) : ""}${notes}${signOff}
+${label}${content.greeting ? p(content.greeting) : ""}${content.paragraphs.map(p).join("")}${facts}${action}${notes}${signOff}
 </td></tr>`;
 }
 
@@ -174,6 +207,8 @@ export function renderText(content: EmailContent): string {
       s.greeting,
       ...s.paragraphs,
       s.facts?.map(([name, value]) => `${name}: ${value}`).join("\n"),
+      s.answers?.prompt,
+      ...(s.answers?.options ?? []).map((option) => `${option.label}:\n${option.href}`),
       s.cta ? `${s.cta.label}:\n${s.cta.href}` : undefined,
       ...(s.notes ?? []),
       s.signOff.join("\n"),

@@ -63,7 +63,9 @@ const envSchema = z.object({
   /**
    * Calendar RSVP by email (ADR-013). "true" makes the invitation email a calendar
    * request (Yes/Maybe/No in Gmail, Outlook, Apple) and lets the worker read the
-   * replies from the same mailbox over IMAP. Needs mail on; off otherwise.
+   * replies from the same mailbox over IMAP. Needs mail on; off otherwise. Off, the
+   * invitation carries an add-only calendar file and guests answer with the email's
+   * Yes / No links (ADR-016).
    */
   MAIL_CALENDAR_RSVP: z
     .enum(["true", "false", "1", "0", ""])

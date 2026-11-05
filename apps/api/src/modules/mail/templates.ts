@@ -1,7 +1,7 @@
-import type { MailLocale } from "@grad/contract";
+import { INVITE_ANSWER_PARAM, type InviteAnswer, type MailLocale } from "@grad/contract";
 import type { StoredEvent } from "../event/event.repository.js";
 import { renderHtml, renderText, type EmailContent, type EmailSection } from "./layout.js";
-import type { MailMessage } from "./mailer.js";
+import type { MailAttachment, MailMessage } from "./mailer.js";
 
 /*
  * Guest email copy (ADR-012, ADR-013). Each email is a list of language
@@ -70,11 +70,19 @@ function message(to: string, content: EmailContent, extra: Partial<MailMessage> 
   return { to, subject: content.subject, text: renderText(content), html: renderHtml(content), ...extra };
 }
 
+/** An add-only calendar file: METHOD:PUBLISH, no attendee, nothing for a mail app to answer. */
+function calendarAttachment(ics: string): MailAttachment {
+  return { filename: "grad26.ics", content: ics, contentType: "text/calendar; charset=utf-8; method=PUBLISH" };
+}
+
 /**
  * The invitation link, emailed once when an admin issues or rotates it. The link
  * is a bearer credential: it appears in the body only, never in the subject.
- * With `calendarRequest` (ADR-013) the email is also a calendar invitation the
- * guest can answer with their mail app's Yes / Maybe / No.
+ * Yes and No open the invitation with that answer pre-selected, for the guest to
+ * confirm (ADR-016): link scanners fetch every link, so opening one saves nothing.
+ * The calendar part is add-only (`calendarFile`), unless calendar RSVP is on: with
+ * `calendarRequest` (ADR-013) the email is also a calendar invitation the guest
+ * can answer with their mail app's Yes / Maybe / No.
  */
 export function invitationEmail(input: {
   to: string;
@@ -83,9 +91,15 @@ export function invitationEmail(input: {
   event: StoredEvent;
   siteUrl: string;
   calendarRequest?: string;
+  /** A METHOD:PUBLISH .ics, attached when there is no calendar request. */
+  calendarFile?: string;
+  /** The subscribable feed, offered with the file while the time is unconfirmed: the file alone won't update. */
+  webcalUrl?: string;
 }): MailMessage {
   const { givenName, inviteUrl, event } = input;
   const rsvpByCalendar = Boolean(input.calendarRequest);
+  const answerUrl = (answer: InviteAnswer) => `${inviteUrl}?${INVITE_ANSWER_PARAM}=${answer}`;
+  const subscribe = input.calendarFile && !event.timeConfirmed ? input.webcalUrl : undefined;
   const vi: EmailSection = {
     lang: "vi",
     greeting: `Kính gửi ${givenName},`,
@@ -96,10 +110,19 @@ export function invitationEmail(input: {
         : "Thiệp mời riêng của Quý khách có phần xác nhận tham dự, thêm vào lịch và chỉ đường.",
     ],
     facts: facts(event, "vi"),
+    answers: {
+      prompt: "Quý khách có tham dự không? Xin vui lòng chọn câu trả lời, sau đó xác nhận trên trang thiệp mời.",
+      options: [
+        { label: "Có, tôi sẽ tham dự", href: answerUrl("yes") },
+        { label: "Không, tôi không thể tham dự", href: answerUrl("no") },
+      ],
+    },
     cta: { label: "Mở thiệp mời", href: inviteUrl },
     notes: [
       "Đường dẫn này dành riêng cho Quý khách. Xin vui lòng không chia sẻ.",
       ...(rsvpByCalendar ? ["Câu trả lời “Có thể” chưa được tính là xác nhận tham dự."] : []),
+      ...(input.calendarFile ? ["Tệp lịch đính kèm giúp Quý khách thêm buổi lễ vào lịch."] : []),
+      ...(subscribe ? [`Để lịch tự cập nhật khi giờ được xác nhận, hãy đăng ký lịch: ${subscribe}`] : []),
     ],
     signOff: signOff(event, "vi"),
   };
@@ -113,10 +136,19 @@ export function invitationEmail(input: {
         : "Your personal invitation has your RSVP, the calendar and directions.",
     ],
     facts: facts(event, "en"),
+    answers: {
+      prompt: "Will you attend? Choose an answer, then confirm it on your invitation page.",
+      options: [
+        { label: "Yes, I will attend", href: answerUrl("yes") },
+        { label: "No, I cannot attend", href: answerUrl("no") },
+      ],
+    },
     cta: { label: "Open your invitation", href: inviteUrl },
     notes: [
       "This link is yours alone. Please don't share it.",
       ...(rsvpByCalendar ? ["“Maybe” doesn't count as an RSVP yet."] : []),
+      ...(input.calendarFile ? ["The attached calendar file adds the ceremony to your calendar."] : []),
+      ...(subscribe ? [`To have your calendar update by itself when the time is confirmed, subscribe instead: ${subscribe}`] : []),
     ],
     signOff: signOff(event, "en"),
   };
@@ -128,7 +160,8 @@ export function invitationEmail(input: {
     sections: [en, vi],
     siteUrl: input.siteUrl,
   };
-  return message(input.to, content, input.calendarRequest ? { calendarRequest: input.calendarRequest } : {});
+  if (input.calendarRequest) return message(input.to, content, { calendarRequest: input.calendarRequest });
+  return message(input.to, content, input.calendarFile ? { attachments: [calendarAttachment(input.calendarFile)] } : {});
 }
 
 /** The calendar invite a guest asks for on the venue page: the .ics plus the feed that keeps it current. */
@@ -173,9 +206,7 @@ export function calendarInviteEmail(input: {
     sections: [section],
     siteUrl: links.siteUrl,
   };
-  return message(input.to, content, {
-    attachments: [{ filename: "grad26.ics", content: input.ics, contentType: "text/calendar; charset=utf-8; method=PUBLISH" }],
-  });
+  return message(input.to, content, { attachments: [calendarAttachment(input.ics)] });
 }
 
 /**

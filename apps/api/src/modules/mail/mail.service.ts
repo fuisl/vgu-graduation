@@ -62,7 +62,8 @@ export class MailService {
 
   /**
    * The invitation link, sent the moment it is issued or rotated: the token exists nowhere else.
-   * With calendar RSVP on, it is also a calendar invitation for this guest (ADR-013).
+   * It carries an add-only calendar file (ADR-016); with calendar RSVP on, it is a calendar
+   * invitation for this guest instead (ADR-013).
    */
   async sendInvitation(input: {
     to: string | null;
@@ -94,6 +95,8 @@ export class MailService {
         event,
         siteUrl: this.links.siteUrl,
         calendarRequest,
+        calendarFile: calendarRequest ? undefined : buildIcs(event, { uidDomain: this.links.uidDomain, siteUrl: this.links.siteUrl }),
+        webcalUrl: this.links.webcalUrl,
       }),
     );
   }

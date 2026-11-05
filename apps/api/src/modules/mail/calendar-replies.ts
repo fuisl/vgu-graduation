@@ -5,9 +5,7 @@ import { config as defaultConfig, type Config } from "../../config.js";
 import { db } from "../../db/index.js";
 import { guests, invitations, mailCursors, rsvp } from "../../db/schema.js";
 import { invitationIdFromUid, parseCalendarReply, type CalendarReply } from "./calendar-rsvp.js";
-import { JobQueue } from "../../worker/queue.js";
 import { eventLinks } from "./mail.service.js";
-import { queueRsvpConfirmation } from "./rsvp-confirmation.js";
 
 /*
  * Reads calendar RSVP replies (ADR-013). The worker polls the organizer's INBOX
@@ -204,25 +202,6 @@ export interface PollLogger {
 }
 
 /**
- * The answer is already saved, so a failure here must not fail the pass: re-reading the
- * message would find it `unchanged` and never confirm anyway. The job reads the RSVP's
- * `updatedAt` as stored, like PUT /rsvp, so its "is this still the newest save?" check holds.
- */
-async function queueAppliedConfirmation(
-  invitationId: string,
-  store: Pick<CalendarReplyStore, "findInvitation">,
-  confirmations: Pick<JobQueue, "enqueue">,
-  logger: PollLogger,
-): Promise<void> {
-  try {
-    const saved = (await store.findInvitation(invitationId))?.rsvp;
-    if (saved) await queueRsvpConfirmation(confirmations, invitationId, saved.updatedAt.toISOString());
-  } catch {
-    logger.warn({ invitationId }, "calendar reply confirmation not queued");
-  }
-}
-
-/**
  * One pass over new mail: applies every calendar reply, then advances the
  * cursor past each message, so a crash re-reads at most one message (and
  * applying a reply twice changes nothing).
@@ -233,8 +212,6 @@ export async function pollCalendarReplies(deps: {
   uidDomain: string;
   authservId: string;
   logger: PollLogger;
-  /** Queues the RSVP confirmation email for an applied reply, as PUT /rsvp does. */
-  confirmations?: Pick<JobQueue, "enqueue">;
   now?: () => Date;
 }): Promise<Record<string, number>> {
   const now = deps.now ?? (() => new Date());
@@ -261,9 +238,6 @@ export async function pollCalendarReplies(deps: {
       const fields = invitationId ? { invitationId, outcome } : { outcome };
       if (REJECTED_OUTCOMES.has(outcome)) deps.logger.warn(fields, "calendar reply");
       else deps.logger.info(fields, "calendar reply");
-      if (outcome === "applied" && invitationId && deps.confirmations) {
-        await queueAppliedConfirmation(invitationId, deps.store, deps.confirmations, deps.logger);
-      }
     }
     lastUid = Math.max(lastUid, message.uid);
     await deps.store.saveCursor(MAILBOX, uidValidity, lastUid);
@@ -385,13 +359,11 @@ export async function runCalendarReplyPoller(options: {
   config?: Pick<Config, "publicOrigin" | "apiOrigin">;
   reader?: MailboxReader;
   store?: CalendarReplyStore;
-  confirmations?: Pick<JobQueue, "enqueue">;
 }): Promise<void> {
   const mail = options.mail ?? defaultConfig.mail;
   const { uidDomain } = eventLinks(options.config ?? defaultConfig);
   const reader = options.reader ?? new ImapMailboxReader(mail, options.logger);
   const store = options.store ?? new CalendarReplyRepository();
-  const confirmations = options.confirmations ?? new JobQueue(options.pool);
 
   while (!options.signal.aborted) {
     const client = await options.pool.connect().catch(() => null);
@@ -400,7 +372,7 @@ export async function runCalendarReplyPoller(options: {
         const { rows } = await client.query<{ locked: boolean }>("SELECT pg_try_advisory_lock($1) AS locked", [POLL_LOCK_KEY]);
         if (rows[0]?.locked) {
           try {
-            const counts = await pollCalendarReplies({ reader, store, uidDomain, authservId: mail.authservId, logger: options.logger, confirmations });
+            const counts = await pollCalendarReplies({ reader, store, uidDomain, authservId: mail.authservId, logger: options.logger });
             if (counts.messages) options.logger.info(counts, "calendar replies polled");
           } finally {
             await client.query("SELECT pg_advisory_unlock($1)", [POLL_LOCK_KEY]);

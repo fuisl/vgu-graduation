@@ -31,10 +31,13 @@ export interface StoredPortalGuest {
   email: string | null;
   attending: boolean | null;
   answeredAt: Date | null;
+  linkAddedBy: "admin" | "graduate";
+  invitationCreatedBy: "admin" | "graduate";
   soleInviter: boolean;
 }
 
-export type RemoveGuestOutcome = "revoked" | "unlinked";
+/** `organizer_added`: refused, nothing changed (ADR-017). */
+export type RemoveGuestOutcome = "revoked" | "unlinked" | "organizer_added";
 
 export interface GraduatePortalStore {
   issueSignInToken(input: { graduateId: string; tokenHash: string; expiresAt: Date; now: Date }): Promise<void>;
@@ -154,6 +157,8 @@ export class GraduatePortalRepository implements GraduatePortalStore {
         email: guests.email,
         attending: rsvp.attending,
         answeredAt: rsvp.updatedAt,
+        linkAddedBy: invitationInviters.addedBy,
+        invitationCreatedBy: invitations.createdBy,
         soleInviter: sql<boolean>`(
           SELECT count(*) = 1 FROM ${invitationInviters} other
           WHERE other.invitation_id = ${invitations.id}
@@ -168,18 +173,20 @@ export class GraduatePortalRepository implements GraduatePortalStore {
   }
 
   /**
-   * Takes this graduate off a guest's inviters (ADR-017). If nobody is left, revokes the invitation
-   * the way an admin would, so its link stops working; the RSVP stays. Otherwise the invitation is
-   * untouched. The token hash is never written. Null unless the guest is on this graduate's list.
+   * Takes this graduate off a guest's inviters (ADR-017). A link an admin added is refused with no
+   * change. If nobody is left and a graduate created the invitation, revokes it the way an admin
+   * would, so its link stops working; the RSVP stays. An admin-created invitation is never revoked
+   * here, even with nobody left. The token hash is never written. Null unless the guest is on this
+   * graduate's list.
    *
    * The address lock is the one registration takes (JoinRepository.register), so a simultaneous
    * join can't add a co-inviter to an invitation this is revoking; the row lock serialises two
-   * graduates removing the same guest, so the last one out always revokes.
+   * graduates removing the same guest, so the last one out of a graduate's invitation always revokes.
    */
   async removeGuest(graduateId: string, invitationId: string): Promise<RemoveGuestOutcome | null> {
     return db.transaction(async (tx) => {
       const [linked] = await tx
-        .select({ email: guests.email })
+        .select({ email: guests.email, addedBy: invitationInviters.addedBy })
         .from(invitationInviters)
         .innerJoin(invitations, eq(invitations.id, invitationInviters.invitationId))
         .innerJoin(guests, eq(guests.id, invitations.guestId))
@@ -191,12 +198,13 @@ export class GraduatePortalRepository implements GraduatePortalStore {
           ),
         );
       if (!linked) return null;
+      if (linked.addedBy !== "graduate") return "organizer_added";
 
       if (linked.email) {
         await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`join:${linked.email.toLowerCase()}`}))`);
       }
       const [current] = await tx
-        .select({ status: invitations.status })
+        .select({ status: invitations.status, createdBy: invitations.createdBy })
         .from(invitations)
         .where(eq(invitations.id, invitationId))
         .for("update");
@@ -213,7 +221,7 @@ export class GraduatePortalRepository implements GraduatePortalStore {
         .from(invitationInviters)
         .where(eq(invitationInviters.invitationId, invitationId));
       const actor = portalActor(graduateId);
-      const outcome: RemoveGuestOutcome = remaining.length === 0 ? "revoked" : "unlinked";
+      const outcome = remaining.length === 0 && current.createdBy === "graduate" ? "revoked" : "unlinked";
       await recordAudit(tx, {
         actor,
         action: "invitation.graduate_remove_inviter",

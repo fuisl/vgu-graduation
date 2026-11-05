@@ -12,9 +12,8 @@ const GuestsContext = createContext<GuestsState | null>(null);
 /**
  * The dashboard's one copy of the guest list, shared by the summary, the list and the invite form,
  * so the counts and the rows can't disagree. A write's Server Action returns the fresh list and it
- * lands here directly. Don't replace this with revalidatePath or router.refresh(): in the production
- * build those sometimes never committed the new tree, leaving the list stale until a reload
- * (ADR-017). `null` means the first read failed; the first successful write fills it in.
+ * lands here directly, which sends far less over a venue network than a refreshed page (ADR-017,
+ * ADR-018). `null` means the first read failed; the first successful write fills it in.
  */
 export function GuestsProvider({ initial, children }: { initial: GraduateGuest[] | null; children: ReactNode }) {
   const [guests, setGuests] = useState(initial);

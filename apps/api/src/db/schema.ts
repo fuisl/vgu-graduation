@@ -112,12 +112,17 @@ export const invitations = pgTable(
     validFrom: timestamp("valid_from", { withTimezone: true }),
     validUntil: timestamp("valid_until", { withTimezone: true }),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    /** Who created it (ADR-017): a graduate can never revoke one an admin created. Unknown counts as admin. */
+    createdBy: text("created_by", { enum: ["admin", "graduate"] })
+      .notNull()
+      .default("admin"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t) => [
     check("invitations_max_plus_ones_check", sql`${t.maxPlusOnes} >= 0`),
     check("invitations_status_check", sql`${t.status} IN ('active', 'revoked')`),
+    check("invitations_created_by_check", sql`${t.createdBy} IN ('admin', 'graduate')`),
     index("idx_invitations_guest_id").on(t.guestId),
   ],
 );
@@ -132,11 +137,16 @@ export const invitationInviters = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
+    /** Who added this link (ADR-017): a graduate can't remove a link an admin added. Unknown counts as admin. */
+    addedBy: text("added_by", { enum: ["admin", "graduate"] })
+      .notNull()
+      .default("admin"),
     createdAt: createdAt(),
   },
   (t) => [
     primaryKey({ columns: [t.invitationId, t.userId] }),
     index("idx_invitation_inviters_user").on(t.userId),
+    check("invitation_inviters_added_by_check", sql`${t.addedBy} IN ('admin', 'graduate')`),
   ],
 );
 

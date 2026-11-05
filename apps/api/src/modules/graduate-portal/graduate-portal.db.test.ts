@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { SignJWT } from "jose";
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -114,7 +116,7 @@ async function requestLinks(email: string): Promise<{ signIn: string; joinUrl: s
 }
 
 const bearer = (token: string) => ({ authorization: `Bearer ${token}` });
-const list = async (session: string) => (await app.inject({ method: "GET", url: "/graduate/guests", headers: bearer(session) })).json().items as { id: string; name: string; soleInviter: boolean; status: string; answeredAt: string | null }[];
+const list = async (session: string) => (await app.inject({ method: "GET", url: "/graduate/guests", headers: bearer(session) })).json().items as { id: string; name: string; removal: string; status: string; answeredAt: string | null }[];
 
 async function invite(session: string, name: string, email: string) {
   return app.inject({ method: "POST", url: "/graduate/guests", headers: bearer(session), payload: { name, email } });
@@ -228,7 +230,7 @@ describe("a graduate's guests", () => {
 
     const mine = await list(a.session);
     expect(mine.map((g) => g.name)).toEqual(["Own Guest"]);
-    expect(mine[0]).toMatchObject({ status: "pending", answeredAt: null, soleInviter: true });
+    expect(mine[0]).toMatchObject({ status: "pending", answeredAt: null, removal: "revoke" });
 
     await pool!.query("INSERT INTO rsvp (invitation_id, attending, dietary_requirements, notes) VALUES ($1, true, 'secret-diet', 'secret-note')", [mine[0].id]);
     await pool!.query("INSERT INTO rsvp_accessibility (rsvp_id, note) SELECT id, 'secret-needs' FROM rsvp WHERE invitation_id = $1", [mine[0].id]);
@@ -237,7 +239,7 @@ describe("a graduate's guests", () => {
     for (const secret of ["secret-diet", "secret-note", "secret-needs", "token", "inviters", "Graduate", "phone"]) {
       expect(body).not.toContain(secret);
     }
-    expect(res.json().items[0]).toMatchObject({ status: "attending", soleInviter: true });
+    expect(res.json().items[0]).toMatchObject({ status: "attending", removal: "revoke" });
     expect(res.json().items[0].answeredAt).toEqual(expect.any(String));
 
     await pool!.query("UPDATE rsvp SET attending = false WHERE invitation_id = $1", [mine[0].id]);
@@ -274,7 +276,7 @@ describe("a graduate's guests", () => {
     expect(await credentials()).toEqual(before);
 
     const [forB] = await list(b.session);
-    expect(forB).toMatchObject({ name: "Shared Guest", soleInviter: false });
+    expect(forB).toMatchObject({ name: "Shared Guest", removal: "unlink" });
     const body = (await app.inject({ method: "GET", url: "/graduate/guests", headers: bearer(b.session) })).body;
     expect(body).not.toContain("Graduate");
     const { rows } = await pool!.query("SELECT actor FROM audit WHERE action = 'invitation.join_add_inviter' AND target_id = $1", [forB.id]);
@@ -331,14 +333,14 @@ describe("removing a guest", () => {
     const inviteToken = /\/invite\/([\w-]+)/.exec(mailer.sent.at(-1)!.text)![1];
     await invite(b.session, "Co Guest", "co.guest@example.com");
     const [guest] = await list(a.session);
-    expect(guest.soleInviter).toBe(false);
+    expect(guest.removal).toBe("unlink");
 
     const first = await app.inject({ method: "DELETE", url: `/graduate/guests/${guest.id}`, headers: bearer(a.session) });
     expect(first.json()).toEqual({ outcome: "unlinked" });
     expect((await app.inject({ method: "GET", url: "/invitations/me", headers: bearer(inviteToken) })).statusCode).toBe(200);
     expect(await list(a.session)).toEqual([]);
     const [forB] = await list(b.session);
-    expect(forB.soleInviter).toBe(true);
+    expect(forB.removal).toBe("revoke");
 
     const second = await app.inject({ method: "DELETE", url: `/graduate/guests/${guest.id}`, headers: bearer(b.session) });
     expect(second.json()).toEqual({ outcome: "revoked" });
@@ -372,6 +374,144 @@ describe("removing a guest", () => {
     expect(newToken).not.toBe(oldToken);
     expect((await app.inject({ method: "GET", url: "/invitations/me", headers: bearer(newToken) })).statusCode).toBe(200);
     expect((await app.inject({ method: "GET", url: "/invitations/me", headers: bearer(oldToken) })).statusCode).toBe(404);
+  });
+});
+
+/** An invitation as the admin form creates it, by the real repository. Returns its id. */
+async function adminInvitation(inviterIds: string[], email: string): Promise<string> {
+  const { InvitationsRepository } = await import("../invitations/invitations.repository.js");
+  counter += 1;
+  const created = await new InvitationsRepository().createInvitation(
+    { guestName: `Organizer Guest ${counter}`, guestEmail: email, inviterUserIds: inviterIds },
+    hashToken(`admin-invitation-${counter}-${process.pid}`),
+    "tester",
+  );
+  return created.invitationId;
+}
+
+const remove = (session: string, id: string) => app.inject({ method: "DELETE", url: `/graduate/guests/${id}`, headers: bearer(session) });
+
+async function linkState(id: string) {
+  const inviters = await pool!.query("SELECT user_id, added_by FROM invitation_inviters WHERE invitation_id = $1 ORDER BY user_id", [id]);
+  const invitation = await pool!.query("SELECT status, token_hash, created_by FROM invitations WHERE id = $1", [id]);
+  const audit = await pool!.query("SELECT count(*)::int AS n FROM audit WHERE target_id = $1", [id]);
+  return { inviters: inviters.rows, invitation: invitation.rows[0], audit: audit.rows[0].n };
+}
+
+describe("who added the link decides who can remove it", () => {
+  it("refuses to remove a guest an admin added: 403, no Remove on the list, nothing changes", async (ctx) => {
+    if (!admin) return ctx.skip();
+    const a = await signedIn();
+    const id = await adminInvitation([a.id], "organizer.only@example.com");
+    const [guest] = await list(a.session);
+    expect(guest).toMatchObject({ id, removal: "not_allowed" });
+    const before = await linkState(id);
+    expect(before.inviters).toEqual([{ user_id: a.id, added_by: "admin" }]);
+    expect(before.invitation.created_by).toBe("admin");
+
+    const res = await remove(a.session, id);
+    expect(res.statusCode).toBe(403);
+    expect(await linkState(id)).toEqual(before);
+    expect(await list(a.session)).toHaveLength(1);
+  });
+
+  it("keeps an admin's link admin-added when the graduate types that address themselves", async (ctx) => {
+    if (!admin) return ctx.skip();
+    const a = await signedIn();
+    const id = await adminInvitation([a.id], "organizer.retyped@example.com");
+    expect((await invite(a.session, "Organizer Retyped", "organizer.retyped@example.com")).json()).toEqual({ status: "already_invited" });
+    expect((await linkState(id)).inviters).toEqual([{ user_id: a.id, added_by: "admin" }]);
+    expect((await remove(a.session, id)).statusCode).toBe(403);
+  });
+
+  it("lets a co-inviter of an admin's invitation leave, and never revokes it, even as the last inviter", async (ctx) => {
+    if (!admin) return ctx.skip();
+    const organizerGraduate = await signedIn();
+    const a = await signedIn();
+    const id = await adminInvitation([organizerGraduate.id], "organizer.shared@example.com");
+    await invite(a.session, "Organizer Shared", "organizer.shared@example.com");
+    const [guest] = await list(a.session);
+    expect(guest).toMatchObject({ id, removal: "unlink" });
+    expect((await remove(a.session, id)).json()).toEqual({ outcome: "unlinked" });
+    expect((await linkState(id)).invitation.status).toBe("active");
+    // The admin's graduate is still refused, and is still there.
+    expect((await remove(organizerGraduate.session, id)).statusCode).toBe(403);
+    expect((await linkState(id)).inviters).toEqual([{ user_id: organizerGraduate.id, added_by: "admin" }]);
+
+    // The last inviter of an admin's invitation: the link goes, the invitation stays active.
+    const sole = await signedIn();
+    const lastId = await adminInvitation([sole.id], "organizer.last@example.com");
+    await pool!.query("DELETE FROM invitation_inviters WHERE invitation_id = $1", [lastId]);
+    const typed = await signedIn();
+    await invite(typed.session, "Organizer Last", "organizer.last@example.com");
+    const [only] = await list(typed.session);
+    expect(only).toMatchObject({ id: lastId, removal: "unlink" });
+    const hashBefore = (await linkState(lastId)).invitation.token_hash;
+    expect((await remove(typed.session, lastId)).json()).toEqual({ outcome: "unlinked" });
+    const after = await linkState(lastId);
+    expect(after.inviters).toEqual([]);
+    expect(after.invitation).toMatchObject({ status: "active", token_hash: hashBefore, created_by: "admin" });
+    const { rows } = await pool!.query("SELECT count(*)::int AS n FROM audit WHERE action = 'invitation.revoke' AND target_id = $1", [lastId]);
+    expect(rows[0].n).toBe(0);
+  });
+
+  it("still removes a guest brought in through the join link or the invite form, as before", async (ctx) => {
+    if (!admin) return ctx.skip();
+    const a = await signedIn();
+    const code = a.joinUrl.split("/").pop()!;
+    const joined = await app.inject({ method: "POST", url: `/join/${code}`, payload: { name: "Join Guest", email: "join.guest@example.com" } });
+    expect(joined.statusCode).toBeLessThan(300);
+    await invite(a.session, "Form Guest", "form.guest@example.com");
+    const guests = await list(a.session);
+    expect(guests.map((g) => g.removal)).toEqual(["revoke", "revoke"]);
+    for (const guest of guests) {
+      expect((await linkState(guest.id)).invitation.created_by).toBe("graduate");
+      expect((await remove(a.session, guest.id)).json()).toEqual({ outcome: "revoked" });
+    }
+  });
+
+  it("keeps someone else's guest 404, an admin-added one included", async (ctx) => {
+    if (!admin) return ctx.skip();
+    const a = await signedIn();
+    const stranger = await signedIn();
+    const id = await adminInvitation([a.id], "organizer.private@example.com");
+    expect((await remove(stranger.session, id)).statusCode).toBe(404);
+  });
+
+  it("the backfill in migration 0012 recognises rows the real code writes", async (ctx) => {
+    if (!admin) return ctx.skip();
+    const a = await signedIn();
+    const b = await signedIn();
+    const code = a.joinUrl.split("/").pop()!;
+    await app.inject({ method: "POST", url: `/join/${code}`, payload: { name: "Backfill Join", email: "backfill.join@example.com" } });
+    await invite(a.session, "Backfill Form", "backfill.form@example.com");
+    const organizerId = await adminInvitation([a.id], "backfill.organizer@example.com");
+    await invite(b.session, "Backfill Organizer", "backfill.organizer@example.com");
+    const ids = (await list(a.session)).map((g) => g.id);
+    expect(ids).toHaveLength(3);
+    const snapshot = async () => {
+      const links = await pool!.query("SELECT invitation_id, user_id, added_by FROM invitation_inviters WHERE invitation_id = ANY($1) ORDER BY 1, 2", [ids]);
+      const invitations = await pool!.query("SELECT id, created_by FROM invitations WHERE id = ANY($1) ORDER BY id", [ids]);
+      return { links: links.rows, invitations: invitations.rows };
+    };
+    const written = await snapshot();
+
+    // As an existing database would look just before the migration, then its own UPDATEs.
+    await pool!.query("UPDATE invitation_inviters SET added_by = 'admin' WHERE invitation_id = ANY($1)", [ids]);
+    await pool!.query("UPDATE invitations SET created_by = 'admin' WHERE id = ANY($1)", [ids]);
+    const sql = fs.readFileSync(path.resolve(__dirname, "../../../drizzle/0012_graduate_link_origin.sql"), "utf8");
+    const updates = sql.split("--> statement-breakpoint").map((s) => s.trim()).filter((s) => s.startsWith("UPDATE"));
+    expect(updates).toHaveLength(2);
+    for (const statement of updates) await pool!.query(statement);
+
+    expect(await snapshot()).toEqual(written);
+    expect(written.invitations.find((row) => row.id === organizerId)?.created_by).toBe("admin");
+    expect(written.links.filter((row) => row.invitation_id === organizerId)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ user_id: a.id, added_by: "admin" }),
+        expect.objectContaining({ user_id: b.id, added_by: "graduate" }),
+      ]),
+    );
   });
 });
 

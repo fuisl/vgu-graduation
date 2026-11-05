@@ -45,13 +45,23 @@ export function RsvpForm({
   const statusRef = useRef<HTMLDivElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
   const submittedRef = useRef(false);
+  const savedFromLinkRef = useRef(false);
 
   // The fieldset is disabled while saving, which drops focus to <body>; once the answer is in,
   // move focus to what it says, so keyboard and screen-reader users land on it (QA P2-6).
   useEffect(() => {
     if (pending || !submittedRef.current) return;
     if (state.status === "error") errorRef.current?.focus();
-    else if (state.status === "success") statusRef.current?.focus();
+    else if (state.status === "success") {
+      statusRef.current?.focus();
+      // A reload must not bring a link's answer back over the one just saved. Only now, with the
+      // save committed: Next's replaceState is a router action that discards an action still in
+      // flight, and with it the refreshed page, leaving the old status on screen (ADR-018).
+      if (savedFromLinkRef.current) {
+        savedFromLinkRef.current = false;
+        window.history.replaceState(null, "", "/invite");
+      }
+    }
   }, [pending, state]);
 
   // Controlled inputs plus a manual submit keep every answer on screen after a failure
@@ -66,8 +76,7 @@ export function RsvpForm({
         setState(result);
         if (result.status === "success" && fromLink) {
           setFromLink(null);
-          // A reload must not bring the link's answer back over the one just saved.
-          window.history.replaceState(null, "", "/invite");
+          savedFromLinkRef.current = true;
         }
       } catch {
         setState({ status: "error", kind: "retry", message: t("rsvp.error.retry") });

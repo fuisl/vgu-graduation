@@ -94,10 +94,7 @@ describe("calendar replies (real Postgres)", () => {
       [hashToken("calendar-reply-db-test-2")],
     );
     const id = rows[0]!.id;
-    const { JobQueue } = await import("../../worker/queue.js");
     const { pollCalendarReplies } = await import("./calendar-replies.js");
-    const { RSVP_CONFIRMATION_JOB, rsvpConfirmationHandler } = await import("./rsvp-confirmation.js");
-    const queue = new JobQueue(pool!);
     const reply = [
       "BEGIN:VCALENDAR",
       "METHOD:REPLY",
@@ -123,20 +120,11 @@ describe("calendar replies (real Postgres)", () => {
       uidDomain: "grad26.example.com",
       authservId: "mx.google.com",
       logger: { info: () => {}, warn: () => {}, error: () => {} },
-      confirmations: queue,
     });
     expect(counts.applied).toBe(1);
 
-    const jobs = await pool!.query<{ payload: { invitationId: string; rsvpUpdatedAt: string }; type: string }>(
-      "SELECT type, payload FROM jobs WHERE payload->>'invitationId' = $1",
-      [id],
-    );
-    expect(jobs.rows).toHaveLength(1);
-    expect(jobs.rows[0]!.type).toBe(RSVP_CONFIRMATION_JOB);
-    expect(Object.keys(jobs.rows[0]!.payload).sort()).toEqual(["invitationId", "rsvpUpdatedAt"]);
-
-    const sendRsvpConfirmation = vi.fn(async () => "sent" as const);
-    await rsvpConfirmationHandler({ mail: { sendRsvpConfirmation } })({ payload: jobs.rows[0]!.payload } as never);
-    expect(sendRsvpConfirmation).toHaveBeenCalledWith(expect.objectContaining({ to: "binh@example.com", attending: true }));
+    // Answering sends no email, so a reply queues nothing either (ADR-012 amendment).
+    const jobs = await pool!.query("SELECT type FROM jobs WHERE payload->>'invitationId' = $1", [id]);
+    expect(jobs.rows).toEqual([]);
   });
 });

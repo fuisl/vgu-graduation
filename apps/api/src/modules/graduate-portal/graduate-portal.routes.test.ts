@@ -26,7 +26,7 @@ function setup(overrides: Partial<Service> = {}, limits: { invite?: number; dail
     signOut: vi.fn(async () => {}),
     me: vi.fn(async () => ({ graduate: { name: "Ann Nguyen", givenName: "Ann" }, joinUrl: `${config.publicOrigin}/join/code-ann-123` })),
     listGuests: vi.fn(async () => [
-      { id: INVITATION, name: GUEST_NAME, email: ADDRESS, status: "attending" as const, answeredAt: "2026-11-01T00:00:00.000Z", soleInviter: true },
+      { id: INVITATION, name: GUEST_NAME, email: ADDRESS, status: "attending" as const, answeredAt: "2026-11-01T00:00:00.000Z", removal: "revoke" as const },
     ]),
     invite: vi.fn(async (): Promise<GraduateInviteOutcome> => "invited"),
     removeGuest: vi.fn(async (_g: string, id: string) => (id === INVITATION ? ("revoked" as const) : null)),
@@ -98,7 +98,7 @@ describe("GET /graduate/guests and /graduate/me", () => {
     expect(res.statusCode).toBe(200);
     expect(res.headers["cache-control"]).toBe("no-store");
     expect(service.listGuests).toHaveBeenCalledWith(GRADUATE.id);
-    expect(Object.keys(res.json().items[0]).sort()).toEqual(["answeredAt", "email", "id", "name", "soleInviter", "status"]);
+    expect(Object.keys(res.json().items[0]).sort()).toEqual(["answeredAt", "email", "id", "name", "removal", "status"]);
     const log = lines.join("\n");
     expect(log).not.toContain(ADDRESS);
     expect(log).not.toContain(GUEST_NAME);
@@ -174,6 +174,17 @@ describe("DELETE /graduate/guests/:id", () => {
     expect((await app.inject({ method: "DELETE", url: "/graduate/guests/nope", headers })).statusCode).toBe(400);
     expect((await app.inject({ method: "DELETE", url: `/graduate/guests/${INVITATION}`, headers })).statusCode).toBe(200);
     expect((await app.inject({ method: "DELETE", url: `/graduate/guests/${INVITATION}`, headers })).statusCode).toBe(429);
+  });
+});
+
+describe("DELETE /graduate/guests/:id for a guest the organizers added", () => {
+  it("is 403 with the service's refusal, and logs ids and the outcome only", async () => {
+    const { app, lines } = setup({ removeGuest: vi.fn(async () => "organizer_added" as const) });
+    const res = await app.inject({ method: "DELETE", url: `/graduate/guests/${INVITATION}`, headers: { authorization: `Bearer ${SESSION}` } });
+    expect(res.statusCode).toBe(403);
+    expect(res.json().error).toBe("Forbidden");
+    expect(lines.join("\n")).toContain("organizer_added");
+    expect(lines.join("\n")).not.toContain(SESSION);
   });
 });
 

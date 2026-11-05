@@ -16,7 +16,7 @@ const guest = (overrides: Partial<GraduateGuest> = {}): GraduateGuest => ({
   email: "bao@example.com",
   status: "attending",
   answeredAt: "2026-11-03T04:00:00.000Z",
-  soleInviter: true,
+  removal: "revoke",
   ...overrides,
 });
 
@@ -38,7 +38,7 @@ describe("GuestsPanel", () => {
   it("shows name, email, answer and date in a list, never a table", () => {
     const page = panel([
       guest(),
-      guest({ id: "9b2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e70", name: "Chi Pham", email: null, status: "pending", answeredAt: null, soleInviter: false }),
+      guest({ id: "9b2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e70", name: "Chi Pham", email: null, status: "pending", answeredAt: null, removal: "unlink" }),
     ]);
     expect(page).toContain("<ul");
     expect(page).not.toContain("<table");
@@ -49,6 +49,17 @@ describe("GuestsPanel", () => {
     expect(page).toContain("No email on file");
     expect(page).toContain("2 guests");
     expect(page).toContain('aria-label="Remove Bao Tran"');
+  });
+
+  it("has no Remove for a guest the organizers added, only a note, in both languages", () => {
+    const row = guest({ removal: "not_allowed" });
+    const en = panel([row]);
+    expect(en).toContain("Added by the organizers");
+    expect(en).not.toContain("Remove Bao Tran");
+    const vi = panel([row], "vi");
+    expect(vi).toContain("Do ban tổ chức thêm");
+    expect(vi).not.toContain("aria-label=\"Xóa Bao Tran\"");
+    expect(panel([guest({ removal: "unlink" })])).toContain('aria-label="Remove Bao Tran"');
   });
 
   it("has search and filter, and reads in Vietnamese with full diacritics", () => {
@@ -99,10 +110,9 @@ describe("removal copy", () => {
     expect(vi_["graduatePortal.guests.confirmSole"]).toContain("đường dẫn thiệp mời của họ sẽ ngừng hoạt động");
   });
 
-  it("says a co-invited guest's invitation stays, without naming anyone", () => {
-    expect(en["graduatePortal.guests.confirmShared"]).toContain("their invitation stays active");
-    expect(en["graduatePortal.guests.confirmShared"]).toContain("Another graduate");
-    expect(vi_["graduatePortal.guests.confirmShared"]).toContain("vẫn còn hiệu lực");
+  it("says an unlinked guest's invitation stays, without naming anyone", () => {
+    expect(en["graduatePortal.guests.confirmUnlink"]).toContain("Their invitation stays active");
+    expect(vi_["graduatePortal.guests.confirmUnlink"]).toContain("vẫn còn hiệu lực");
   });
 });
 

@@ -23,3 +23,5 @@ Until now no email went to guests (decided 2026-09-29, `architecture/target/open
 - Revoking the app password in the Google account stops all email at once; the site keeps working and the forms report `failed` until the Secret is updated.
 
 **Update 2026-10-30 (owner):** the invitation and RSVP emails, and every bilingual email after them, now carry English first, then Vietnamese, with the subject, preheader and heading in English.
+## Amendment (2026-11-05): no RSVP confirmation email
+The owner decided that answering an RSVP sends no email, on any path: only critical emails go out. `PUT /rsvp` and the calendar reply path no longer queue `mail.rsvp_confirmation`, and the template is gone. The page shows the saved answer instead. Jobs already queued when this deploys finish without sending, through a no-op handler that can be removed once none is waiting. The decisions above about the confirmation job describe what was built then and no longer apply. The emails that remain are listed in `docs/operations/email.md`.

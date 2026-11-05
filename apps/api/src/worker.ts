@@ -5,7 +5,7 @@ import { JOBS_CHANNEL, PgListener } from "./db/notify.js";
 import { deriveHandler } from "./modules/media/derivatives.js";
 import { DERIVE_JOB } from "./modules/media/media.repository.js";
 import { runCalendarReplyPoller } from "./modules/mail/calendar-replies.js";
-import { RSVP_CONFIRMATION_JOB, rsvpConfirmationHandler } from "./modules/mail/rsvp-confirmation.js";
+import { RSVP_CONFIRMATION_JOB, drainRsvpConfirmation } from "./modules/mail/rsvp-confirmation.js";
 import type { PollLogger } from "./modules/mail/calendar-replies.js";
 import { JobQueue } from "./worker/queue.js";
 import { runWorker, type JobHandlers, type WorkerLogger } from "./worker/worker.js";
@@ -21,7 +21,7 @@ const SHUTDOWN_TIMEOUT_MS = 25_000;
 /** Registered as modules add job types (#72 print dispatch next). */
 const handlers: JobHandlers = {
   [DERIVE_JOB]: deriveHandler(),
-  [RSVP_CONFIRMATION_JOB]: rsvpConfirmationHandler(),
+  [RSVP_CONFIRMATION_JOB]: drainRsvpConfirmation,
 };
 
 const LEVELS = ["trace", "debug", "info", "warn", "error", "fatal"] as const;

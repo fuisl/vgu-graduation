@@ -8,7 +8,7 @@ const GUEST = {
   email: "bao@example.com",
   status: "pending",
   answeredAt: null,
-  soleInviter: true,
+  removal: "revoke",
 };
 
 function mockFetch(response: Partial<Response> & { json?: () => Promise<unknown> }) {
@@ -99,6 +99,7 @@ describe("writes", () => {
   });
 
   it.each([
+    [403, "organizer_added"],
     [404, "not_found"],
     [401, "signed_out"],
     [429, "limited"],

@@ -1,0 +1,31 @@
+diff --git a/dist/compiled/react-dom/cjs/react-dom-client.development.js b/dist/compiled/react-dom/cjs/react-dom-client.development.js
+index 4376913076151ad78dcc4059ad4152fad25478da..4995c843e0dcb901efc61832ddb0e8728bd08885 100644
+--- a/dist/compiled/react-dom/cjs/react-dom-client.development.js
++++ b/dist/compiled/react-dom/cjs/react-dom-client.development.js
+@@ -16469,8 +16469,9 @@
+           (workInProgressRootRenderLanes & 62914560) ===
+             workInProgressRootRenderLanes &&
+           now$1() - globalMostRecentFallbackTime < FALLBACK_THROTTLE_MS)
+-          ? (executionContext & RenderContext) === NoContext &&
+-            prepareFreshStack(root, 0)
++          ? (executionContext & RenderContext) === NoContext
++            ? prepareFreshStack(root, 0)
++            : (workInProgressRootPingedLanes |= pingedLanes)
+           : (workInProgressRootPingedLanes |= pingedLanes),
+         workInProgressSuspendedRetryLanes === workInProgressRootRenderLanes &&
+           (workInProgressSuspendedRetryLanes = 0));
+diff --git a/dist/compiled/react-dom/cjs/react-dom-client.production.js b/dist/compiled/react-dom/cjs/react-dom-client.production.js
+index 755076a5cf15273f024c18fdc6a8805f1e36860b..8ba86221b864cfa4b416dec9af6023219835eab9 100644
+--- a/dist/compiled/react-dom/cjs/react-dom-client.production.js
++++ b/dist/compiled/react-dom/cjs/react-dom-client.production.js
+@@ -11733,7 +11733,9 @@ function pingSuspendedRoot(root, wakeable, pingedLanes) {
+       (workInProgressRootRenderLanes & 62914560) ===
+         workInProgressRootRenderLanes &&
+       300 > now() - globalMostRecentFallbackTime)
+-      ? 0 === (executionContext & 2) && prepareFreshStack(root, 0)
++      ? 0 === (executionContext & 2)
++        ? prepareFreshStack(root, 0)
++        : (workInProgressRootPingedLanes |= pingedLanes)
+       : (workInProgressRootPingedLanes |= pingedLanes),
+     workInProgressSuspendedRetryLanes === workInProgressRootRenderLanes &&
+       (workInProgressSuspendedRetryLanes = 0));

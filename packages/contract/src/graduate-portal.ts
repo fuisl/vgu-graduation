@@ -35,9 +35,16 @@ export const graduateGuestStatusSchema = z.enum(["attending", "declined", "pendi
 export type GraduateGuestStatus = z.infer<typeof graduateGuestStatusSchema>;
 
 /**
+ * What removing a guest would do (ADR-017). `revoke`: the graduate brought this guest in and nobody
+ * else invited them, so the link stops working. `unlink`: only this graduate's link goes and the
+ * invitation stays active. `not_allowed`: the organizers added this link, so there is no removal.
+ */
+export const graduateGuestRemovalSchema = z.enum(["revoke", "unlink", "not_allowed"]);
+export type GraduateGuestRemoval = z.infer<typeof graduateGuestRemovalSchema>;
+
+/**
  * One guest on a graduate's list. Strict, and only what the dashboard shows: no accessibility needs,
- * tokens, photos, wishes or other inviters. `soleInviter` says only whether anyone else also invited
- * this guest, because removing them means something different in each case (ADR-017).
+ * tokens, photos, wishes or other inviters.
  */
 export const graduateGuestSchema = z
   .object({
@@ -48,7 +55,7 @@ export const graduateGuestSchema = z
     status: graduateGuestStatusSchema,
     /** When they last answered; null until they have. */
     answeredAt: timestampSchema.nullable(),
-    soleInviter: z.boolean(),
+    removal: graduateGuestRemovalSchema,
   })
   .strict();
 export type GraduateGuest = z.infer<typeof graduateGuestSchema>;
@@ -73,10 +80,10 @@ export const graduateInviteResponseSchema = z.object({ status: z.enum(["invited"
 export type GraduateInviteResponse = z.infer<typeof graduateInviteResponseSchema>;
 
 /**
- * DELETE /graduate/guests/{id}: 200 response. `revoked`: this graduate was the only inviter, so the
- * invitation was revoked and its link stopped working. `unlinked`: someone else also invited the
- * guest, so only this graduate left and the invitation is untouched. 404 unless the guest is on this
- * graduate's list.
+ * DELETE /graduate/guests/{id}: 200 response. `revoked`: this graduate was the last inviter of an
+ * invitation a graduate created, so it was revoked and its link stopped working. `unlinked`: only this
+ * graduate left and the invitation is untouched. 403, with no change, when an admin added this
+ * graduate's link. 404 unless the guest is on this graduate's list.
  */
 export const graduateRemoveGuestResponseSchema = z.object({ outcome: z.enum(["revoked", "unlinked"]) });
 export type GraduateRemoveGuestResponse = z.infer<typeof graduateRemoveGuestResponseSchema>;

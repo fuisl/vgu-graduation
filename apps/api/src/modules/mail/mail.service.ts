@@ -4,7 +4,7 @@ import { buildIcs } from "../event/event.ics.js";
 import { buildInviteRequest } from "./calendar-rsvp.js";
 import { EventRepository, type EventStore } from "../event/event.repository.js";
 import { createMailer, type Mailer, type MailMessage } from "./mailer.js";
-import { calendarInviteEmail, invitationEmail, joinLinkEmail, rsvpConfirmationEmail, type EventLinks } from "./templates.js";
+import { calendarInviteEmail, invitationEmail, joinLinkEmail, type EventLinks } from "./templates.js";
 
 let shared: Mailer | null | undefined;
 
@@ -15,13 +15,6 @@ function defaultMailer(): Mailer | null {
 }
 
 export type CalendarEmailResult = "sent" | "failed" | "not_configured" | "no_event";
-
-export interface RsvpConfirmationInput {
-  to: string;
-  givenName: string;
-  attending: boolean;
-  plusOnesCount: number;
-}
 
 export type MailServiceConfig = Pick<Config, "publicOrigin" | "apiOrigin"> & {
   mail?: Pick<Config["mail"], "calendarRsvp" | "user">;
@@ -116,18 +109,6 @@ export class MailService {
     const event = await this.events.get();
     if (!event) return "failed";
     return this.deliver(joinLinkEmail({ ...input, event, siteUrl: this.links.siteUrl }));
-  }
-
-  /**
-   * Used by the worker's job, which retries: unlike the others this throws on an
-   * SMTP failure, so the queue backs off and tries again.
-   */
-  async sendRsvpConfirmation(input: RsvpConfirmationInput): Promise<"sent" | "not_configured" | "no_event"> {
-    if (!this.mailer) return "not_configured";
-    const event = await this.events.get();
-    if (!event) return "no_event";
-    await this.mailer.send(rsvpConfirmationEmail({ ...input, event, links: this.links }));
-    return "sent";
   }
 
   private async deliver(message: MailMessage): Promise<"sent" | "failed"> {

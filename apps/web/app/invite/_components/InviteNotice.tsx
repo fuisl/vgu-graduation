@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { BrandEyebrow, Cta, Section } from "@grad/ui";
-import type { EventConfig } from "@grad/contract";
+import type { EventConfig, InviteAnswer } from "@grad/contract";
 import type { ApiResult } from "../../../lib/api/result";
 import type { I18n } from "../../../lib/i18n/dictionary";
+import { inviteLocation } from "../../../lib/invite/answer";
 
 export type NoticeKind = "missing" | "invalid" | "expired" | "error";
 
@@ -12,7 +13,18 @@ export type NoticeKind = "missing" | "invalid" | "expired" | "error";
  * Copy is `invite.notice.<kind>.*`. `missing` (no invitation cookie on this browser, QA P2-7)
  * points to the guest portal, which explains how to open the link.
  */
-export function InviteNotice({ kind, event, i18n }: { kind: NoticeKind; event: ApiResult<EventConfig>; i18n: I18n }) {
+export function InviteNotice({
+  kind,
+  event,
+  i18n,
+  linkAnswer = null,
+}: {
+  kind: NoticeKind;
+  event: ApiResult<EventConfig>;
+  i18n: I18n;
+  /** The answer from an email link: a retry after a temporary error keeps it. */
+  linkAnswer?: InviteAnswer | null;
+}) {
   const { t } = i18n;
   const contact = event.status === "ok" ? event.data.contact : null;
   return (
@@ -23,7 +35,7 @@ export function InviteNotice({ kind, event, i18n }: { kind: NoticeKind; event: A
         <p className="invite-lead">{t(`invite.notice.${kind}.body`)}</p>
         {kind === "error" ? (
           <p className="invite-lead">
-            <Link className="invite-link invite-link--on-blue" href="/invite" prefetch={false}>{t("common.tryAgain")}</Link>
+            <Link className="invite-link invite-link--on-blue" href={inviteLocation(linkAnswer)} prefetch={false}>{t("common.tryAgain")}</Link>
           </p>
         ) : null}
         {kind === "missing" ? (

@@ -1,11 +1,12 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import type { GraduateGuest } from "@grad/contract";
 import {
   createGraduateSession,
   endGraduateSession,
+  getGraduateGuests,
   getGraduateMe,
   inviteGraduateGuest,
   removeGraduateGuest,
@@ -25,6 +26,9 @@ import {
  * Next checks the request's Origin against its host before running an action, and the session
  * cookie is SameSite=Lax, which is how this app protects cookie-authenticated writes. The session
  * is read here and sent on as a Bearer header; it never reaches client code. Nothing is logged.
+ *
+ * A write returns the fresh guest list, for GuestsProvider, rather than calling revalidatePath:
+ * see the note there.
  */
 
 const DASHBOARD = "/graduate/dashboard";
@@ -66,26 +70,32 @@ export async function signOutGraduate(): Promise<void> {
   redirect(SIGNED_OUT_HOME);
 }
 
+/** The list after a write; null if that read failed, so the caller keeps what it has. */
+async function freshGuests(session: string): Promise<GraduateGuest[] | null> {
+  const guests = await getGraduateGuests(session);
+  return guests.status === "ok" ? guests.data.items : null;
+}
+
 const tooLong = (value: unknown, max: number) => typeof value !== "string" || value.trim().length === 0 || value.length > max;
 
 /** A graduate invites a guest. The API knows who from the session: no join code from the browser. */
-export async function inviteGuest(name: string, email: string): Promise<GraduateInviteOutcome> {
-  if (tooLong(name, 120) || tooLong(email, 254)) return "invalid";
+export async function inviteGuest(name: string, email: string): Promise<{ outcome: GraduateInviteOutcome; guests: GraduateGuest[] | null }> {
+  if (tooLong(name, 120) || tooLong(email, 254)) return { outcome: "invalid", guests: null };
   const session = (await cookies()).get(GRADUATE_SESSION_COOKIE)?.value;
   if (!session) redirect(SIGNED_OUT_HOME);
   const outcome = await inviteGraduateGuest(session, { name: name.trim(), email: email.trim() });
   if (outcome === "signed_out") redirect(SIGNED_OUT_HOME);
-  if (outcome === "invited" || outcome === "already_invited") revalidatePath(DASHBOARD);
-  return outcome;
+  const changed = outcome === "invited" || outcome === "already_invited";
+  return { outcome, guests: changed ? await freshGuests(session) : null };
 }
 
 /** A graduate removes a guest from their list; the API decides whether the invitation is revoked. */
-export async function removeGuest(id: string): Promise<GraduateRemoveOutcome> {
-  if (typeof id !== "string" || !UUID.test(id)) return "not_found";
+export async function removeGuest(id: string): Promise<{ outcome: GraduateRemoveOutcome; guests: GraduateGuest[] | null }> {
+  if (typeof id !== "string" || !UUID.test(id)) return { outcome: "not_found", guests: null };
   const session = (await cookies()).get(GRADUATE_SESSION_COOKIE)?.value;
   if (!session) redirect(SIGNED_OUT_HOME);
   const outcome = await removeGraduateGuest(session, id);
   if (outcome === "signed_out") redirect(SIGNED_OUT_HOME);
-  if (outcome !== "failed" && outcome !== "limited") revalidatePath(DASHBOARD);
-  return outcome;
+  const changed = outcome !== "failed" && outcome !== "limited";
+  return { outcome, guests: changed ? await freshGuests(session) : null };
 }

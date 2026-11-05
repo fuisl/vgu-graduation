@@ -3,6 +3,7 @@ import { renderToStaticMarkup as html } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { pickMessages } from "../../lib/i18n/dictionary";
 import { GuestLinkPanel } from "./_components/GuestLinkPanel";
+import { GuestSummary, GuestsProvider } from "./_components/GuestsProvider";
 import { GuestsPanel } from "./_components/GuestsPanel";
 import { InviteForm } from "./_components/InviteForm";
 
@@ -20,7 +21,11 @@ const guest = (overrides: Partial<GraduateGuest> = {}): GraduateGuest => ({
 });
 
 const panel = (guests: GraduateGuest[], locale: "en" | "vi" = "en") =>
-  html(<GuestsPanel guests={guests} intl={locale === "en" ? "en-GB" : "vi-VN"} messages={pickMessages(locale, "graduatePortal.guests.")} />);
+  html(
+    <GuestsProvider initial={guests}>
+      <GuestsPanel intl={locale === "en" ? "en-GB" : "vi-VN"} messages={pickMessages(locale, "graduatePortal.guests.")} fallback={<p>list failed</p>} />
+    </GuestsProvider>,
+  );
 
 describe("GuestsPanel", () => {
   it("explains how to share the link when there are no guests, with no empty controls", () => {
@@ -55,6 +60,36 @@ describe("GuestsPanel", () => {
   });
 });
 
+describe("when the guest list failed to load", () => {
+  const degraded = html(
+    <GuestsProvider initial={null}>
+      <GuestSummary messages={pickMessages("en", "graduatePortal.summary.")} />
+      <GuestsPanel intl="en-GB" messages={pickMessages("en", "graduatePortal.guests.")} fallback={<p>list failed</p>} />
+      <InviteForm messages={pickMessages("en", "graduatePortal.invite.")} />
+    </GuestsProvider>,
+  );
+
+  it("shows the section's error and no counts, and the invite form still works", () => {
+    expect(degraded).toContain("list failed");
+    expect(degraded).not.toContain("portal-summary");
+    expect(degraded).not.toContain("No guests yet");
+    expect(degraded).toContain("Send invitation");
+  });
+});
+
+describe("GuestSummary", () => {
+  it("counts from the same list the panel shows", () => {
+    const page = html(
+      <GuestsProvider initial={[guest(), guest({ status: "pending", answeredAt: null })]}>
+        <GuestSummary messages={pickMessages("en", "graduatePortal.summary.")} />
+      </GuestsProvider>,
+    );
+    expect(page).toContain("<dt>Attending</dt><dd>1</dd>");
+    expect(page).toContain("<dt>Declined</dt><dd>0</dd>");
+    expect(page).toContain("<dt>Not answered yet</dt><dd>1</dd>");
+  });
+});
+
 describe("removal copy", () => {
   const en = pickMessages("en", "graduatePortal.guests.");
   const vi_ = pickMessages("vi", "graduatePortal.guests.");
@@ -83,7 +118,11 @@ describe("GuestLinkPanel", () => {
 
 describe("InviteForm", () => {
   it("asks for a name and email, sends no code, and says an invitation goes only once", () => {
-    const page = html(<InviteForm messages={pickMessages("en", "graduatePortal.invite.")} />);
+    const page = html(
+      <GuestsProvider initial={[]}>
+        <InviteForm messages={pickMessages("en", "graduatePortal.invite.")} />
+      </GuestsProvider>,
+    );
     expect(page).toContain('name="name"');
     expect(page).toContain('name="email"');
     expect(page).not.toContain("code");

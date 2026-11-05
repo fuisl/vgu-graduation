@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import type { GraduateGuest } from "@grad/contract";
 import { Cta, PillGroup, PillToggle } from "@grad/ui";
 import { filterGuests, type GuestFilter } from "../../../lib/graduate/guests";
 import { sliceTranslator, type MessageSlice } from "../../../lib/i18n/format";
 import { removeGuest } from "../actions";
+import { useGuests } from "./GuestsProvider";
 
 /** The event's time zone, so an answered date reads the same on the server and every phone. */
 const DATE_TIME_ZONE = "Asia/Ho_Chi_Minh";
@@ -26,48 +27,54 @@ type Notice = { tone: "ok" | "problem"; text: string };
  * bad venue network. A stacked list at every width, never a wide table. Removing a guest asks first,
  * in the row itself, and says what will happen, which depends on whether anyone else invited them.
  */
-export function GuestsPanel({ guests, intl, messages }: { guests: GraduateGuest[]; intl: string; messages: MessageSlice<"graduatePortal.guests."> }) {
+export function GuestsPanel({ intl, messages, fallback }: { intl: string; messages: MessageSlice<"graduatePortal.guests.">; fallback: ReactNode }) {
   const t = sliceTranslator(messages);
+  const { guests: loaded, setGuests } = useGuests();
+  const guests = useMemo(() => loaded ?? [], [loaded]);
   const id = useId();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<GuestFilter>("all");
   const [confirming, setConfirming] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
-  const [removing, startRemoving] = useTransition();
+  const [removing, setRemoving] = useState(false);
   const noticeRef = useRef<HTMLParagraphElement>(null);
 
   const dates = useMemo(() => new Intl.DateTimeFormat(intl, { day: "numeric", month: "short", year: "numeric", timeZone: DATE_TIME_ZONE }), [intl]);
   const shown = useMemo(() => filterGuests(guests, query, filter), [guests, query, filter]);
 
-  function remove(guest: GraduateGuest) {
-    startRemoving(async () => {
-      let next: Notice;
-      try {
-        const outcome = await removeGuest(guest.id);
-        switch (outcome) {
-          case "revoked":
-            next = { tone: "ok", text: t("graduatePortal.guests.removedRevoked", { name: guest.name }) };
-            break;
-          case "unlinked":
-            next = { tone: "ok", text: t("graduatePortal.guests.removedUnlinked", { name: guest.name }) };
-            break;
-          case "not_found":
-            next = { tone: "ok", text: t("graduatePortal.guests.removeNotFound") };
-            break;
-          case "limited":
-            next = { tone: "problem", text: t("graduatePortal.guests.removeLimited") };
-            break;
-          default:
-            next = { tone: "problem", text: t("graduatePortal.guests.removeFailed") };
-        }
-      } catch {
-        next = { tone: "problem", text: t("graduatePortal.guests.removeFailed") };
+  async function remove(guest: GraduateGuest) {
+    setRemoving(true);
+    let next: Notice;
+    try {
+      const { outcome, guests: fresh } = await removeGuest(guest.id);
+      // If the re-read failed the removal still happened: take the row off what we have.
+      if (outcome !== "failed" && outcome !== "limited") setGuests(fresh ?? guests.filter((g) => g.id !== guest.id));
+      switch (outcome) {
+        case "revoked":
+          next = { tone: "ok", text: t("graduatePortal.guests.removedRevoked", { name: guest.name }) };
+          break;
+        case "unlinked":
+          next = { tone: "ok", text: t("graduatePortal.guests.removedUnlinked", { name: guest.name }) };
+          break;
+        case "not_found":
+          next = { tone: "ok", text: t("graduatePortal.guests.removeNotFound") };
+          break;
+        case "limited":
+          next = { tone: "problem", text: t("graduatePortal.guests.removeLimited") };
+          break;
+        default:
+          next = { tone: "problem", text: t("graduatePortal.guests.removeFailed") };
       }
-      setNotice(next);
-      setConfirming(null);
-      noticeRef.current?.focus();
-    });
+    } catch {
+      next = { tone: "problem", text: t("graduatePortal.guests.removeFailed") };
+    }
+    setRemoving(false);
+    setNotice(next);
+    setConfirming(null);
+    noticeRef.current?.focus();
   }
+
+  if (!loaded) return <>{fallback}</>;
 
   return (
     <div className="portal-guests">
@@ -120,7 +127,7 @@ export function GuestsPanel({ guests, intl, messages }: { guests: GraduateGuest[
                   removing={removing && confirming === guest.id}
                   onAsk={() => setConfirming(guest.id)}
                   onKeep={() => setConfirming(null)}
-                  onRemove={() => remove(guest)}
+                  onRemove={() => void remove(guest)}
                   t={t}
                 />
               ))}

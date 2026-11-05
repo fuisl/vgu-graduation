@@ -1,10 +1,11 @@
 "use client";
 
-import { useId, useState, useTransition, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import { Cta, PaperPlanePixel } from "@grad/ui";
 import type { GraduateInviteOutcome } from "../../../lib/api/graduate";
 import { sliceTranslator, type MessageSlice } from "../../../lib/i18n/format";
 import { inviteGuest } from "../actions";
+import { useGuests } from "./GuestsProvider";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -14,15 +15,15 @@ type Status = { kind: "idle" } | { kind: "sending" } | { kind: Exclude<GraduateI
  * Invites one guest (ADR-017): the same path as the join form, with the graduate known from the
  * session. Unlike the public form it says whether an email went, because an invitation can't be
  * sent twice: an address that already has one only joins this graduate's list. The list above
- * refreshes with the action's response. The email stays in the status line until the next edit.
+ * gets the fresh list back with the answer. The email stays in the status line until the next edit.
  */
 export function InviteForm({ messages }: { messages: MessageSlice<"graduatePortal.invite."> }) {
   const t = sliceTranslator(messages);
+  const { setGuests } = useGuests();
   const id = useId();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<Status>({ kind: "idle" });
-  const [, startTransition] = useTransition();
   const sending = status.kind === "sending";
 
   function clearStatus() {
@@ -39,20 +40,23 @@ export function InviteForm({ messages }: { messages: MessageSlice<"graduatePorta
       return;
     }
     setStatus({ kind: "sending" });
-    startTransition(async () => {
-      try {
-        const outcome = await inviteGuest(typedName, typedEmail);
-        // A lost session redirects inside the action; this is only here for the types.
-        if (outcome === "signed_out") return;
-        setStatus({ kind: outcome, email: typedEmail });
-        if (outcome === "invited" || outcome === "already_invited") {
-          setName("");
-          setEmail("");
-        }
-      } catch {
-        setStatus({ kind: "failed" });
+    void send(typedName, typedEmail);
+  }
+
+  async function send(typedName: string, typedEmail: string) {
+    try {
+      const { outcome, guests } = await inviteGuest(typedName, typedEmail);
+      // A lost session redirects inside the action; this is only here for the types.
+      if (outcome === "signed_out") return;
+      setStatus({ kind: outcome, email: typedEmail });
+      if (outcome === "invited" || outcome === "already_invited") {
+        setName("");
+        setEmail("");
+        if (guests) setGuests(guests);
       }
-    });
+    } catch {
+      setStatus({ kind: "failed" });
+    }
   }
 
   function message(): string | null {

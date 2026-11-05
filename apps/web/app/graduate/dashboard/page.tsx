@@ -5,13 +5,13 @@ import { BrandEyebrow, BrandTheme, Cta, Section } from "@grad/ui";
 import { getGraduateGuests, getGraduateMe } from "../../../lib/api/graduate";
 import { isMailEnabled } from "../../../lib/api/mail";
 import { GRADUATE_SESSION_COOKIE } from "../../../lib/graduate/cookie";
-import { summarizeGuests } from "../../../lib/graduate/guests";
 import { pickMessages } from "../../../lib/i18n/dictionary";
 import { getI18n } from "../../../lib/i18n/server";
 import { SiteFooter } from "../../site/SiteFooter";
 import { SiteHeader } from "../../site/SiteHeader";
 import { signOutGraduate } from "../actions";
 import { GuestLinkPanel } from "../_components/GuestLinkPanel";
+import { GuestSummary, GuestsProvider } from "../_components/GuestsProvider";
 import { GuestsPanel } from "../_components/GuestsPanel";
 import { InviteForm } from "../_components/InviteForm";
 import "../../join/join.css";
@@ -39,34 +39,19 @@ export default async function GraduateDashboardPage() {
   if (me.status === "unauthorized" || guests.status === "unauthorized") redirect("/graduate");
 
   const { t, locale, intl } = i18n;
-  const summary = guests.status === "ok" ? summarizeGuests(guests.data.items) : null;
 
   return (
     <BrandTheme>
       <SiteHeader i18n={i18n} />
       <main id="main" className="join-main portal-main">
+        <GuestsProvider initial={guests.status === "ok" ? guests.data.items : null}>
         <Section tone="blue" density="compact" aria-labelledby="portal-heading">
           <BrandEyebrow>{t("graduatePortal.eyebrow")}</BrandEyebrow>
           <h1 id="portal-heading" className="join-title">
             {me.status === "ok" ? t("graduatePortal.greeting", { name: me.data.graduate.givenName }) : t("graduatePortal.greetingGeneric")}
           </h1>
           <p className="join-lead">{t("graduatePortal.lead")}</p>
-          {summary ? (
-            <dl className="portal-summary" aria-label={t("graduatePortal.summary.label")}>
-              <div>
-                <dt>{t("graduatePortal.summary.attending")}</dt>
-                <dd>{summary.attending}</dd>
-              </div>
-              <div>
-                <dt>{t("graduatePortal.summary.declined")}</dt>
-                <dd>{summary.declined}</dd>
-              </div>
-              <div>
-                <dt>{t("graduatePortal.summary.pending")}</dt>
-                <dd>{summary.pending}</dd>
-              </div>
-            </dl>
-          ) : null}
+          <GuestSummary messages={pickMessages(locale, "graduatePortal.summary.")} />
           <form action={signOutGraduate} className="portal-actions">
             <Cta tone="on-blue" variant="secondary" type="submit">{t("graduatePortal.signOut")}</Cta>
           </form>
@@ -85,11 +70,11 @@ export default async function GraduateDashboardPage() {
         <Section tone="white" density="compact" id="guests" aria-labelledby="portal-guests-heading">
           <BrandEyebrow>{t("graduatePortal.guests.eyebrow")}</BrandEyebrow>
           <h2 id="portal-guests-heading" className="portal-heading">{t("graduatePortal.guests.title")}</h2>
-          {guests.status === "ok" ? (
-            <GuestsPanel guests={guests.data.items} intl={intl} messages={pickMessages(locale, "graduatePortal.guests.")} />
-          ) : (
-            <SectionError message={t("graduatePortal.guests.error")} retry={t("common.tryAgain")} />
-          )}
+          <GuestsPanel
+            intl={intl}
+            messages={pickMessages(locale, "graduatePortal.guests.")}
+            fallback={<SectionError message={t("graduatePortal.guests.error")} retry={t("common.tryAgain")} />}
+          />
         </Section>
 
         <Section tone="white" density="compact" id="invite" aria-labelledby="portal-invite-heading">
@@ -101,6 +86,7 @@ export default async function GraduateDashboardPage() {
             <p className="join-text" role="status">{t("graduatePortal.invite.unavailable")}</p>
           )}
         </Section>
+        </GuestsProvider>
       </main>
       <SiteFooter i18n={i18n} />
     </BrandTheme>

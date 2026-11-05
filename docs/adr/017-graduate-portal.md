@@ -28,6 +28,8 @@ A scanner that follows the link only sets a cookie in its own jar. A scanner tha
 
 **The dashboard** is `/graduate/dashboard`: no-store, noindex (metadata and `X-Robots-Tag`), `Referrer-Policy` no-referrer. Summary counts come from the same list it shows. A failed read degrades that section only.
 
+**A write returns the fresh list.** The invite and remove actions return the guest list with their answer, and a small client provider holds it for the summary and the list. `revalidatePath` and `router.refresh()` were tried first: in the production build the refreshed tree was sometimes never committed (the response carried the new guest, the page didn't change, a reload fixed it). The cause wasn't found; `inlineCss`, the time since page load and the async `startTransition` wrapper were each tested and ruled out.
+
 **Privacy.** A graduate reaches guests only through their own `invitation_inviters` rows. Someone else's guest is 404, including on remove. The list carries the invitation id, name, email, status, answered date and `soleInviter`, against a strict contract schema. It has no accessibility needs, dietary needs, notes, plus-ones, tokens, photos, wishes or other inviters. `soleInviter` reveals that another inviter exists, never who: the removal confirmation needs it. Only invitations with status `active` are listed.
 
 **Inviting** reuses `JoinService` registration with the graduate taken from the session: a new address gets an invitation by email, an already-invited address gets this graduate as co-inviter and no email, and a failed send keeps nothing. Unlike the public join form, the answer says which happened (`invited` or `already_invited`), because the graduate must know whether an email went, and the guest appears on their list either way.

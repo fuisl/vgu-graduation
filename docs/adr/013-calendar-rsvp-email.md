@@ -1,5 +1,6 @@
 # ADR-013: Branded HTML email and RSVP from the guest's calendar
 Status: Accepted
+Amended 2026-11-05 by ADR-016: Guests answer with Yes / No links in the email, and the calendar RSVP below is off by default. It stays available behind `MAIL_CALENDAR_RSVP`.
 Date: 2026-10-19
 ## Context
 ADR-012 added three plain-text guest emails from the owner's Gmail. The owner then asked for two things: emails in the site's blue-and-white theme and font, and a way to RSVP from the email itself, in Gmail or any other mail app. On 2026-09-29 calendar RSVP buttons were ruled out, because calendar apps can only send their answer back by email and nothing read email then. Now the API sends from a real mailbox it can also read.
@@ -18,7 +19,7 @@ Two ways to RSVP from an email were weighed: buttons in the email that open the 
   Yes sets `attending: true` and keeps plus-ones; No sets `attending: false` and clears them. Other RSVP fields, including accessibility needs, are untouched. Maybe changes nothing. A reply older than the RSVP already saved on the site loses. Applying a reply twice is a no-op.
 - **Privacy.** Nothing about a mailbox message is stored or logged. The cursor holds two numbers, logs carry invitation ids, outcome counts and error codes, and imapflow's logger is off.
 ## Alternatives considered
-- Buttons in the email that open the invitation with the answer filled in: works in every client, needs no inbox access and keeps plus-ones. Not chosen by the owner. It remains the fallback inside the email ("Open your invitation").
+- Buttons in the email that open the invitation with the answer filled in: works in every client, needs no inbox access and keeps plus-ones. Not chosen by the owner at the time. It remains the fallback inside the email ("Open your invitation"), and is the default since ADR-016.
 - One-click links that RSVP directly: link scanners (Outlook Safe Links, corporate gateways) open every link, so they would answer for the guest. Rejected.
 - Gmail's own actions (schema.org `RsvpAction`, AMP for Email): require sender registration with Google and don't work in other clients. Rejected.
 - Parsing free-text replies ("yes, two of us"): unreliable in two languages. Rejected.

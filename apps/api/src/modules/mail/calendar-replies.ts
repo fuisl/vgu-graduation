@@ -5,14 +5,17 @@ import { config as defaultConfig, type Config } from "../../config.js";
 import { db } from "../../db/index.js";
 import { guests, invitations, mailCursors, rsvp } from "../../db/schema.js";
 import { invitationIdFromUid, parseCalendarReply, type CalendarReply } from "./calendar-rsvp.js";
+import { JobQueue } from "../../worker/queue.js";
 import { eventLinks } from "./mail.service.js";
+import { queueRsvpConfirmation } from "./rsvp-confirmation.js";
 
 /*
  * Reads calendar RSVP replies (ADR-013). The worker polls the organizer's INBOX
  * read-only (EXAMINE: no flag or message changes), looks only at messages newer
  * than its cursor, downloads only their text/calendar parts, and turns a valid
  * REPLY into an RSVP. Nothing about a message (sender, subject, body) is stored
- * or logged: only counts and invitation ids.
+ * or logged: only counts and invitation ids. Dormant unless MAIL_CALENDAR_RSVP
+ * is on, which is no longer the default path for guests (ADR-016).
  */
 
 const MAILBOX = "INBOX";
@@ -191,9 +194,32 @@ export async function applyCalendarReply(
   return { outcome: "applied", invitationId };
 }
 
+/** Replies that were turned away. They log at warn, so they show at production's default level. */
+const REJECTED_OUTCOMES: ReadonlySet<ReplyOutcome> = new Set(["not_ours", "unauthenticated", "wrong_attendee", "inactive"]);
+
 export interface PollLogger {
   info(fields: Record<string, unknown>, message: string): void;
+  warn(fields: Record<string, unknown>, message: string): void;
   error(fields: Record<string, unknown>, message: string): void;
+}
+
+/**
+ * The answer is already saved, so a failure here must not fail the pass: re-reading the
+ * message would find it `unchanged` and never confirm anyway. The job reads the RSVP's
+ * `updatedAt` as stored, like PUT /rsvp, so its "is this still the newest save?" check holds.
+ */
+async function queueAppliedConfirmation(
+  invitationId: string,
+  store: Pick<CalendarReplyStore, "findInvitation">,
+  confirmations: Pick<JobQueue, "enqueue">,
+  logger: PollLogger,
+): Promise<void> {
+  try {
+    const saved = (await store.findInvitation(invitationId))?.rsvp;
+    if (saved) await queueRsvpConfirmation(confirmations, invitationId, saved.updatedAt.toISOString());
+  } catch {
+    logger.warn({ invitationId }, "calendar reply confirmation not queued");
+  }
 }
 
 /**
@@ -207,6 +233,8 @@ export async function pollCalendarReplies(deps: {
   uidDomain: string;
   authservId: string;
   logger: PollLogger;
+  /** Queues the RSVP confirmation email for an applied reply, as PUT /rsvp does. */
+  confirmations?: Pick<JobQueue, "enqueue">;
   now?: () => Date;
 }): Promise<Record<string, number>> {
   const now = deps.now ?? (() => new Date());
@@ -230,7 +258,12 @@ export async function pollCalendarReplies(deps: {
         now: now(),
       });
       counts[outcome] = (counts[outcome] ?? 0) + 1;
-      if (invitationId && outcome !== "not_ours") deps.logger.info({ invitationId, outcome }, "calendar reply");
+      const fields = invitationId ? { invitationId, outcome } : { outcome };
+      if (REJECTED_OUTCOMES.has(outcome)) deps.logger.warn(fields, "calendar reply");
+      else deps.logger.info(fields, "calendar reply");
+      if (outcome === "applied" && invitationId && deps.confirmations) {
+        await queueAppliedConfirmation(invitationId, deps.store, deps.confirmations, deps.logger);
+      }
     }
     lastUid = Math.max(lastUid, message.uid);
     await deps.store.saveCursor(MAILBOX, uidValidity, lastUid);
@@ -258,9 +291,18 @@ export function firstAuthenticationResults(headers: Buffer | undefined): string 
   return match ? match[1]!.trim() : null;
 }
 
+/** An IMAP error reduced to a code: a server's message can quote addresses. */
+function imapErrorCode(error: unknown): string {
+  const fields = (error as { code?: unknown; authenticationFailed?: unknown } | null) ?? {};
+  return typeof fields.code === "string" ? fields.code : fields.authenticationFailed ? "AUTHENTICATIONFAILED" : "POLL_FAILED";
+}
+
 /** The IMAP mailbox reader: Gmail by default, read-only, TLS on 993. */
 export class ImapMailboxReader implements MailboxReader {
-  constructor(private readonly mail: Config["mail"] = defaultConfig.mail) {}
+  constructor(
+    private readonly mail: Config["mail"] = defaultConfig.mail,
+    private readonly logger?: Pick<PollLogger, "warn">,
+  ) {}
 
   async read(cursor: { uidValidity: number; lastUid: number } | null, since: Date) {
     const client = new ImapFlow({
@@ -270,6 +312,11 @@ export class ImapMailboxReader implements MailboxReader {
       auth: { user: this.mail.user!, pass: this.mail.password! },
       // imapflow's logger prints commands and envelopes (addresses): keep it off.
       logger: false,
+    });
+    // ImapFlow is an EventEmitter: an unheard "error" (a dropped socket) would throw and crash the
+    // worker. The call in progress still rejects, and the poller retries on its next round.
+    client.on("error", (error: unknown) => {
+      this.logger?.warn({ error: imapErrorCode(error) }, "calendar reply mailbox connection error");
     });
     await client.connect();
     try {
@@ -338,11 +385,13 @@ export async function runCalendarReplyPoller(options: {
   config?: Pick<Config, "publicOrigin" | "apiOrigin">;
   reader?: MailboxReader;
   store?: CalendarReplyStore;
+  confirmations?: Pick<JobQueue, "enqueue">;
 }): Promise<void> {
   const mail = options.mail ?? defaultConfig.mail;
   const { uidDomain } = eventLinks(options.config ?? defaultConfig);
-  const reader = options.reader ?? new ImapMailboxReader(mail);
+  const reader = options.reader ?? new ImapMailboxReader(mail, options.logger);
   const store = options.store ?? new CalendarReplyRepository();
+  const confirmations = options.confirmations ?? new JobQueue(options.pool);
 
   while (!options.signal.aborted) {
     const client = await options.pool.connect().catch(() => null);
@@ -351,18 +400,14 @@ export async function runCalendarReplyPoller(options: {
         const { rows } = await client.query<{ locked: boolean }>("SELECT pg_try_advisory_lock($1) AS locked", [POLL_LOCK_KEY]);
         if (rows[0]?.locked) {
           try {
-            const counts = await pollCalendarReplies({ reader, store, uidDomain, authservId: mail.authservId, logger: options.logger });
+            const counts = await pollCalendarReplies({ reader, store, uidDomain, authservId: mail.authservId, logger: options.logger, confirmations });
             if (counts.messages) options.logger.info(counts, "calendar replies polled");
           } finally {
             await client.query("SELECT pg_advisory_unlock($1)", [POLL_LOCK_KEY]);
           }
         }
       } catch (error) {
-        const code = (error as { code?: unknown; authenticationFailed?: unknown } | null) ?? {};
-        options.logger.error(
-          { error: typeof code.code === "string" ? code.code : code.authenticationFailed ? "AUTHENTICATIONFAILED" : "POLL_FAILED" },
-          "calendar reply poll failed",
-        );
+        options.logger.error({ error: imapErrorCode(error) }, "calendar reply poll failed");
       } finally {
         client.release();
       }

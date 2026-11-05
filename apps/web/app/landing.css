@@ -1,5 +1,5 @@
 /* Landing (#148, owner brief 2026-10). Route-local, brand tokens only. Sculpture and decode internals live beside their components. */
-/* Hero fills the viewport, including the 72px it runs up behind the overlaid header; the sculpture takes the leftover height. The entry points start below the fold. */
+/* Hero fills the viewport, including the 72px it runs up behind the overlaid header; the sculpture takes the leftover height. The journey starts below the fold. */
 [data-theme="brand"] .home > .brand-section:first-child {
   /* Less padding under the hero text than a normal band, so it sits near the bottom edge. */
   padding-bottom: clamp(var(--space-5), 3vw, var(--space-7));
@@ -60,68 +60,8 @@
   font-size: var(--brand-text-lead);
   line-height: 1.4;
 }
-/* Entry points: large rows (title, one line, arrow) between hairlines, like the guest profile's quick links. */
-[data-theme="brand"] .home-entries {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: var(--space-6);
-  margin: var(--space-4) 0 0;
-  padding: 0;
-  list-style: none;
-}
-[data-theme="brand"] .home-entries li {
-  border-bottom: 1px solid var(--brand-line);
-}
-[data-theme="brand"] .home-entries li:nth-child(-n + 2) {
-  border-top: 1px solid var(--brand-line);
-}
-[data-theme="brand"] .home-entry {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  min-height: var(--brand-tap);
-  padding: var(--space-4) var(--space-2);
-  color: var(--brand-fg);
-  text-decoration: none;
-  transition: background-color var(--motion-fast) var(--ease);
-}
-[data-theme="brand"] .home-entry:hover {
-  background: var(--brand-blue-soft);
-}
-[data-theme="brand"] .home-entry:hover .brand-arrow {
-  transform: translate(1px, -1px);
-}
-[data-theme="brand"] .home-entry:focus-visible {
-  outline: 2px solid var(--brand-blue);
-  outline-offset: 2px;
-}
-[data-theme="brand"] .home-entry__text {
-  display: grid;
-  gap: var(--space-1);
-  min-width: 0;
-}
-[data-theme="brand"] .home-entry__title {
-  font-size: var(--brand-text-h3);
-  font-weight: 500;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-}
-[data-theme="brand"] .home-entry__description {
-  color: var(--brand-muted);
-  overflow-wrap: anywhere;
-}
-[data-theme="brand"] .home-entry__arrow {
-  flex: none;
-  color: var(--brand-blue);
-}
 @media (max-width: 960px) {
-  [data-theme="brand"] .home-entries { grid-template-columns: minmax(0, 1fr); }
-  [data-theme="brand"] .home-entries li:nth-child(2) { border-top: 0; }
   [data-theme="brand"] .home-visual { max-height: none; }
   [data-theme="brand"] .home-stage { min-height: 160px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  [data-theme="brand"] .home-entry { transition: none; }
 }
 [data-theme="brand"] .home { overflow-x: clip; }

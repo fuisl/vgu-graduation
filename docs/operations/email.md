@@ -1,6 +1,6 @@
 # Guest email
 
-The API sends three emails to guests, and one to graduates, from the owner's Gmail account (ADR-012). Each has a branded HTML part in the site's blue-and-white theme and a plain-text part with the same content (ADR-013):
+The API sends the guest emails, and one to graduates, from the owner's Gmail account (ADR-012). Each has a branded HTML part in the site's blue-and-white theme and a plain-text part with the same content (ADR-013):
 
 | Email | When | Goes to | Path |
 | --- | --- | --- | --- |
@@ -9,7 +9,9 @@ The API sends three emails to guests, and one to graduates, from the owner's Gma
 | RSVP confirmation | A guest saves an RSVP and their guest record has an address | The guest's stored address | Worker job, two minutes later; only the latest answer is confirmed |
 | Guest link and dashboard sign-in | A graduate asks on `/graduate` (ADR-015, ADR-017) | The graduate's stored address | Sent by the API after it has answered 202; at most 3 per address per day |
 
-With calendar RSVP on (`MAIL_CALENDAR_RSVP=true`, ADR-013), the invitation email is also a calendar invitation: Gmail, Outlook and Apple Mail show **Yes / Maybe / No**, and the worker reads the replies from the same inbox and records Yes and No as the guest's RSVP. See [Calendar RSVP](#calendar-rsvp) below.
+The invitation email has **Yes** and **No** links (ADR-016). Each opens the guest's invitation with that answer pre-selected, and nothing is saved until the guest presses **Confirm answer**. Mail link scanners open every link, so opening one must never save an RSVP. "Open your invitation" is still there, and links in emails already sent keep working. See [Yes and No in the email](#yes-and-no-in-the-email) below.
+
+By default the invitation also attaches an add-only calendar file (`METHOD:PUBLISH`, the same file as the venue page's email), so guests get the event on their calendar with no Yes / Maybe / No buttons. Calendar RSVP (`MAIL_CALENDAR_RSVP=true`, ADR-013) replaces that file with a calendar invitation whose replies the worker reads, and it is off by default: on 2026-11-05 no replies were reaching the inbox. See [Calendar RSVP](#calendar-rsvp) below.
 
 With no SMTP credentials, nothing is sent: the admin notice says email is not set up, the venue form is hidden and RSVPs queue nothing. The rest of the site works the same.
 
@@ -40,14 +42,24 @@ With no SMTP credentials, nothing is sent: the admin notice says email is not se
 4. **Merge and let Flux apply.** The `api-service` and `worker` Deployments already list `api-mail` as an optional `envFrom`, and `allow-mail-egress` opens port 587 for both. Flux restarts nothing by itself when a Secret changes, so roll both: `kubectl -n grad rollout restart deployment/api-service deployment/worker`.
 5. **Check:** `curl -s https://api.grad26.fuisloy.dev/mail/status` returns `{"enabled":true}` (the response is cached for up to a minute). Then create a test invitation for yourself with "Email the link to the guest" ticked; the notice should say "Emailed to the guest".
 
+## Yes and No in the email
+
+1. **Check:** send yourself a test invitation from the admin page. It should have Yes and No buttons in both languages and a `grad26.ics` attachment, and no Yes / Maybe / No bar from your mail app.
+2. **Tap No.** The invitation opens with No selected and says it isn't saved. `/admin/rsvps` shows no change. Press **Confirm answer**; now `/admin/rsvps` shows the answer, and the RSVP confirmation email follows about two minutes later.
+3. **What a guest can see:** with an answer already saved, a different answer from a link shows as pending, and the saved answer stays until they confirm. Switching the site language before confirming clears the pre-selection; nothing is saved or lost.
+
+Invitations sent before this change have no buttons; their links still work and open the form as usual.
+
 ## Calendar RSVP
 
+Off by default (ADR-016). Turn it on only to test whether replies reach the inbox: the invitation goes back to showing calendar buttons to every guest it is sent to while it is on.
+
 1. **Turn it on** in the infrastructure repository: `MAIL_CALENDAR_RSVP: "true"` on both the `api-service` and `worker` containers (the API attaches the calendar request, the worker reads replies), and `allow-imap-egress` lets the worker reach `imap.gmail.com:993`. The same app password works for IMAP; Gmail has IMAP on for every account.
-2. **Check:** after the rollout the worker logs `worker started` with `calendarReplies: true`. Send yourself a test invitation from the admin page to an address other than the sending account (for example a second Gmail). It should show the Yes / Maybe / No bar. Tap **Yes**; within about a minute the worker logs `calendar reply` with `outcome: "applied"`, and `/admin/rsvps` shows the guest as attending.
+2. **Check:** the lines below are `info`, so this needs `LOG_LEVEL: "info"` on the worker (the infrastructure repository sets it). Production's default is `warn`, which shows only rejected replies and errors. After the rollout the worker logs `worker started` with `calendarReplies: true`. Send yourself a test invitation from the admin page to an address other than the sending account (for example a second Gmail). It should show the Yes / Maybe / No bar. Tap **Yes**; within about a minute the worker logs `calendar reply` with `outcome: "applied"`, `/admin/rsvps` shows the guest as attending, and the RSVP confirmation email follows about two minutes later. No `calendar reply` line and no change on `/admin/rsvps` means the reply didn't reach the INBOX: look for it in the sending account's mail before suspecting the worker.
 3. **What counts:** only a reply from the address the invitation was emailed to, signed for that address's domain (DMARC or DKIM pass as recorded by Gmail), for an active invitation. Yes = attending (plus-ones kept), No = not attending (plus-ones cleared), Maybe = no change. If the guest changed their answer on the site after replying, the site answer wins.
-4. **Outcomes in the logs** (`calendar reply`, by invitation id): `applied`, `unchanged`, `maybe`, `stale` (the site answer is newer), `unauthenticated`, `wrong_attendee` (forwarded invitation, or a different address), `inactive` (revoked or expired). `calendar replies polled` counts each pass; `calendar reply poll failed` carries an error code only.
+4. **Outcomes in the logs** (`calendar reply`, by invitation id and outcome, nothing else). At `info`: `applied`, `unchanged`, `maybe`, `stale` (the site answer is newer). At `warn`, so visible at any production level: `unauthenticated`, `wrong_attendee` (forwarded invitation, or a different address), `inactive` (revoked or expired), and `not_ours` (a reply to some other calendar event; no invitation id). `calendar replies polled` counts each pass that saw new mail (`info`, only for passes with new messages); `calendar reply poll failed` and `calendar reply mailbox connection error` carry an error code only; `calendar reply confirmation not queued` means the answer is saved but no confirmation email will follow.
 5. **Keep replies in the inbox.** The worker reads the INBOX only, from the newest message it has seen (its position is in the `mail_cursors` table). A Gmail filter that archives "Accepted:" mail would hide replies. To re-read, `DELETE FROM mail_cursors;` makes the next pass look back 30 days; re-applying a reply changes nothing.
-6. **Turn it off:** set `MAIL_CALENDAR_RSVP` to `false` and roll both. Invitations go out as normal emails again; replies to earlier calendar invitations stay in the inbox unread by the worker.
+6. **Turn it off:** set `MAIL_CALENDAR_RSVP` to `false` on both the `api-service` and `worker` containers and roll both. New invitations go out with the add-only file; replies to earlier calendar invitations stay in the inbox unread by the worker.
 
 ## Graduates: guest link and dashboard sign-in
 
@@ -59,7 +71,7 @@ A graduate can also invite a guest from the dashboard. That sends the normal inv
 
 ## Day to day
 
-- **Logs** carry the invitation id and the outcome, never an address or link: `invitation email` and `calendar invite email` lines from the API, `job succeeded` or `job failed` with type `mail.rsvp_confirmation` from the worker.
+- **Logs** carry the invitation id and the outcome, never an address or link: `invitation email` and `calendar invite email` lines from the API, `job succeeded` or `job failed` with type `mail.rsvp_confirmation` from the worker. Levels matter: with `LOG_LEVEL` unset, production logs at `warn`. The worker sets `info`, so its `job succeeded` lines show; the API doesn't, so its `invitation email` lines don't, and the admin notice is where to see that send's result.
 - **A failed RSVP confirmation** retries five times with backoff (10 s up to 10 min), then stays `failed` in the `jobs` table with an error code such as `EAUTH` or `ETIMEDOUT`. No address is stored there.
 - **Gmail's limit** is about 500 recipients a day for a personal account. Over it, Gmail refuses mail for up to 24 hours: the admin notice says the email could not be sent, and the link is still there to copy. Spread a big batch of invitations over several days.
 - **Spam folders:** mail from a personal address sent by a server sometimes lands in spam, especially at first. Ask early guests to mark it "Not spam". The admin notice reminds admins to keep a copy of the link.

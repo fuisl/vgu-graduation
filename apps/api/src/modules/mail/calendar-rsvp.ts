@@ -6,6 +6,7 @@ import type { StoredEvent } from "../event/event.repository.js";
  * invitation email carries a METHOD:REQUEST event with the guest as ATTENDEE,
  * so Gmail, Outlook and Apple Mail show Yes / Maybe / No. Their answer comes
  * back to the organizer's mailbox as a METHOD:REPLY, which the worker reads.
+ * Only with MAIL_CALENDAR_RSVP on; otherwise the email carries an add-only file (ADR-016).
  */
 
 const CRLF = "\r\n";

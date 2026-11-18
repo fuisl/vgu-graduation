@@ -26,7 +26,7 @@ async function printCounts(token: string): Promise<LaunchpadStatus["print"]> {
 
 async function pendingPhotos(token: string): Promise<PendingCount | null> {
   // The token goes in the header only, never in the URL or a log line.
-  const response = await apiFetch("/admin/media?status=pending&limit=100", {
+  const response = await apiFetch("/admin/media/pending-count", {
     headers: { Authorization: `Bearer ${token}` },
     cache: { mode: "no-store" },
   });

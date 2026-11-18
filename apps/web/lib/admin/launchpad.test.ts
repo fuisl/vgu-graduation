@@ -60,11 +60,10 @@ describe("photobooth", () => {
 
 describe("live status helpers", () => {
   it("counts photos awaiting approval, and hides the line on any failure", () => {
-    expect(parsePendingCount(200, { items: [{}, {}], nextCursor: null })).toEqual({ count: 2, more: false });
-    expect(parsePendingCount(200, { items: new Array(100).fill({}), nextCursor: "abc" })).toEqual({ count: 100, more: true });
-    expect(parsePendingCount(400, { error: "validation", message: "Unknown status" })).toBeNull();
+    expect(parsePendingCount(200, { pending: 2 })).toEqual({ count: 2, more: false });
+    expect(parsePendingCount(404, { error: "Not Found", message: "x" })).toBeNull();
     expect(parsePendingCount(200, null)).toBeNull();
-    expect(parsePendingCount(200, { items: "x" })).toBeNull();
+    expect(parsePendingCount(200, { pending: "x" })).toBeNull();
     expect(formatPendingCount({ count: 3, more: false })).toBe("3");
     expect(formatPendingCount({ count: 100, more: true })).toBe("100+");
   });

@@ -2,6 +2,7 @@
  * The admin Overview's launchpad: every page and tool the organizers need on graduation day, in one place.
  * Pure data and helpers; the page does the fetching. Admin is English-only (#9).
  */
+import { adminMediaPendingCountResponseSchema } from "@grad/contract";
 
 export type LaunchpadPage = {
   id: string;
@@ -84,14 +85,13 @@ export function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Pr
 export type PendingCount = { count: number; more: boolean };
 
 /**
- * Photos awaiting approval from `GET /admin/media?status=pending` (ADR-019). Any failure, including a 400 from
- * an API that does not know the status yet, is null and the line is hidden.
+ * Photos awaiting approval from `GET /admin/media/pending-count` (ADR-019), `{ pending: number }`.
+ * Any failure is null and the line is hidden.
  */
 export function parsePendingCount(httpStatus: number, body: unknown): PendingCount | null {
-  if (httpStatus < 200 || httpStatus >= 300 || typeof body !== "object" || body === null) return null;
-  const { items, nextCursor } = body as { items?: unknown; nextCursor?: unknown };
-  if (!Array.isArray(items)) return null;
-  return { count: items.length, more: typeof nextCursor === "string" && nextCursor !== "" };
+  if (httpStatus < 200 || httpStatus >= 300) return null;
+  const parsed = adminMediaPendingCountResponseSchema.safeParse(body);
+  return parsed.success ? { count: parsed.data.pending, more: false } : null;
 }
 
 /** "3", or "100+" when there are more pages. */

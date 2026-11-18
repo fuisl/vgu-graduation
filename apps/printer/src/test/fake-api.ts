@@ -1,9 +1,10 @@
 import { createServer, type IncomingMessage, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
-import type { ClaimedPrintJob, CompletePrintJobRequest, PrintJob, PrintJobStatus } from "@grad/contract";
+import type { ClaimedPrintJob, CompletePrintJobRequest, PrintJob, PrintJobStatus, PrintOptions } from "@grad/contract";
 
 interface FakeJob {
   job: PrintJob;
+  options: PrintOptions | null;
   status: PrintJobStatus;
   attempt: number;
   leaseExpiresAt: number | null;
@@ -38,9 +39,12 @@ export class FakePrintApi {
   private server: Server | null = null;
   private baseUrl = "";
 
-  addJob(job: Partial<PrintJob> & { id: string; photoPublicId: string }, image: Buffer = Buffer.from("jpeg-bytes")) {
+  addJob(
+    { options = null, ...job }: Partial<PrintJob> & { id: string; photoPublicId: string; options?: PrintOptions | null },
+    image: Buffer = Buffer.from("jpeg-bytes"),
+  ) {
     const full: PrintJob = { copies: 1, status: "queued", createdAt: new Date().toISOString(), ...job };
-    this.jobs.push({ job: full, status: "queued", attempt: 0, leaseExpiresAt: null });
+    this.jobs.push({ job: full, options, status: "queued", attempt: 0, leaseExpiresAt: null });
     this.images.set(full.photoPublicId, image);
     return full;
   }
@@ -101,6 +105,7 @@ export class FakePrintApi {
       variant: "display",
       attempt: next.attempt,
       leaseExpiresAt: new Date(next.leaseExpiresAt).toISOString(),
+      options: next.options,
     };
   }
 

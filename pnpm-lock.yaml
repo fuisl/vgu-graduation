@@ -160,6 +160,9 @@ importers:
       '@grad/contract':
         specifier: workspace:*
         version: link:../../packages/contract
+      undici:
+        specifier: ^7.29.1
+        version: 7.29.1
       zod:
         specifier: ^4.6.5
         version: 4.6.5
@@ -9020,8 +9023,7 @@ snapshots:
 
   undici-types@6.21.0: {}
 
-  undici@7.29.1:
-    optional: true
+  undici@7.29.1: {}
 
   unicorn-magic@0.4.1: {}
 

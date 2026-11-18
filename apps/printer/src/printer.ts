@@ -1,17 +1,46 @@
 import { execFile } from "node:child_process";
 import { copyFile, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import type { PrintOptions } from "@grad/contract";
 
 export interface PrintRequest {
   jobId: string;
   /** Local path of the downloaded derivative (JPEG). */
   file: string;
   copies: number;
+  /** The admin's per-job options; only the photobooth printer uses them. */
+  options?: PrintOptions;
+  /**
+   * Copies already printed by an earlier attempt (photobooth mode prints one
+   * copy per request); the printer starts after them. 0 when absent.
+   */
+  alreadyPrinted?: number;
+  /** Called after each copy the printer confirms, with the total printed so far; awaited before the next copy. */
+  onCopyPrinted?: (printed: number) => Promise<void>;
 }
 
 export interface Printer {
-  /** Resolves once the job is accepted (by CUPS, or written in dry-run mode); rejects otherwise. */
+  /**
+   * Resolves once the job is accepted (by CUPS, the photobooth, or written in
+   * dry-run mode). Rejects with PrintNotSentError when nothing of the current
+   * copy reached the printer (safe to retry), or any other error when the job
+   * failed or may have partly printed (never retried).
+   */
   print(request: PrintRequest): Promise<void>;
+}
+
+/**
+ * The printer was never reached for the current copy (connection refused, no
+ * route, TLS handshake failed, a gateway answered 502/503/504, or the booth
+ * could not reach its printer before sending a single row). The daemon puts
+ * the job back to `received` and retries with backoff; copies confirmed
+ * before it are not printed again.
+ */
+export class PrintNotSentError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PrintNotSentError";
+  }
 }
 
 export type ExecFile = (
@@ -75,7 +104,11 @@ export function createDryRunPrinter(dir: string): Printer {
       await copyFile(request.file, path.join(dir, `${request.jobId}.jpg`));
       await writeFile(
         path.join(dir, `${request.jobId}.json`),
-        JSON.stringify({ jobId: request.jobId, copies: request.copies, printedAt: new Date().toISOString() }, null, 2),
+        JSON.stringify(
+          { jobId: request.jobId, copies: request.copies, options: request.options ?? null, printedAt: new Date().toISOString() },
+          null,
+          2,
+        ),
       );
     },
   };

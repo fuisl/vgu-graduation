@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@grad/contract": "workspace:*",
+    "undici": "^7.29.1",
     "zod": "^4.6.5"
   },
   "devDependencies": {

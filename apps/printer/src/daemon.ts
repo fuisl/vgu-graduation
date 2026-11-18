@@ -5,11 +5,17 @@ import { ApiError, type PrintApi } from "./api.js";
 import { Backoff } from "./backoff.js";
 import { Journal, type JournalEntry } from "./journal.js";
 import { silentLogger, summarize, type Logger } from "./log.js";
-import type { Printer } from "./printer.js";
+import { PrintNotSentError, type Printer } from "./printer.js";
 
 /** Reported when a crash hit between handing a job to CUPS and recording that CUPS took it. */
 export const AMBIGUOUS_ERROR =
   "Interrupted while sending to the printer; not retried to avoid a duplicate print. Check the printer and re-queue if nothing came out.";
+
+/** Prefixes a failure with the copies that did come out, when some did (photobooth mode prints copy by copy). */
+function partial(entry: Pick<JournalEntry, "copies" | "copiesPrinted">, error: string): string {
+  const printed = entry.copiesPrinted ?? 0;
+  return printed > 0 ? `Printed ${printed} of ${entry.copies} copies; ${error}` : error;
+}
 
 export type TickResult = "idle" | "worked";
 
@@ -52,6 +58,12 @@ function abortableSleep(ms: number, signal?: AbortSignal): Promise<void> {
  *   AMBIGUOUS_ERROR, never reprinted;
  * - a job the API hands out again (a lost report or a lease that ran out after
  *   printing) gets its recorded outcome re-sent instead of a second print.
+ *
+ * "Reached CUPS" reads "sent to the photobooth" in photobooth mode, which prints
+ * copy by copy: each confirmed copy is journalled (`copiesPrinted`), and a copy
+ * the printer never received (PrintNotSentError: booth unreachable, its printer
+ * off) sends the job back to `received` to be retried with backoff from the
+ * next unprinted copy.
  *
  * Leases: the API holds a claimed job for PRINT_LEASE_SECONDS, then re-queues it
  * (and any daemon may claim it again). So a job is only sent to the printer while
@@ -96,11 +108,22 @@ export class PrintDaemon {
     const known = await journal.get(job.id);
     if (known) {
       this.logger.warn("job handed out again; not reprinting", { jobId: job.id, phase: known.phase });
-      await this.settle(known);
+      // Nothing (more) printed yet: carry on under the fresh claim's lease.
+      const resumed =
+        known.phase === "received"
+          ? await journal.put({ ...known, imageUrl: job.imageUrl, attempt: job.attempt, leaseExpiresAt: job.leaseExpiresAt })
+          : known;
+      await this.settle(resumed);
       return "worked";
     }
 
-    this.logger.info("job received", { jobId: job.id, copies: job.copies, attempt: job.attempt });
+    this.logger.info("job received", {
+      jobId: job.id,
+      copies: job.copies,
+      attempt: job.attempt,
+      layout: job.options?.layout,
+      ascii: job.options?.ascii,
+    });
     await this.settle(await journal.put(this.fromJob(job)));
     return "worked";
   }
@@ -139,6 +162,7 @@ export class PrintDaemon {
       imageUrl: job.imageUrl,
       attempt: job.attempt,
       leaseExpiresAt: job.leaseExpiresAt,
+      options: job.options ?? null,
       phase: "received",
     };
   }
@@ -156,7 +180,7 @@ export class PrintDaemon {
         return this.print(entry);
       case "submitting":
         this.logger.warn("found a job interrupted mid-submission; reporting it failed", { jobId: entry.id });
-        return this.report(await journal.put({ ...entry, phase: "failed", error: AMBIGUOUS_ERROR }));
+        return this.report(await journal.put({ ...entry, phase: "failed", error: partial(entry, AMBIGUOUS_ERROR) }));
       case "printed":
       case "failed":
         return this.report(entry);
@@ -166,8 +190,17 @@ export class PrintDaemon {
     }
   }
 
-  /** Forgets a claim whose lease ran out before printing: nothing printed, nothing reported. */
+  /**
+   * Forgets a claim whose lease ran out before printing: nothing printed,
+   * nothing reported. If some copies were already printed (photobooth mode,
+   * the booth went away mid-job), forgetting would print them again on the
+   * re-claim, so the job is reported failed with how many came out instead.
+   */
   private async abandon(entry: JournalEntry): Promise<void> {
+    if ((entry.copiesPrinted ?? 0) > 0) {
+      const error = partial(entry, "the rest were not printed before the claim ran out. Re-queue for the missing copies.");
+      return this.report(await this.options.journal.put({ ...entry, phase: "failed", error }));
+    }
     this.logger.warn("lease ran out before printing; leaving the job to the API's re-queue", {
       jobId: entry.id,
       attempt: entry.attempt,
@@ -195,15 +228,30 @@ export class PrintDaemon {
     await writeFile(file, image);
     // The download may have taken a while (retries); check the lease again right before CUPS.
     if (!this.leaseHolds(entry)) return this.abandon(entry);
-    const submitting = await journal.put({ ...entry, phase: "submitting" });
+    let current = await journal.put({ ...entry, phase: "submitting" });
     try {
-      await printer.print({ jobId: entry.id, file, copies: entry.copies });
+      await printer.print({
+        jobId: entry.id,
+        file,
+        copies: entry.copies,
+        options: entry.options ?? undefined,
+        alreadyPrinted: entry.copiesPrinted ?? 0,
+        onCopyPrinted: async (printed) => {
+          current = await journal.put({ ...current, copiesPrinted: printed });
+        },
+      });
     } catch (err) {
-      this.logger.error("print failed", { jobId: entry.id, error: summarize(err) });
+      if (err instanceof PrintNotSentError) {
+        // Nothing of this copy reached the printer: back to `received` (keeping
+        // the count of copies already printed) and retry with backoff.
+        await journal.put({ ...current, phase: "received" });
+        throw err;
+      }
+      this.logger.error("print failed", { jobId: entry.id, copiesPrinted: current.copiesPrinted, error: summarize(err) });
       await rm(file, { force: true });
-      return this.report(await journal.put({ ...submitting, phase: "failed", error: summarize(err, 500) }));
+      return this.report(await journal.put({ ...current, phase: "failed", error: partial(current, summarize(err, 400)) }));
     }
-    const printed = await journal.put({ ...submitting, phase: "printed" });
+    const printed = await journal.put({ ...current, phase: "printed" });
     await rm(file, { force: true });
     this.logger.info("job printed", { jobId: entry.id, copies: entry.copies });
     return this.report(printed);

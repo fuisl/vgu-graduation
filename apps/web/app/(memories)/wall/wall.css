@@ -1,0 +1,93 @@
+/*
+ * /wall (ADR-019): the composer on a compact blue band, the live feed of wishes and instant
+ * photos on the white band below. Brand tokens only; radii 2px/4px; no shadows, gradients or
+ * motion. Small meta text on this page is --text-sm (14px), never --text-xs: it is read by
+ * everyone, often on a phone held at arm's length. Layout decisions are for owner review
+ * (docs/design/memories-archive.md, "The Wall").
+ */
+
+/* Composer band -------------------------------------------------------- */
+[data-theme="brand"] .wall-head { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-4); }
+[data-theme="brand"] .wall-title { margin: 0; font-size: var(--brand-text-h2); font-weight: 500; line-height: 1.1; letter-spacing: var(--brand-tracking-display); overflow-wrap: anywhere; }
+[data-theme="brand"] .wall-lead { margin: 0; max-width: var(--brand-measure); color: var(--brand-muted); }
+[data-theme="brand"] .wall-composer { width: 100%; }
+/* The camera sits under the title, lead and toggle here: cap the viewfinder so the shutter stays above the fold. */
+[data-theme="brand"] .wall-composer .cam-viewfinder {
+  width: min(100%, 36rem, calc(100vh - 72px - 22rem));
+  width: min(100%, 36rem, calc(100svh - 72px - 22rem));
+}
+
+/* Wish composer: white boxes with ink text on blue; the focus ring is the accent (on blue only). */
+[data-theme="brand"] .wish-composer { display: flex; flex-direction: column; gap: var(--space-3); width: 100%; }
+[data-theme="brand"] .wish-composer__row { display: flex; flex-wrap: wrap; align-items: stretch; gap: var(--space-3); }
+[data-theme="brand"] .wish-input {
+  width: 100%; padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--brand-white); border-radius: var(--brand-radius);
+  background: var(--brand-white); color: var(--brand-ink); font: inherit;
+}
+[data-theme="brand"] .wish-input::placeholder { color: var(--brand-muted-on-white); }
+[data-theme="brand"] .wish-input:focus-visible { outline: 2px solid var(--brand-accent); outline-offset: 2px; }
+[data-theme="brand"] .wish-input[aria-invalid="true"] { border-color: var(--brand-danger); outline: 2px solid var(--brand-danger); outline-offset: 2px; }
+[data-theme="brand"] .wish-input--message { min-height: 7rem; resize: vertical; font-size: var(--brand-text-lead); line-height: 1.4; }
+[data-theme="brand"] .wish-input--alias { flex: 1 1 12rem; width: auto; min-width: 0; min-height: var(--brand-tap); }
+[data-theme="brand"] .wall-field-error { margin: 0; font-size: var(--text-sm); color: var(--brand-danger); }
+
+/* One status line (what happened to the last post) and the consent notice (principles §8). */
+[data-theme="brand"] .wall-status { min-height: 1.5em; margin: 0; font-size: var(--text-sm); color: var(--brand-fg); }
+[data-theme="brand"] .wall-status.is-error { color: var(--brand-danger); }
+[data-theme="brand"] .wall-consent { margin: 0; max-width: var(--brand-measure); font-size: var(--text-sm); line-height: 1.5; color: var(--brand-muted); }
+
+/* Feed band ------------------------------------------------------------ */
+[data-theme="brand"] .wall-feed-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3) var(--space-5); margin-bottom: var(--space-5); }
+[data-theme="brand"] .wall-feed-title { margin: 0; }
+[data-theme="brand"] .wall-feed-status { font-size: var(--text-sm); }
+
+/* One feed, newest first: cards in a grid that falls to one column on a phone (no media query). */
+[data-theme="brand"] .wall-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr)); align-items: start;
+  gap: var(--space-4); margin: 0; padding: 0; list-style: none;
+}
+[data-theme="brand"] .wall-card { min-width: 0; margin: 0; border-radius: var(--brand-radius); content-visibility: auto; contain-intrinsic-size: auto 20rem; }
+
+/* Author and time: mono labels, at small body size on this page. */
+[data-theme="brand"] .wall-meta {
+  display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); margin: var(--space-3) 0 0;
+  font-family: var(--font-mono); font-size: var(--text-sm); letter-spacing: var(--brand-tracking-label); text-transform: uppercase; color: var(--brand-muted);
+}
+[data-theme="brand"] .wall-meta__author { overflow-wrap: anywhere; }
+[data-theme="brand"] .wall-meta__time,
+[data-theme="brand"] .wall-meta__status { color: var(--brand-blue); }
+/* A sentence, not a label: plain type. */
+[data-theme="brand"] .wall-meta__note { font-family: var(--font-sans); letter-spacing: 0; text-transform: none; line-height: 1.4; }
+
+/* Wish: the soft-blue quote panel (as on the landing and the timeline). */
+[data-theme="brand"] .wall-wish { padding: var(--space-5); background: var(--brand-blue-soft); color: var(--brand-ink); }
+[data-theme="brand"] .wall-wish__body { margin: 0; font-size: var(--brand-text-lead); line-height: 1.4; overflow-wrap: anywhere; white-space: pre-line; }
+[data-theme="brand"] .wall-wish--local.is-pending .wall-wish__body { color: var(--brand-muted); }
+[data-theme="brand"] .wall-wish--local.is-error .wall-meta__status { color: var(--brand-danger); }
+[data-theme="brand"] .wall-wish__actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-3); }
+
+/* Photo: an instant-photo card, a square print in a white frame with a hairline, caption below. */
+[data-theme="brand"] .wall-photo { padding: var(--space-3) var(--space-3) var(--space-4); border: 1px solid var(--brand-line); background: var(--brand-white); }
+[data-theme="brand"] .wall-photo__frame { position: relative; display: block; aspect-ratio: 1 / 1; overflow: hidden; border-radius: var(--brand-radius-sm); background: var(--brand-blue-soft); }
+[data-theme="brand"] .wall-photo__frame img { display: block; width: 100%; height: 100%; object-fit: cover; }
+[data-theme="brand"] .wall-photo__open { display: block; width: 100%; padding: 0; border: 0; border-radius: var(--brand-radius-sm); background: none; cursor: pointer; }
+[data-theme="brand"] .wall-photo__open:focus-visible { outline: 2px solid var(--brand-blue); outline-offset: 2px; }
+
+/* The visitor's own photo before the feed lists it, or while it waits for approval: a mono tag. */
+[data-theme="brand"] .wall-photo__status {
+  position: absolute; top: var(--space-2); left: var(--space-2); max-width: calc(100% - 2 * var(--space-2)); margin: 0; padding: 2px var(--space-2); overflow-wrap: anywhere;
+  border-radius: var(--brand-radius-sm); background: var(--brand-ink); color: var(--brand-white);
+  font-family: var(--font-mono); font-size: var(--text-sm); letter-spacing: var(--brand-tracking-label); text-transform: uppercase;
+}
+[data-theme="brand"] .wall-photo--local.is-error .wall-photo__status { background: var(--brand-danger-on-white); }
+/* Developing (ADR-014) and waiting for approval (ADR-019): greyscale, like a print still coming up. A state, not an animation. */
+[data-theme="brand"] .wall-photo--developing img,
+[data-theme="brand"] .wall-photo--waiting img { filter: grayscale(1) contrast(0.85); }
+[data-theme="brand"] .wall-photo__action {
+  display: block; width: 100%; min-height: var(--brand-tap); margin-top: var(--space-3); padding: 0 var(--space-2);
+  border: 1px solid var(--brand-line); border-radius: var(--brand-radius); background: var(--brand-white); color: var(--brand-blue);
+  font: inherit; font-size: var(--text-sm); font-weight: 500; cursor: pointer;
+}
+[data-theme="brand"] .wall-photo__action:hover { background: var(--brand-blue-soft); }
+[data-theme="brand"] .wall-photo__action:focus-visible { outline: 2px solid var(--brand-blue); outline-offset: 2px; }

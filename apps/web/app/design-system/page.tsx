@@ -272,7 +272,7 @@ export default async function DesignSystem() {
         <Section tone="blue" aria-labelledby="ds-shell">
           <BrandEyebrow ellipsis>Site shell</BrandEyebrow>
           <h2 id="ds-shell" className="brand-ds-h2">Header and footer</h2>
-          <p className="brand-ds-note">The real <code>SiteHeader</code>, the menubar (compact mark; the event essentials, Camera and Wishes; EN | VI, text size and the guest chip; Camera and Menu on mobile), and the minimal <code>SiteFooter</code> (deep-blue band, the only full wordmark), shown below.</p>
+          <p className="brand-ds-note">The real <code>SiteHeader</code>, the menubar (compact mark; the event essentials, Wall and Camera; EN | VI, text size and the guest chip; Wall and Menu on mobile), and the minimal <code>SiteFooter</code> (deep-blue band, the only full wordmark), shown below.</p>
         </Section>
         <SiteHeader i18n={i18n} current="home" />
         <Section tone="white" density="compact" aria-labelledby="ds-shell-gap">
@@ -301,7 +301,7 @@ export default async function DesignSystem() {
           <h2 id="ds-menu" className="brand-ds-h2">Mobile menu, open</h2>
           <p className="brand-ds-note">
             At 960px and below the header shows only the mark and the Menu button, which opens this full-screen sheet (<code>MobileMenu</code>): a modal dialog with
-            the event essentials (linking to the venue page), Camera and Wishes as large rows (the current one in the accent colour), then the guest chip, the language switch and text size. Shown here as a static, inert picture at phone width.
+            the event essentials (linking to the venue page), Wall and Camera as large rows (the current one in the accent colour), then the guest chip, the language switch and text size. Shown here as a static, inert picture at phone width.
           </p>
           <MenuSheetPreview
             label="Preview of the open mobile menu"

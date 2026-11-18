@@ -12,7 +12,7 @@ describe("scrubPathname", () => {
   });
 
   it("keeps static routes as they are", () => {
-    for (const path of ["/", "/invite", "/invite/", "/invite/demo", "/venue", "/gallery", "/about", "/design-system", "/guest/prototype"]) {
+    for (const path of ["/", "/invite", "/invite/", "/invite/demo", "/venue", "/wall", "/gallery", "/about", "/design-system", "/guest/prototype"]) {
       expect(scrubPathname(path)).toBe(path);
     }
   });
@@ -53,6 +53,8 @@ describe("scrubUrl", () => {
   it("drops the query string and fragment", () => {
     expect(scrubUrl(`${ORIGIN}/venue?ref=${TOKEN}#map`)).toBe(`${ORIGIN}/venue`);
     expect(scrubUrl(`${ORIGIN}/?t=${TOKEN}`)).toBe(`${ORIGIN}/`);
+    // The Wall's mode and filter live in the query, which is never reported (ADR-019).
+    expect(scrubUrl(`${ORIGIN}/wall?mode=photo&show=photos`)).toBe(`${ORIGIN}/wall`);
   });
 
   it("scrubs invitation paths with a query", () => {

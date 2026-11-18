@@ -1,12 +1,12 @@
 # AI Design Reference
 
-Before generating UI read `philosophy.md`, `tokens.md`, `components.md` and `anti-patterns.md`. Inspect an existing route of the same kind first (`/venue`, `/wishes`, `/invite` and `/design-system` are good models).
+Before generating UI read `philosophy.md`, `tokens.md`, `components.md` and `anti-patterns.md`. Inspect an existing route of the same kind first (`/venue`, `/wall`, `/invite` and `/design-system` are good models).
 
 ## Defaults for guest-facing pages
 
 - **Theme:** wrap the page in `BrandTheme` (`@grad/ui`). One fixed blue-and-white theme; never add a light/dark switch. Admin (`/admin/*`) and docs keep the neutral tokens and must not use brand components.
-- **Shell:** first `<SiteHeader current="home" | "venue" | "gallery" | "wishes" | "ascii" />` (omit `current` for pages not in the nav), last `<SiteFooter />`. Do not build another header, nav or footer.
-- **One home per fact (owner brief, 2026-10):** the menubar holds the event essentials (date and venue, linking to `/venue`), the main destinations (Camera, Wishes, then the experimental ASCII Live as the last item), the guest's own entry (`/me`), language and text size. Do not repeat these on a page: no date or venue lines, language or text size controls, "take a photo" buttons or footer-like link lists in page bodies. `/venue` is the full home of the event facts. The landing tells a story (`the-journey/`, owner brief 2026-11); until its content is written it shows `start-here/` instead, a few links to the public features (`landing.md`, "Placeholders never render"). Keep copy to one short lead per page.
+- **Shell:** first `<SiteHeader current="home" | "venue" | "wall" | "camera" | "ascii" />` (omit `current` for pages not in the nav), last `<SiteFooter />`. Do not build another header, nav or footer.
+- **One home per fact (owner brief, 2026-10):** the menubar holds the event essentials (date and venue, linking to `/venue`), the main destinations (the Wall and its Camera mode, then the experimental ASCII Live as the last item), the guest's own entry (`/me`), language and text size. Do not repeat these on a page: no date or venue lines, language or text size controls, "take a photo" buttons or footer-like link lists in page bodies. `/venue` is the full home of the event facts; the landing's entry points are the one deliberate exception. Keep copy to one short lead per page.
 - **Structure:** a page is a stack of full-bleed `Section` bands that alternate blue and white. Start with a blue band (eyebrow, h1, one lead line, optionally one primary `Cta`), then white bands for reading, forms and lists. Put a `BrandEyebrow` above each section heading and label each section with `aria-labelledby`.
 - **Tone:** `blue` for heroes, feature bands and calls to action; `white` for anything the guest reads, fills in or scans; `blue-deep` only for the footer.
 - **Density:** `airy` (default) for heroes and editorial bands; `compact` for forms, the invitation, RSVP, the gallery and other working surfaces. Add `narrow` for single-column forms and short text.

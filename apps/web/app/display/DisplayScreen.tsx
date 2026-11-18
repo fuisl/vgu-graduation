@@ -393,7 +393,7 @@ export function DisplayScreen({ eventName, eventDate, wishesQrSvg, wishesLink, l
       </main>
 
       <aside className="display-share" aria-labelledby="display-share-title">
-        <a className="display-qr" href="/wishes" aria-label={t("display.qrLabel", { link: wishesLink })} dangerouslySetInnerHTML={{ __html: wishesQrSvg }} />
+        <a className="display-qr" href="/wall" aria-label={t("display.qrLabel", { link: wishesLink })} dangerouslySetInnerHTML={{ __html: wishesQrSvg }} />
         <div className="display-share__text">
           <p id="display-share-title" className="display-share__title">{t("display.share")}</p>
           <p className="display-share__link">{wishesLink}</p>

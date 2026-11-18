@@ -39,12 +39,12 @@ type Props = {
   essentials: ReactNode;
   /** Action links with labels in the page's language. */
   links: readonly SiteNavLink[];
-  /** The one link that stays in the bar beside Menu: the camera, one tap away. */
+  /** The one link that stays in the bar beside Menu: the Wall, one tap away (ADR-019). */
   quick?: SiteNavLink;
   labels: Labels;
 };
 
-/** Mobile (<= 960px): a one-tap Camera link, the Menu button and the full-screen blue sheet. */
+/** Mobile (<= 960px): a one-tap Wall link, the Menu button and the full-screen blue sheet. */
 export function MobileMenu({current, action, language, textSize, essentials, links, quick, labels}: Props) {
   const [open, setOpen] = useState(false);
   const sheetId = useId();

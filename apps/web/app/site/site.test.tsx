@@ -37,16 +37,16 @@ beforeEach(() => {
 });
 
 describe("SiteHeader (the menubar)", () => {
-  it("leads the nav with the event essentials, then Camera, Wishes and ASCII Live", () => {
+  it("leads the nav with the event essentials, then the Wall, the camera (the Wall's photo mode) and ASCII Live", () => {
     const links = [...desktop(html(<SiteHeader i18n={i18n} />)).matchAll(/<a class="brand-pill" href="([^"]+)"[^>]*>(.*?)<\/a>/g)].map((m) => [m[1], m[2]]);
     // Server render before GET /event answers (and when it fails): a plain "Venue" label.
-    expect(links).toEqual([["/venue", "Venue"], ["/gallery", "Camera"], ["/wishes", "Wishes"], ["/ascii-live", "ASCII Live"]]);
+    expect(links).toEqual([["/venue", "Venue"], ["/wall", "Wall"], ["/wall?mode=photo", "Camera"], ["/ascii-live", "ASCII Live"]]);
   });
 
   it("marks the current item with aria-current in the desktop nav", () => {
-    const out = desktop(html(<SiteHeader i18n={i18n} current="gallery" />));
+    const out = desktop(html(<SiteHeader i18n={i18n} current="wall" />));
     expect(out.match(/aria-current="page"/g)).toHaveLength(1);
-    expect(out).toMatch(/aria-current="page"[^>]*>Camera</);
+    expect(out).toMatch(/aria-current="page"[^>]*>Wall</);
     expect(desktop(html(<SiteHeader i18n={i18n} current="venue" />))).toMatch(/href="\/venue" aria-current="page"/);
   });
 
@@ -86,10 +86,10 @@ describe("SiteHeader (the menubar)", () => {
     expect(out).not.toContain("My invitation");
   });
 
-  it("keeps the camera one tap away on mobile, beside Menu", () => {
+  it("keeps the Wall one tap away on mobile, beside Menu", () => {
     const mobile = html(<SiteHeader i18n={i18n} />).split('class="brand-header__mobile"')[1] ?? "";
-    expect(mobile.indexOf('href="/gallery"')).toBeLessThan(mobile.indexOf("aria-controls"));
-    expect(mobile).toMatch(/<a class="brand-menu-button brand-menu-button--text" href="\/gallery">Camera<\/a>/);
+    expect(mobile.indexOf('href="/wall"')).toBeLessThan(mobile.indexOf("aria-controls"));
+    expect(mobile).toMatch(/<a class="brand-menu-button brand-menu-button--text" href="\/wall">Wall<\/a>/);
   });
 
   it("renders the mobile menu button as a labelled three-bars icon", () => {
@@ -115,11 +115,11 @@ describe("SiteHeader (the menubar)", () => {
   });
 
   it("puts the essentials, the rows, the chip and both settings in the sheet", () => {
-    const out = sheet(html(<SiteHeader i18n={i18n} current="wishes" />));
+    const out = sheet(html(<SiteHeader i18n={i18n} current="wall" />));
     expect(out).toMatch(/<a class="brand-sheet__when" href="\/venue">.*Venue and calendar/);
     const rows = [...out.matchAll(/<a class="brand-sheet__link" href="([^"]+)"[^>]*>([^<]+)</g)].map((m) => [m[1], m[2]]);
-    expect(rows).toEqual([["/gallery", "Camera"], ["/wishes", "Wishes"], ["/ascii-live", "ASCII Live"]]);
-    expect(out).toMatch(/href="\/wishes" aria-current="page"/);
+    expect(rows).toEqual([["/wall", "Wall"], ["/wall?mode=photo", "Camera"], ["/ascii-live", "ASCII Live"]]);
+    expect(out).toMatch(/href="\/wall" aria-current="page"/);
     expect(out).toContain('href="/me"');
     expect(out).toContain('aria-label="Language"');
     expect(out).toContain('aria-label="Text size"');
@@ -178,7 +178,7 @@ describe("SiteFooter", () => {
     const out = html(<SiteFooter i18n={i18n} />);
     const links = [...out.matchAll(/<li><a href="([^"]+)">([^<]+)<\/a><\/li>/g)].map((m) => [m[1], m[2]]);
     expect(links).toEqual([["/memories", "Memories"], ["/accessibility", "Accessibility"], ["/about", "Credits"]]);
-    for (const href of ["/venue", "/gallery", "/wishes"]) expect(out).not.toContain(`href="${href}"`);
+    for (const href of ["/venue", "/wall"]) expect(out).not.toContain(`href="${href}"`);
   });
 
   it("keeps the language switch, the one that works without JavaScript on a phone", () => {

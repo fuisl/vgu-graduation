@@ -33,7 +33,7 @@ export const dynamic = "force-dynamic";
 export default async function DisplayPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const [event, requestHeaders, params, i18n] = await Promise.all([getEvent(), headers(), searchParams, getI18n()]);
   const origin = publicSiteOrigin(process.env.PUBLIC_ORIGIN, requestHeaders.get("host"), requestHeaders.get("x-forwarded-proto"));
-  const wishesUrl = `${origin}/wishes`;
+  const wishesUrl = `${origin}/wall`;
   const wishesQrSvg = await renderLinkQrSvg(wishesUrl);
   const data = event.status === "ok" ? localizeEvent(event.data, i18n.locale) : null;
 

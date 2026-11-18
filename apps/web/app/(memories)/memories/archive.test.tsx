@@ -96,7 +96,7 @@ describe("/memories (curated archive, #75)", () => {
     stubApi({ "/gallery/public": page([]), "/wishes/public": page([]) });
     const out = html(await MemoriesPage());
     expect(out).toContain("Nothing curated yet");
-    expect(out).toContain('href="/gallery"');
+    expect(out).toContain('href="/wall?show=photos"');
     expect(out).not.toContain("memories-wishes-title");
     expect(out.match(/<h1/g)).toHaveLength(1);
   });

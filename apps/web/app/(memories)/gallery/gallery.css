@@ -1,6 +1,7 @@
 /*
- * The live feed under the locket camera (/gallery) and the wish composer (/wishes), the photo
- * dialog and the guest print request. White band; shared status styles live in ../memories.css.
+ * Shared pieces of the live feed on /wall (ADR-019): the feed heading, the held-arrivals
+ * button, links, the photo dialog and the guest print request. The cards themselves live in
+ * ../wall/wall.css; shared status styles in ../memories.css.
  */
 
 [data-theme="brand"] .feed-title { margin: 0 0 var(--space-5); font-size: var(--brand-text-h3); font-weight: 500; line-height: 1.2; letter-spacing: -0.02em; scroll-margin-top: calc(72px + var(--space-4)); }
@@ -23,51 +24,13 @@
 [data-theme="brand"] .feed-link { color: var(--brand-blue); text-decoration: underline; text-underline-offset: 0.25em; }
 [data-theme="brand"] .feed-link:focus-visible { outline: 2px solid var(--brand-blue); outline-offset: 2px; }
 
-/* Photos: square tiles, newest first. Three columns on a phone, five on desktop. */
-[data-theme="brand"] .feed-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
-[data-theme="brand"] .feed-tile { position: relative; aspect-ratio: 1 / 1; overflow: hidden; border-radius: var(--brand-radius); background: var(--brand-blue-soft); }
-[data-theme="brand"] .feed-tile img { display: block; width: 100%; height: 100%; object-fit: cover; }
-[data-theme="brand"] .feed-tile__open { display: block; width: 100%; height: 100%; padding: 0; border: 0; background: none; cursor: pointer; }
-[data-theme="brand"] .feed-tile__open:focus-visible { outline: 2px solid var(--brand-blue); outline-offset: 2px; }
-[data-theme="brand"] .feed-tile:has(.feed-tile__open:focus-visible) { overflow: visible; }
-
-/* This guest's own photo before the gallery lists it: a mono status tag, and Retry or Remove. */
-[data-theme="brand"] .feed-tile__status {
-  position: absolute; top: var(--space-1); left: var(--space-1); max-width: calc(100% - 2 * var(--space-1)); margin: 0; padding: 2px var(--space-2); overflow-wrap: anywhere;
-  border-radius: var(--brand-radius-sm); background: var(--brand-ink); color: var(--brand-white);
-  font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: var(--brand-tracking-label); text-transform: uppercase;
-}
-[data-theme="brand"] .feed-tile--local.is-error .feed-tile__status { background: var(--brand-danger-on-white); }
-/* Developing (ADR-014): the guest's own shot in greyscale, like a print still coming up, until the
-   processed photo replaces it in colour. A state, not an animation: nothing moves. */
-[data-theme="brand"] .feed-tile--developing img { filter: grayscale(1) contrast(0.85); }
-[data-theme="brand"] .feed-tile__action {
-  position: absolute; right: 0; bottom: 0; left: 0; min-height: var(--brand-tap); padding: 0 var(--space-2);
-  border: 0; border-top: 1px solid var(--brand-line); background: var(--brand-white); color: var(--brand-blue);
-  font: inherit; font-size: var(--text-sm); font-weight: 500; cursor: pointer;
-}
-[data-theme="brand"] .feed-tile__action:hover { background: var(--brand-blue-soft); }
-[data-theme="brand"] .feed-tile__action:focus-visible { outline: 2px solid var(--brand-blue); outline-offset: -2px; }
-
-/* Wishes: type and hairlines, newest first; the author and time as mono labels. */
-[data-theme="brand"] .feed-wishes { margin: 0; padding: 0; list-style: none; }
-[data-theme="brand"] .feed-wish { padding: var(--space-5) 0; border-top: 1px solid var(--brand-line); content-visibility: auto; contain-intrinsic-size: auto 8rem; }
-[data-theme="brand"] .feed-wish__body { margin: 0; font-size: var(--brand-text-lead); line-height: 1.4; overflow-wrap: anywhere; white-space: pre-line; }
-[data-theme="brand"] .feed-wish__meta { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); margin: var(--space-3) 0 0; font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: var(--brand-tracking-label); text-transform: uppercase; color: var(--brand-muted); }
-[data-theme="brand"] .feed-wish__author { overflow-wrap: anywhere; }
-[data-theme="brand"] .feed-wish__time,
-[data-theme="brand"] .feed-wish__status { color: var(--brand-blue); }
-[data-theme="brand"] .feed-wish--local.is-pending .feed-wish__body { color: var(--brand-muted); }
-[data-theme="brand"] .feed-wish--local.is-error .feed-wish__status { color: var(--brand-danger); }
-[data-theme="brand"] .feed-wish__actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-3); }
-
 /* Photo dialog (QA P1-1): a modal <dialog> that is itself the ink scrim, holding a white panel. */
 [data-theme="brand"] .gal-dialog-backdrop { position: fixed; inset: 0; z-index: 1000; box-sizing: border-box; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; padding: var(--space-4); border: 0; background: color-mix(in srgb, var(--brand-ink) 75%, transparent); color: inherit; }
 [data-theme="brand"] .gal-dialog-backdrop[open] { display: flex; align-items: center; justify-content: center; }
 [data-theme="brand"] .gal-dialog-backdrop::backdrop { background: transparent; }
 [data-theme="brand"] .gal-dialog { position: relative; display: flex; flex-direction: column; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; border-radius: var(--brand-radius); background: var(--brand-white); color: var(--brand-fg); }
 [data-theme="brand"] .gal-dialog-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); }
-[data-theme="brand"] .gal-dialog-time { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--brand-blue); }
+[data-theme="brand"] .gal-dialog-time { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--brand-blue); }
 [data-theme="brand"] .gal-dialog-img { display: block; width: 100%; height: auto; background: var(--brand-ink); }
 
 /* Guest print request in the photo dialog (#74, experimental) */
@@ -81,9 +44,4 @@
 
 @media (prefers-reduced-motion: reduce) {
   [data-theme="brand"] .feed-new__button { transition: none; }
-}
-
-@media (max-width: 960px) {
-  [data-theme="brand"] .feed-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-1); }
-  [data-theme="brand"] .feed-tile { border-radius: var(--brand-radius-sm); }
 }

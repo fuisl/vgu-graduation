@@ -7,7 +7,6 @@ import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } fro
 import { Cta, PaperPlanePixel } from "@grad/ui";
 import type { MessageKeys, SliceTranslator } from "../../../lib/i18n/format";
 import { cameraProblem } from "./locket-logic";
-import type { Access } from "./use-access";
 import "./camera.css";
 
 type T = SliceTranslator<MessageKeys<"camera.">>;
@@ -65,21 +64,26 @@ async function squareFromFile(file: File, canvas: HTMLCanvasElement): Promise<Bl
 }
 
 /**
- * The locket camera (#149, camera-first redesign): a square live viewfinder that opens on
- * entry, a big shutter, flip, then Retake or Send. Sending hands the capture to the outbox
- * (`onSend`) and the camera is ready again at once. The stream stops whenever the tab is
- * hidden or the page unmounts, so the camera light goes off with it.
+ * The camera (#149, camera-first redesign; on /wall's "Take a photo" mode since ADR-019): a
+ * square live viewfinder, a big shutter, flip and the photo library, then Retake or Send.
+ * Sending hands the capture to the outbox (`onSend`) and the camera is ready again at once.
+ * Anyone may shoot: there is no invitation gate. The stream stops whenever the tab is hidden
+ * or the component unmounts, so the camera light goes off with it.
  */
 export function CameraPanel({
   t,
-  access,
+  ready,
   shotsRemaining,
   onSend,
+  describedBy,
 }: {
   t: T;
-  access: Access;
+  /** False while the page still asks /api/me: the controls show (no layout shift) but the camera waits. */
+  ready: boolean;
   shotsRemaining: number | null;
   onSend: (blob: Blob) => void;
+  /** The id of the consent notice shown with the composer, read with Send. */
+  describedBy?: string;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -98,9 +102,7 @@ export function CameraPanel({
   const [still, setStill] = useState<Still | null>(null);
   const [note, setNote] = useState("");
 
-  const signedOut = access === "signed-out";
-  // While /api/me answers, the controls show (no layout shift) but the camera waits.
-  const mayShoot = access === "signed-in" || access === "unknown";
+  const mayShoot = ready;
   const rollEmpty = shotsRemaining === 0;
   const reviewing = still !== null;
 
@@ -233,7 +235,7 @@ export function CameraPanel({
 
   const mirrored = facingMode === "user" && !reviewing;
   const blocked = camera === "denied" || camera === "none" || camera === "busy";
-  const showShutter = !signedOut && !rollEmpty && !blocked && !reviewing;
+  const showShutter = !rollEmpty && !blocked && !reviewing;
 
   // The phone's own camera app and the photo library: the way in when the browser camera is not.
   const fallback = (primary: "camera" | "retry") => (
@@ -261,15 +263,7 @@ export function CameraPanel({
 
         {reviewing ? <img src={still.url} alt={t("camera.reviewAlt")} className="cam-still" /> : null}
 
-        {signedOut ? (
-          <div className="cam-message">
-            <p className="cam-message__title">{t("camera.signedOut.title")}</p>
-            <p className="cam-message__body">{t("camera.signedOut.body")}</p>
-            <div className="cam-actions">
-              <Cta tone="on-blue" href="/me">{t("camera.signedOut.link")}</Cta>
-            </div>
-          </div>
-        ) : rollEmpty && !reviewing ? (
+        {rollEmpty && !reviewing ? (
           <div className="cam-message">
             <p className="cam-message__title">{t("camera.empty")}</p>
             <p className="cam-message__body">{t("camera.emptyBody")}</p>
@@ -298,13 +292,18 @@ export function CameraPanel({
       </div>
 
       {reviewing ? (
-        <div className="cam-controls cam-controls--review" ref={reviewRef} role="group" aria-label={t("camera.review")} onKeyDown={onReviewKeyDown}>
+        <div className="cam-controls cam-controls--review" ref={reviewRef} role="group" aria-label={t("camera.review")} aria-describedby={describedBy} onKeyDown={onReviewKeyDown}>
           <Cta tone="on-blue" variant="secondary" onClick={retake}>{t("camera.retake")}</Cta>
           <Cta tone="on-blue" onClick={send} icon={<PaperPlanePixel />}>{t("camera.send")}</Cta>
         </div>
       ) : showShutter ? (
         <div className="cam-controls">
-          <p className="cam-count">{shotsRemaining === null ? null : t.plural("camera.shots", shotsRemaining)}</p>
+          <div className="cam-side cam-side--start">
+            <button type="button" className="cam-flip" onClick={() => libraryInputRef.current?.click()} aria-label={t("camera.libraryLabel")}>
+              {t("camera.library")}
+            </button>
+            {shotsRemaining === null ? null : <p className="cam-count">{t.plural("camera.shots", shotsRemaining)}</p>}
+          </div>
           <button
             ref={shutterRef}
             type="button"
@@ -331,7 +330,6 @@ export function CameraPanel({
       ) : null}
 
       {note ? <p className="cam-note" role="alert">{note}</p> : null}
-      {signedOut ? null : <p className="cam-public">{t("camera.public")}</p>}
 
       <canvas ref={canvasRef} hidden />
       <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" hidden onChange={(event) => void onFile(event)} />

@@ -31,6 +31,9 @@ export function uploadFailure(problem: UploadProblem): UploadFailure {
       return { message: "camera.error.tooLarge", keep: false };
     case 415:
       return { message: "camera.error.unsupported", keep: false };
+    case 429:
+      // The public wall's rate limit (ADR-019): the same photo goes through in a few minutes.
+      return { message: "camera.error.tooMany", keep: true };
     case 503:
       return { message: "camera.error.busy", keep: true };
     default:

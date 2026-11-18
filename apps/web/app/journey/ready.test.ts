@@ -47,7 +47,7 @@ describe("placeholders never render", () => {
   it("shows only the chapters whose story is written, numbered from 01, in both languages", () => {
     for (const locale of ["en", "vi"] as const) {
       const ready = readyEntries(resolveEntries(JOURNEY_ENTRIES, createI18n(locale).t));
-      expect(ready.map((entry) => entry.file)).toEqual(["01_presto.jpg", "02_career_fair.jpg", "03_germany.jpg"]);
+      expect(ready.map((entry) => entry.file)).toEqual(["01_presto.jpg", "02_career_fair.jpg", "03_germany.jpg", "04_friend_group.jpg", "05_study.jpg"]);
       for (const entry of ready) expect(entry.photos).toHaveLength(4);
     }
   });

@@ -51,7 +51,7 @@ describe("/", () => {
     expect(out).toContain("the-journey/");
     expect(out).not.toContain("start-here/");
     const files = [...out.matchAll(/class="journey-row__file"[^>]*>([^<]+)</g)].map((m) => m[1]);
-    expect(files).toEqual(["01_presto.jpg", "02_career_fair.jpg", "03_germany.jpg"]);
+    expect(files).toEqual(["01_presto.jpg", "02_career_fair.jpg", "03_germany.jpg", "04_friend_group.jpg", "05_study.jpg"]);
     expect(out).not.toMatch(/to come/i);
     expect(out.indexOf("home-title")).toBeLessThan(out.indexOf("home-journey"));
   });

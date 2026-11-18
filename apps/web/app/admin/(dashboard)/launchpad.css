@@ -1,0 +1,16 @@
+/*
+ * Overview launchpad: the admin's existing patterns (mono uppercase labels, cards, outline buttons). Tokens only,
+ * no new colours or motion. Kept beside the page so admin.css stays untouched.
+ */
+.admin .admin-launchpad{margin:0 0 var(--space-7)}
+.admin .admin-launchpad h3{margin:var(--space-6) 0 var(--space-3);color:var(--muted);font-family:var(--font-mono);font-size:var(--text-xs);font-weight:400;letter-spacing:.04em;text-transform:uppercase}
+.admin-launchpad .admin-item{display:grid;align-content:start}
+.admin-launchpad__url{overflow-wrap:anywhere}
+.admin-launchpad__qr{display:grid;gap:var(--space-2);max-width:14rem;margin:var(--space-3) 0 0}
+.admin-launchpad__qr svg{display:block;width:100%;height:auto}
+.admin-launchpad__steps{margin:0;padding:0;list-style:none}
+.admin-launchpad__steps summary{min-height:44px;display:flex;align-items:center;font-weight:600;cursor:pointer}
+.admin-launchpad__steps p{max-width:var(--content);margin:0}
+@media print{
+  .admin-launchpad__qr{max-width:none;width:8cm}
+}

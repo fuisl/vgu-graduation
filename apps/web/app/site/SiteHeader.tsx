@@ -34,8 +34,9 @@ function Essentials({i18n, variant}: {i18n: I18n; variant: EssentialsVariant}) {
 /**
  * Shared brand header (#145), the menubar: the single home of what every page needs (owner
  * brief, 2026-10). Desktop, left to right: the "F" mark (home); one pill group with the event
- * essentials (date and venue, linking to /venue), Camera and Wishes; then EN | VI, text size and
- * the guest chip (the guest's own entry, /me). Mobile: the mark, a one-tap Camera link and Menu,
+ * essentials (date and venue, linking to /venue), Wall and Camera (the Wall's photo mode, ADR-019);
+ * then EN | VI, text size and the guest chip (the guest's own entry, /me). Mobile: the mark, a
+ * one-tap Wall link and Menu,
  * which opens a sheet holding the same items. Server component; the sheet, chip, language and
  * text-size controls are the only client code. Render inside <BrandTheme>. Desktop and mobile
  * variants are both in the DOM and CSS hides the one that does not apply (display:none, so it
@@ -48,7 +49,8 @@ export function SiteHeader({i18n, current, action}: Props) {
   const links = siteNavLinks(i18n);
   const language = <LanguageSwitch locale={locale} label={t("lang.label")} />;
   const textSize = <TextSizeControl variant="compact" messages={pickMessages(locale, "textSize.")} />;
-  const camera = links.find((item) => item.key === SITE_NAV[0]?.key) ?? links[0];
+  // The one link beside Menu on phones: the Wall, the primary destination (ADR-019).
+  const quick = links.find((item) => item.key === SITE_NAV[0]?.key) ?? links[0];
   return (
     <>
       <SkipLink label={t("shell.skipToContent")} />
@@ -85,7 +87,7 @@ export function SiteHeader({i18n, current, action}: Props) {
             textSize={textSize}
             essentials={<Essentials i18n={i18n} variant="sheet" />}
             links={links}
-            quick={camera}
+            quick={quick}
             labels={{
               menu: t("header.menu"),
               close: t("header.closeMenu"),

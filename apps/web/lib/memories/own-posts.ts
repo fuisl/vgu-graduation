@@ -21,12 +21,21 @@ export type OwnPost =
       preview: string | null;
       createdAt: string;
       savedAt: number;
+      /**
+       * `pending`: posted without an invitation on the public wall, so it waits for an organizer's
+       * approval (ADR-019) and the live feed does not carry it until then.
+       */
+      review?: "pending";
     };
 
 const KEY = "grad26.own-posts";
 /** Long enough for any processing backlog on the day; after that the feed is the only source. */
 export const OWN_POST_TTL_MS = 10 * 60_000;
+/** A photo waiting for approval stays on this tab longer: organizers review in batches. */
+export const OWN_POST_REVIEW_TTL_MS = 12 * 60 * 60_000;
 const MAX_POSTS = 12;
+
+const ttlOf = (p: OwnPost) => (p.kind === "photo" && p.review === "pending" ? OWN_POST_REVIEW_TTL_MS : OWN_POST_TTL_MS);
 
 type Storage = Pick<globalThis.Storage, "getItem" | "setItem">;
 
@@ -43,7 +52,9 @@ function isOwnPost(v: unknown): v is OwnPost {
   const p = v as Record<string, unknown>;
   if (typeof p.createdAt !== "string" || typeof p.savedAt !== "number") return false;
   if (p.kind === "wish") return typeof p.id === "string" && typeof p.authorName === "string" && typeof p.body === "string";
-  if (p.kind === "photo") return typeof p.publicId === "string" && (p.preview === null || typeof p.preview === "string");
+  if (p.kind === "photo") {
+    return typeof p.publicId === "string" && (p.preview === null || typeof p.preview === "string") && (p.review === undefined || p.review === "pending");
+  }
   return false;
 }
 
@@ -53,7 +64,7 @@ export function readOwnPosts(now: number = Date.now(), store: Storage | null = s
   try {
     const raw: unknown = JSON.parse(store.getItem(KEY) ?? "[]");
     if (!Array.isArray(raw)) return [];
-    return raw.filter(isOwnPost).filter((p) => now - p.savedAt < OWN_POST_TTL_MS);
+    return raw.filter(isOwnPost).filter((p) => now - p.savedAt < ttlOf(p));
   } catch {
     return [];
   }
@@ -99,7 +110,8 @@ export function ownPostKey(post: OwnPost): string {
 /**
  * Adds the guest's own posts the gallery doesn't list yet, newest first.
  * - A photo shows with its local preview and `pending: "developing"` until the
- *   processed photo arrives from the feed.
+ *   processed photo arrives from the feed, or `pending: "waiting"` while it
+ *   waits for an organizer's approval (public wall, ADR-019).
  * - A wish is visible the moment it is posted, so it is only bridged until the
  *   feed's first snapshot (`synced`); after that the feed decides, and a wish a
  *   moderator hid is never brought back from here.
@@ -128,7 +140,7 @@ export function mergeOwnPosts(
         audience: "everyone",
         content: post.preview,
         timestamp: post.createdAt,
-        pending: "developing",
+        pending: post.review === "pending" ? "waiting" : "developing",
       });
     }
   }

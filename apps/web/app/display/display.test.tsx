@@ -8,7 +8,7 @@ const props = {
   eventName: "VGU Graduation 2026",
   eventDate: "Saturday, 24 October 2026",
   wishesQrSvg: '<svg viewBox="0 0 10 10"></svg>',
-  wishesLink: "grad26.fuisloy.dev/wishes",
+  wishesLink: "grad26.fuisloy.dev/wall",
   liveLink: "grad26.fuisloy.dev/live",
   captions: "auto" as const,
   messages: pickMessages("en", "display."),
@@ -22,8 +22,8 @@ describe("DisplayScreen (server render, before the feed connects)", () => {
     expect(out).toContain("display-empty__title\">VGU Graduation 2026");
     expect(out).toContain("Saturday, 24 October 2026");
     expect(out).toContain("Share your wishes");
-    expect(out).toContain('aria-label="Leave a wish at grad26.fuisloy.dev/wishes"');
-    expect(out).toContain('href="/wishes"');
+    expect(out).toContain('aria-label="Leave a wish at grad26.fuisloy.dev/wall"');
+    expect(out).toContain('href="/wall"');
   });
 
   it("has no site header and one h1", () => {

@@ -50,7 +50,7 @@ export default async function MemoriesPage() {
           <div className="mem-hero">
             <h1 id="memories-title" className="mem-title">{t("memories.title")}</h1>
             {nothingCurated ? (
-              <Cta tone="on-blue" href="/gallery">{t("memories.openGallery")}</Cta>
+              <Cta tone="on-blue" href="/wall?show=photos">{t("memories.openGallery")}</Cta>
             ) : (
               <Cta tone="on-blue" href="/memories/timeline">{t("memories.walkTimeline")}</Cta>
             )}

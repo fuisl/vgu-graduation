@@ -15,7 +15,7 @@ vi.mock("next/font/google", () => ({ Inter_Tight: () => ({ variable: "inter" }) 
 const { getLocale } = await import("../lib/i18n/server");
 const { default: HomePage } = await import("./page");
 const { default: VenuePage } = await import("./venue/page");
-const { default: WishesPage } = await import("./(memories)/wishes/page");
+const { default: WallPage } = await import("./(memories)/wall/page");
 const { default: RootLayout } = await import("./layout");
 
 describe("pages in Vietnamese", () => {
@@ -39,8 +39,11 @@ describe("pages in Vietnamese", () => {
     expect(out).not.toContain("Start here");
   });
 
-  it("renders the wishes composer in Vietnamese", async () => {
-    expect(html(await WishesPage())).toContain("Gửi lời chúc đến khóa tốt nghiệp");
+  it("renders the wall and its wish composer in Vietnamese", async () => {
+    const out = html(await WallPage({}));
+    expect(out).toContain(">Bảng kỷ niệm</h1>");
+    expect(out).toContain(">Viết lời chúc<");
+    expect(out).toContain("kho lưu trữ bốn năm");
   });
 
   it("shows the Vietnamese error state when the API is down", async () => {

@@ -44,9 +44,9 @@ export default async function Home() {
       href: "/venue",
       description: event && date ? t("landing.entry.venue.when", { date, venue: event.venue.name }) : t("landing.entry.venue.description"),
     },
-    // /gallery opens the shared camera first.
-    { id: "camera", href: "/gallery", description: t("landing.entry.camera.description") },
-    { id: "wishes", href: "/wishes", description: t("landing.entry.wishes.description") },
+    // The Wall (ADR-019): its photo mode opens the camera, its default mode writes a wish.
+    { id: "camera", href: "/wall?mode=photo", description: t("landing.entry.camera.description") },
+    { id: "wishes", href: "/wall", description: t("landing.entry.wishes.description") },
   ];
 
   return (

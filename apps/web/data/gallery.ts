@@ -14,9 +14,11 @@ export interface GalleryItem {
   publicId?: string;
   /**
    * The guest's own photo, shown from its local preview while the API still
-   * processes it (ADR-014); `content` is then a data URL. Absent for listed items.
+   * processes it (ADR-014), or while it waits for an organizer's approval
+   * (`waiting`: posted without an invitation on the public wall, ADR-019);
+   * `content` is then a data URL. Absent for listed items.
    */
-  pending?: "developing";
+  pending?: "developing" | "waiting";
 }
 
 export function buildGalleryItems(

@@ -50,8 +50,8 @@ describe("/", () => {
     expect(entries(out)).toEqual([
       ["/me", "My invitation", "Reply, and keep your pass for the day."],
       ["/venue", "Venue and calendar", "Friday 20 November · Ceremony Hall"],
-      ["/gallery", "Open camera", "Take photos for the shared gallery."],
-      ["/wishes", "Wishes", "Leave a few words for the graduates."],
+      ["/wall?mode=photo", "Open camera", "Take photos for the shared gallery."],
+      ["/wall", "Wishes", "Leave a few words for the graduates."],
     ]);
   });
 

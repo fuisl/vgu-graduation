@@ -9,6 +9,7 @@ describe("uploadFailure (QA P1-2)", () => {
     }
     expect(uploadFailure("offline").message).toBe("camera.error.offline");
     expect(uploadFailure(503).message).toBe("camera.error.busy");
+    expect(uploadFailure(429)).toEqual({ message: "camera.error.tooMany", keep: true });
   });
 
   it("drops it when the same photo or invitation will be refused again", () => {

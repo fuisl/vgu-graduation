@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { GalleryItem } from "../../data/gallery";
-import { OWN_POST_TTL_MS, forgetOwnPosts, mergeOwnPosts, readOwnPosts, rememberOwnPost, type OwnPost } from "./own-posts";
+import { OWN_POST_REVIEW_TTL_MS, OWN_POST_TTL_MS, forgetOwnPosts, mergeOwnPosts, readOwnPosts, rememberOwnPost, type OwnPost } from "./own-posts";
 
 function memoryStore() {
   const data = new Map<string, string>();
@@ -40,6 +40,27 @@ describe("own posts", () => {
     const after = mergeOwnPosts([arrived, listed], [ownPhoto], true);
     expect(after.items).toEqual([arrived, listed]);
     expect(after.seen).toEqual(["photo:p1"]);
+  });
+
+  it("keeps a photo waiting for approval as `waiting`, for longer, until an organizer approves it (ADR-019)", () => {
+    const waiting: OwnPost = { kind: "photo", publicId: "p2", preview: "data:image/jpeg;base64,BBBB", createdAt: iso(30), savedAt: T, review: "pending" };
+    const store = memoryStore();
+    rememberOwnPost(waiting, store);
+    rememberOwnPost(ownPhoto, store);
+    // The plain "developing" copy expires with the usual TTL; the waiting one stays.
+    expect(readOwnPosts(T + OWN_POST_TTL_MS, store).map((p) => (p.kind === "photo" ? p.publicId : ""))).toEqual(["p2"]);
+    expect(readOwnPosts(T + OWN_POST_REVIEW_TTL_MS, store)).toEqual([]);
+
+    const { items } = mergeOwnPosts([listed], [waiting], true);
+    expect(items[0]).toMatchObject({ id: "photo-p2", pending: "waiting" });
+    const approved: GalleryItem = { id: "photo-p2", type: "POLAROID", sender: null, audience: "everyone", content: "https://api/y", timestamp: iso(30), publicId: "p2" };
+    expect(mergeOwnPosts([approved], [waiting], true)).toEqual({ items: [approved], seen: ["photo:p2"] });
+  });
+
+  it("ignores a stored photo with an unknown review state", () => {
+    const store = memoryStore();
+    store.setItem("grad26.own-posts", JSON.stringify([{ ...ownPhoto, review: "approved" }]));
+    expect(readOwnPosts(T, store)).toEqual([]);
   });
 
   it("bridges an own wish only until the feed's first snapshot, so a takedown is never undone", () => {

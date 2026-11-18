@@ -77,7 +77,7 @@ export default async function TimelinePage() {
           ) : chapters.length === 0 ? (
             <div className="tl-empty">
               <p className="arc-state">{t("timeline.empty")}</p>
-              <Cta tone="on-white" variant="secondary" href="/gallery">{t("memories.openGallery")}</Cta>
+              <Cta tone="on-white" variant="secondary" href="/wall?show=photos">{t("memories.openGallery")}</Cta>
             </div>
           ) : (
             <>

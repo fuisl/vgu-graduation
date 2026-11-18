@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { loadConfig } from "../../config.js";
 import { buildServer } from "../../server.js";
 import { approvedTester } from "../admin/admin-accounts.fake.js";
-import { SlidingWindowLimiter } from "../mail/rate-limit.js";
+import { SlidingWindowLimiter } from "../../rate-limit/sliding-window.js";
 import type { JoinRoutesOptions } from "./join.routes.js";
 import type { RegisterOutcome } from "./join.service.js";
 

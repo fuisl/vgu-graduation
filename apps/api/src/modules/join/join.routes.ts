@@ -16,7 +16,7 @@ import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { requireAdmin } from "../admin/admin-auth.js";
-import { SlidingWindowLimiter } from "../mail/rate-limit.js";
+import { SlidingWindowLimiter } from "../../rate-limit/sliding-window.js";
 import { JoinService } from "./join.service.js";
 
 export interface JoinRoutesOptions {

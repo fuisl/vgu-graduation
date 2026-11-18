@@ -138,6 +138,41 @@ describe("MediaRepository (real Postgres)", () => {
     expect(storage.objects.has(`grad-derivatives/${photo.publicId}-display.jpg`)).toBe(true);
   });
 
+  it("holds an anonymous photo pending review: no invitation, no roll, unlisted until approved (ADR-019)", async () => {
+    const { invitationId: _drop, ...photo } = newPhoto();
+    expect(await repo.createPendingWithJob(photo)).toEqual({ status: "ok", publicId: photo.publicId, shotsUsed: 0 });
+    const { rows } = await pool!.query("SELECT invitation_id, processing_status, moderation_status FROM photos");
+    expect(rows).toEqual([{ invitation_id: null, processing_status: "pending", moderation_status: "pending" }]);
+    const { rows: jobs } = await pool!.query("SELECT type, payload FROM jobs");
+    expect(jobs).toEqual([{ type: DERIVE_JOB, payload: { photoId: photo.id } }]);
+    expect(await repo.countShots(invitationId)).toBe(0);
+    expect(await repo.countPendingReview()).toBe(1);
+
+    // Processed but still waiting: admins can preview, nobody else sees it.
+    await repo.markReady(photo.id, 800, 600);
+    expect(await repo.findForDerivation(photo.id)).toMatchObject({ processingStatus: "ready", moderationStatus: "pending" });
+    expect(await repo.listGallery(10)).toEqual([]);
+    expect(await repo.isServable(photo.publicId)).toBe(false);
+    expect(await repo.isProcessed(photo.publicId)).toBe(true);
+    expect(await repo.findForPrint(photo.publicId)).toMatchObject({ printable: false });
+    const queue = await repo.listForAdmin({ limit: 10, status: "pending" });
+    expect(queue).toEqual([expect.objectContaining({ publicId: photo.publicId, status: "pending", invitationId: null })]);
+
+    // Approval: visible, audited, listed and servable.
+    expect(await repo.moderate(photo.publicId, "visible", "tester")).toEqual({ status: "visible", isPublic: false, changed: true });
+    expect((await repo.listGallery(10)).map((p) => p.publicId)).toEqual([photo.publicId]);
+    expect(await repo.isServable(photo.publicId)).toBe(true);
+    expect(await repo.countPendingReview()).toBe(0);
+    const { rows: audits } = await pool!.query("SELECT action, metadata FROM audit");
+    expect(audits).toEqual([{ action: "photo.moderate", metadata: { from: "pending", to: "visible" } }]);
+  });
+
+  it("refuses an unknown moderation state at the database", async () => {
+    const photo = newPhoto();
+    await repo.createWithJob(photo, 36);
+    await expect(pool!.query("UPDATE photos SET moderation_status = 'approved'")).rejects.toThrow(/photos_moderation_status_check/);
+  });
+
   it("marks a photo failed", async () => {
     const photo = newPhoto();
     await repo.createWithJob(photo, 36);

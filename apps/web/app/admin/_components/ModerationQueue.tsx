@@ -2,7 +2,14 @@
 
 /* eslint-disable @next/next/no-img-element -- previews stream through the admin proxy; next/image would cache them */
 
-import type { AdminMediaItem, AdminMediaResponse, AdminWish, AdminWishesResponse, ModerationStatus } from "@grad/contract";
+import type {
+  AdminMediaItem,
+  AdminMediaResponse,
+  AdminWish,
+  AdminWishesResponse,
+  ModerationStatus,
+  PhotoModerationStatus,
+} from "@grad/contract";
 import { useCallback, useRef, type KeyboardEvent, type ReactNode } from "react";
 import { DEFAULT_EVENT_TIME_ZONE, formatAdminDateTime } from "../../../lib/admin/datetime";
 import {
@@ -81,7 +88,8 @@ function ModerationButtons({
   busy,
   onSelect,
 }: {
-  status: ModerationStatus;
+  /** A `pending` photo (ADR-019) has no button pressed: Show approves it. */
+  status: PhotoModerationStatus;
   busy: boolean;
   onSelect: (status: ModerationStatus) => void;
 }) {
@@ -253,7 +261,13 @@ export function PhotoQueue({ filter, initial }: { filter: QueueFilter; initial: 
                   {canPrint(item) ? <PrintRequest publicId={item.publicId} /> : null}
                 </div>
                 <p className="admin-hint">
-                  Invitation <code title={item.invitationId}>{item.invitationId.slice(0, 8)}</code>
+                  {item.invitationId ? (
+                    <>
+                      Invitation <code title={item.invitationId}>{item.invitationId.slice(0, 8)}</code>
+                    </>
+                  ) : (
+                    "No invitation"
+                  )}
                 </p>
                 <ItemError message={queue.errors[item.publicId]} />
               </div>

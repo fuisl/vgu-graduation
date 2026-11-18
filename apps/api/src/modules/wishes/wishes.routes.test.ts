@@ -9,6 +9,7 @@ import {
 import { SignJWT } from "jose";
 import { describe, expect, it } from "vitest";
 import { loadConfig } from "../../config.js";
+import { SlidingWindowLimiter } from "../../rate-limit/sliding-window.js";
 import { buildServer } from "../../server.js";
 import { approvedTester } from "../admin/admin-accounts.fake.js";
 import type { ResolveResult } from "../invitations/invitations.service.js";
@@ -33,7 +34,7 @@ const invitation = {
 
 /** Real WishesService over an in-memory store. */
 function setup(resolve: (token: string) => ResolveResult = (t) => (t === TOKEN ? { status: "ok", invitation } : { status: "invalid" })) {
-  const store: (StoredWish & { invitationId: string })[] = [];
+  const store: (StoredWish & { invitationId: string | null })[] = [];
   const moderations: [string, string, string][] = [];
   const service = new WishesService(
     { resolveByToken: async (token) => resolve(token) },
@@ -93,21 +94,113 @@ async function adminAuth() {
   return { authorization: `Bearer ${token}` };
 }
 
-function server(service = setup().service) {
-  return buildServer({ adminAccounts: approvedTester(), config, wishesService: service });
+function server(service = setup().service, anonymousLimiter?: SlidingWindowLimiter) {
+  return buildServer({ adminAccounts: approvedTester(), config, wishesService: service, wishesAnonymousLimiter: anonymousLimiter });
 }
 
-describe("POST /wishes", () => {
-  it("returns 401 with no credential", async () => {
-    const res = await server().inject({ method: "POST", url: "/wishes", payload: { body: "Hi" } });
-    expect(res.statusCode).toBe(401);
+const rejectedBody = { error: "Unprocessable Entity", message: "This message can't be posted. Please rephrase it." };
+
+describe("POST /wishes without an invitation (ADR-019)", () => {
+  it("posts an anonymous wish, visible at once and stored with no invitation", async () => {
+    const { service, store } = setup();
+    const app = server(service);
+    const res = await app.inject({ method: "POST", url: "/wishes", payload: { body: " Congrats! ", authorName: "  Aunt Mai " } });
+    expect(res.statusCode).toBe(201);
+    expect(res.headers["cache-control"]).toBe("no-store");
+    expect(createWishResponseSchema.parse(res.json())).toMatchObject({ authorName: "Aunt Mai", body: "Congrats!" });
+    expect(store[0]).toMatchObject({ invitationId: null, moderationStatus: "visible" });
+    const listed = await app.inject({ method: "GET", url: "/wishes" });
+    expect(listed.json().items.map((w: { body: string }) => w.body)).toEqual(["Congrats!"]);
   });
 
-  it("returns 404 for an unknown token and 410 for an expired invitation", async () => {
-    const bad = await server().inject({ method: "POST", url: "/wishes", headers: { authorization: "Bearer nope" }, payload: { body: "Hi" } });
-    expect(bad.statusCode).toBe(404);
-    const expired = await server(setup(() => ({ status: "expired" })).service).inject({ method: "POST", url: "/wishes", headers: auth, payload: { body: "Hi" } });
-    expect(expired.statusCode).toBe(410);
+  it("requires an author name of 1 to 60 characters", async () => {
+    const app = server();
+    for (const payload of [{ body: "Hi" }, { body: "Hi", authorName: "   " }, { body: "Hi", authorName: "x".repeat(61) }]) {
+      const res = await app.inject({ method: "POST", url: "/wishes", payload });
+      expect(res.statusCode, JSON.stringify(payload)).toBe(400);
+      expect(res.json()).toMatchObject({ error: "Bad Request" });
+    }
+    expect((await app.inject({ method: "POST", url: "/wishes", payload: { body: "Hi", authorName: "x".repeat(60) } })).statusCode).toBe(201);
+  });
+
+  it("treats an unknown, revoked or expired credential as none instead of refusing", async () => {
+    const { service, store } = setup();
+    const bad = await server(service).inject({
+      method: "POST",
+      url: "/wishes",
+      headers: { authorization: "Bearer nope" },
+      payload: { body: "Hi", authorName: "Bao" },
+    });
+    expect(bad.statusCode).toBe(201);
+    expect(store[0]).toMatchObject({ invitationId: null, authorName: "Bao" });
+
+    const expired = server(setup(() => ({ status: "expired" })).service);
+    const stale = await expired.inject({ method: "POST", url: "/wishes", headers: { cookie: "inv=old" }, payload: { body: "Hi", authorName: "Bao" } });
+    expect(stale.statusCode).toBe(201);
+    // Without an invitation the name has to come from the form.
+    const nameless = await expired.inject({ method: "POST", url: "/wishes", headers: { cookie: "inv=old" }, payload: { body: "Hi" } });
+    expect(nameless.statusCode).toBe(400);
+  });
+
+  it("limits anonymous wishes per client IP with Retry-After, separately per IP", async () => {
+    let now = 0;
+    const limiter = new SlidingWindowLimiter(5, 10 * 60 * 1000, () => now);
+    const app = server(setup().service, limiter);
+    const post = (remoteAddress: string) =>
+      app.inject({ method: "POST", url: "/wishes", remoteAddress, payload: { body: "Congrats", authorName: "Bao" } });
+    for (let i = 0; i < 5; i++) expect((await post("203.0.113.9")).statusCode).toBe(201);
+    now = 4 * 60 * 1000;
+    const res = await post("203.0.113.9");
+    expect(res.statusCode).toBe(429);
+    expect(res.headers["retry-after"]).toBe(String(6 * 60));
+    expect(res.json()).toMatchObject({ error: "Too Many Requests" });
+    expect((await post("198.51.100.4")).statusCode).toBe(201);
+    // An invited guest behind the same address keeps their own limit.
+    const invited = await app.inject({ method: "POST", url: "/wishes", remoteAddress: "203.0.113.9", headers: auth, payload: { body: "Hi" } });
+    expect(invited.statusCode).toBe(201);
+  });
+
+  it("refuses blocked words in the body or the name, and links, with 422", async () => {
+    const { service, store } = setup();
+    const app = server(service);
+    for (const payload of [
+      { body: "what the fuck", authorName: "Bao" },
+      { body: "Congrats", authorName: "shit" },
+      { body: "Địt mẹ", authorName: "Bao" },
+      { body: "cheap pills https://spam.example", authorName: "Bao" },
+    ]) {
+      const res = await app.inject({ method: "POST", url: "/wishes", payload });
+      expect(res.statusCode, payload.body).toBe(422);
+      expect(res.json()).toEqual(rejectedBody);
+    }
+    expect(store).toHaveLength(0);
+  });
+
+  it("never logs the wish text or the author name", async () => {
+    const lines: string[] = [];
+    const app = buildServer({
+      adminAccounts: approvedTester(),
+      config: { ...config, logLevel: "info" },
+      wishesService: setup().service,
+      logStream: { write: (line: string) => void lines.push(line) },
+    });
+    await app.inject({ method: "POST", url: "/wishes", payload: { body: "secret-wish-text", authorName: "Private Person" } });
+    await app.inject({ method: "POST", url: "/wishes", payload: { body: "fuck secret-rejected-text", authorName: "Private Person" } });
+    const output = lines.join("\n");
+    expect(output).not.toContain("secret-wish-text");
+    expect(output).not.toContain("secret-rejected-text");
+    expect(output).not.toContain("Private Person");
+  });
+});
+
+describe("POST /wishes", () => {
+  it("refuses blocked words from invited guests too, but lets them share links", async () => {
+    const app = server();
+    const bad = await app.inject({ method: "POST", url: "/wishes", headers: auth, payload: { body: "bullshit" } });
+    expect(bad.statusCode).toBe(422);
+    expect(bad.json()).toEqual(rejectedBody);
+    const link = await app.inject({ method: "POST", url: "/wishes", headers: auth, payload: { body: "Album: https://photos.example/x" } });
+    expect(link.statusCode).toBe(201);
   });
 
   it("rejects empty and over-long bodies", async () => {

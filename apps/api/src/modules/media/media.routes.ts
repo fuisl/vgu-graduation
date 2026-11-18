@@ -1,9 +1,11 @@
 import fastifyMultipart from "@fastify/multipart";
 import {
+  adminMediaPendingCountResponseSchema,
   adminMediaQuerySchema,
   adminMediaResponseSchema,
   errorResponseSchema,
   galleryResponseSchema,
+  MEDIA_ANONYMOUS_UPLOAD_LIMIT,
   MEDIA_MAX_UPLOAD_BYTES,
   mediaVariantParamsSchema,
   moderateMediaResponseSchema,
@@ -18,6 +20,7 @@ import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { invitationToken } from "../../auth/credentials.js";
+import { SlidingWindowLimiter } from "../../rate-limit/sliding-window.js";
 import { StorageUnavailableError } from "../../storage/object-store.js";
 import { requireAdmin } from "../admin/admin-auth.js";
 import { MediaService } from "./media.service.js";
@@ -35,7 +38,10 @@ export interface MediaRoutesOptions {
     | "setPublic"
     | "listForAdmin"
     | "openDerivativeForAdmin"
+    | "countPendingReview"
   >;
+  /** Per-client-IP limiter on uploads without an invitation; defaults to `MEDIA_ANONYMOUS_UPLOAD_LIMIT` in memory. */
+  anonymousLimiter?: SlidingWindowLimiter;
 }
 
 /** Seconds a guest is asked to wait before retrying when Garage is down. */
@@ -76,6 +82,9 @@ function storageUnavailable(
  */
 export const mediaRoutes: FastifyPluginAsync<MediaRoutesOptions> = async (fastify, options) => {
   const service = options.service ?? new MediaService();
+  const anonymousLimiter =
+    options.anonymousLimiter ??
+    new SlidingWindowLimiter(MEDIA_ANONYMOUS_UPLOAD_LIMIT.max, MEDIA_ANONYMOUS_UPLOAD_LIMIT.windowMs);
 
   // Registered inside this plugin, so multipart bodies are accepted on media routes only.
   // The 25 MB cap is enforced here while streaming, not by Traefik.
@@ -89,6 +98,8 @@ export const mediaRoutes: FastifyPluginAsync<MediaRoutesOptions> = async (fastif
   /**
    * POST /media: one image as multipart/form-data, streamed into grad-originals.
    * The type is sniffed from the bytes; the declared type and file name are ignored.
+   * With a valid invitation credential the photo shows once processed; without
+   * one (or with a stale one) it waits `pending` for an admin (ADR-019).
    */
   app.post(
     "/media",
@@ -97,12 +108,10 @@ export const mediaRoutes: FastifyPluginAsync<MediaRoutesOptions> = async (fastif
         response: {
           201: uploadMediaResponseSchema,
           400: errorResponseSchema,
-          401: errorResponseSchema,
-          404: errorResponseSchema,
           409: errorResponseSchema,
-          410: errorResponseSchema,
           413: errorResponseSchema,
           415: errorResponseSchema,
+          429: errorResponseSchema,
           503: errorResponseSchema,
         },
       },
@@ -110,24 +119,27 @@ export const mediaRoutes: FastifyPluginAsync<MediaRoutesOptions> = async (fastif
     async (request, reply) => {
       reply.header("Cache-Control", "no-store");
       const token = invitationToken(request);
-      if (!token) {
-        return reply.status(401).send({
-          error: "Unauthorized",
-          message: "Missing invitation bearer token or session cookie",
-        });
-      }
-
-      const uploader = await service.authorizeUpload(token);
-      switch (uploader.status) {
-        case "expired":
-          return reply.status(410).send({ error: "Gone", message: "This invitation has expired" });
-        case "invalid":
-          return reply.status(404).send({ error: "Not Found", message: "Invalid or revoked invitation" });
-        case "roll_finished":
+      let invitationId: string | null = null;
+      if (token) {
+        const uploader = await service.authorizeUpload(token);
+        if (uploader.status === "roll_finished") {
           return reply
             .header("Connection", "close")
             .status(409)
             .send({ error: "Conflict", message: "All shots on this invitation's roll have been used" });
+        }
+        // "invalid" and "expired": a stale cookie must never block posting, so carry on as anonymous.
+        if (uploader.status === "ok") invitationId = uploader.invitationId;
+      }
+
+      // Checked before any bytes are read, so a flood costs headers, not 25 MB each.
+      const ip = request.ip;
+      if (invitationId === null && !anonymousLimiter.take(ip)) {
+        return reply
+          .header("Connection", "close")
+          .header("Retry-After", String(anonymousLimiter.retryAfterSeconds(ip)))
+          .status(429)
+          .send({ error: "Too Many Requests", message: "Too many photos from this connection, try again later" });
       }
 
       if (!request.isMultipart()) {
@@ -141,12 +153,15 @@ export const mediaRoutes: FastifyPluginAsync<MediaRoutesOptions> = async (fastif
       }
 
       try {
-        const result = await service.upload(uploader.invitationId, part.file);
+        const result = await service.upload(invitationId, part.file);
         // After a rejected upload the rest of the body is unread: don't reuse the connection.
         if (result.status !== "ok") reply.header("Connection", "close");
         switch (result.status) {
           case "ok":
-            request.log.info({ publicId: result.photo.publicId }, "photo uploaded");
+            request.log.info(
+              { publicId: result.photo.publicId, reviewStatus: result.photo.reviewStatus },
+              "photo uploaded",
+            );
             return reply.status(201).send(result.photo);
           case "roll_finished":
             return reply
@@ -167,6 +182,8 @@ export const mediaRoutes: FastifyPluginAsync<MediaRoutesOptions> = async (fastif
         }
       } catch (err) {
         if (err instanceof StorageUnavailableError) {
+          // Our outage, not the sender's: don't spend their anonymous allowance.
+          if (invitationId === null) anonymousLimiter.refund(ip);
           reply.header("Connection", "close");
           return storageUnavailable(
             request,
@@ -339,6 +356,21 @@ export const mediaRoutes: FastifyPluginAsync<MediaRoutesOptions> = async (fastif
           request.log.info({ publicId: result.photo.publicId, isPublic: result.photo.isPublic }, "photo public flag set");
           return reply.status(200).send(result.photo);
       }
+    },
+  );
+
+  /** GET /admin/media/pending-count (ADR-019): photos waiting for approval, for the admin's badge. */
+  app.get(
+    "/admin/media/pending-count",
+    {
+      preHandler: requireAdmin,
+      schema: {
+        response: { 200: adminMediaPendingCountResponseSchema, 401: errorResponseSchema, 403: errorResponseSchema },
+      },
+    },
+    async (_request, reply) => {
+      reply.header("Cache-Control", "no-store");
+      return reply.status(200).send({ pending: await service.countPendingReview() });
     },
   );
 

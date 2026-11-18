@@ -1,0 +1,29 @@
+meta {
+  name: Create Anonymous Wish
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{apiOrigin}}/wishes
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "body": "Congratulations from a friend!",
+    "authorName": "A friend"
+  }
+}
+
+docs {
+  Wish from someone without an invitation (ADR-019): no credential, so
+  `authorName` (1 to 60 characters) is required. Visible at once. Five per
+  client IP per 10 minutes, then 429 with Retry-After. Blocked words, or a
+  link, answer 422.
+}

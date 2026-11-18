@@ -44,7 +44,8 @@ const columns = {
 };
 
 export class WishesRepository {
-  async create(invitationId: string, authorName: string, body: string): Promise<StoredWish> {
+  /** `invitationId` is null for a wish from someone without an invitation (ADR-019). */
+  async create(invitationId: string | null, authorName: string, body: string): Promise<StoredWish> {
     const [row] = await db.insert(wishes).values({ invitationId, authorName, body }).returning(columns);
     return row;
   }

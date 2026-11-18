@@ -128,4 +128,27 @@ describe("display feed (real Postgres)", () => {
     const caught = await feed.catchUp(new Date(Date.now() - 60_000));
     expect(caught.messages).toContainEqual({ type: "hidden", kind: "photo", id: "pub-ready" });
   });
+
+  it("keeps an anonymous photo off screen while pending and shows it on approval (ADR-019)", async (ctx) => {
+    if (!admin) return ctx.skip();
+    const sent: LiveDisplayMessage[] = [];
+    const feed = new DisplayFeedClass(repo, { broadcast: (m) => void sent.push(m) }, { error: vi.fn() });
+    await feed.poll();
+    sent.length = 0;
+
+    await pool!.query(
+      `INSERT INTO photos (public_id, invitation_id, original_key, content_type, size_bytes, moderation_status, processing_status, width, height)
+       VALUES ('pub-anon', NULL, 'pub-anon', 'image/jpeg', 1000, 'pending', 'ready', 640, 480)`,
+    );
+    await feed.poll();
+    expect(sent.some((m) => m.type === "photo")).toBe(false);
+    expect((await repo.snapshot(100)).some((m) => m.type === "photo" && m.photo.publicId === "pub-anon")).toBe(false);
+
+    await pool!.query("UPDATE photos SET moderation_status = 'visible' WHERE public_id = 'pub-anon'");
+    await feed.poll();
+    expect(sent).toContainEqual({
+      type: "photo",
+      photo: expect.objectContaining({ publicId: "pub-anon", width: 640, height: 480 }),
+    });
+  });
 });

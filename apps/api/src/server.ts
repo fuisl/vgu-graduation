@@ -44,6 +44,9 @@ export const LOG_REDACT_PATHS = [
   // Guest email addresses (ADR-012): mail code logs ids and statuses only; this catches a slip.
   "*.email",
   "email",
+  // Wish author names, anonymous ones included (ADR-019): never logged; this catches a slip.
+  "*.authorName",
+  "authorName",
 ];
 
 export interface BuildServerOptions {
@@ -62,6 +65,10 @@ export interface BuildServerOptions {
   rsvpService?: RsvpRoutesOptions["service"];
   /** Override for tests; defaults to the database-backed service. */
   wishesService?: WishesRoutesOptions["service"];
+  /** Override for tests: the per-IP limiter on anonymous wishes (ADR-019). */
+  wishesAnonymousLimiter?: WishesRoutesOptions["anonymousLimiter"];
+  /** Override for tests: the per-IP limiter on anonymous photo uploads (ADR-019). */
+  mediaAnonymousLimiter?: MediaRoutesOptions["anonymousLimiter"];
   /** Override for tests; defaults to the database-backed service. */
   printService?: PrintRoutesOptions["service"];
   /** Override for tests; defaults to the database-backed service. */
@@ -78,10 +85,22 @@ export interface BuildServerOptions {
   logStream?: { write(line: string): void };
 }
 
+/**
+ * Fastify's `trustProxy` from `config.trustProxy`. A hop count becomes the
+ * function Fastify itself builds for one (trust the nearest N addresses), since
+ * its types don't accept a number.
+ */
+function trustProxyOption(value: Config["trustProxy"]): boolean | string[] | ((address: string, hop: number) => boolean) {
+  if (typeof value !== "number") return value;
+  return (_address, hop) => hop < value;
+}
+
 export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
   const config = options.config ?? defaultConfig;
 
   const app = Fastify({
+    // Behind Traefik, so `request.ip` is the real client for per-IP rate limits (ADR-019).
+    trustProxy: trustProxyOption(config.trustProxy),
     logger: {
       level: config.logLevel,
       redact: LOG_REDACT_PATHS,
@@ -143,8 +162,8 @@ export function buildServer(options: BuildServerOptions = {}): FastifyInstance {
     invitationsService: options.invitationsService,
     signer: options.passSigner,
   });
-  app.register(wishesRoutes, { service: options.wishesService });
-  app.register(mediaRoutes, { service: options.mediaService });
+  app.register(wishesRoutes, { service: options.wishesService, anonymousLimiter: options.wishesAnonymousLimiter });
+  app.register(mediaRoutes, { service: options.mediaService, anonymousLimiter: options.mediaAnonymousLimiter });
   app.register(liveRoutes, { config, invitationsService: options.invitationsService, ...options.live });
   app.register(printRoutes, { config, service: options.printService });
   app.register(guideRoutes, { service: options.guideService });

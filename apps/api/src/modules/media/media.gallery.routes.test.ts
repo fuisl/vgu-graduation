@@ -2,6 +2,7 @@ import {
   adminMediaResponseSchema,
   galleryResponseSchema,
   type ModerationStatus,
+  type PhotoModerationStatus,
   publicGalleryResponseSchema,
   setMediaPublicResponseSchema,
 } from "@grad/contract";
@@ -36,7 +37,8 @@ interface FakePhoto {
   id: string;
   publicId: string;
   processing: "pending" | "ready" | "failed";
-  moderation: ModerationStatus;
+  moderation: PhotoModerationStatus;
+  invitationId?: string | null;
   isPublic: boolean;
   createdAt: Date;
 }
@@ -60,6 +62,10 @@ function setup(resolve: (t: string) => ResolveResult = (t) => (t === TOKEN ? { s
     {
       countShots: async () => 0,
       createWithJob: async () => ({ status: "roll_finished" }),
+      createPendingWithJob: async () => {
+        throw new Error("not used");
+      },
+      countPendingReview: async () => photos.filter((p) => p.moderation === "pending").length,
       listGallery: async (limit, cursor, options) =>
         page(listable().filter((p) => !options?.publicOnly || p.isPublic), limit, cursor).map((p) => ({
           publicId: p.publicId,
@@ -85,7 +91,7 @@ function setup(resolve: (t: string) => ResolveResult = (t) => (t === TOKEN ? { s
           status: p.moderation,
           processingStatus: p.processing,
           isPublic: p.isPublic,
-          invitationId: invitation.id,
+          invitationId: p.invitationId === undefined ? invitation.id : p.invitationId,
         })),
       isServable: async (publicId) => listable().some((p) => p.publicId === publicId),
       isProcessed: async (publicId) => photos.some((p) => p.publicId === publicId && p.processing === "ready"),
@@ -285,6 +291,43 @@ describe("POST /admin/media/:id/moderate", () => {
     ]);
   });
 
+  it("keeps a pending photo out of the gallery and serving until approved, then shows it (ADR-019)", async () => {
+    const { service, add, audits } = setup();
+    const photo = add(1, { moderation: "pending", invitationId: null });
+    const app = server(service);
+    const admin = { authorization: `Bearer ${await adminToken()}` };
+    const listed = async () =>
+      (await app.inject({ method: "GET", url: "/gallery" })).json().items.map((i: { publicId: string }) => i.publicId);
+
+    expect(await listed()).not.toContain(photo.publicId);
+    expect((await app.inject({ method: "GET", url: `/media/${photo.publicId}/display` })).statusCode).toBe(404);
+    // Admins can preview it while it waits.
+    expect((await app.inject({ method: "GET", url: `/admin/media/${photo.publicId}/thumb`, headers: admin })).statusCode).toBe(200);
+
+    const approved = await app.inject({
+      method: "POST",
+      url: `/admin/media/${photo.publicId}/moderate`,
+      payload: { status: "visible" },
+      headers: admin,
+    });
+    expect(approved.json()).toEqual({ publicId: photo.publicId, status: "visible", isPublic: false, revalidateTags: ["gallery"] });
+    expect(await listed()).toContain(photo.publicId);
+    expect((await app.inject({ method: "GET", url: `/media/${photo.publicId}/display` })).statusCode).toBe(200);
+    expect(audits).toEqual([["tester", photo.publicId, "visible"]]);
+  });
+
+  it("rejects a pending photo by hiding or removing it, and never moves anything back to pending", async () => {
+    const { service, add } = setup();
+    const photo = add(1, { moderation: "pending", invitationId: null });
+    const app = server(service);
+    const headers = { authorization: `Bearer ${await adminToken()}` };
+    const url = `/admin/media/${photo.publicId}/moderate`;
+    expect((await app.inject({ method: "POST", url, payload: { status: "pending" }, headers })).statusCode).toBe(400);
+    const res = await app.inject({ method: "POST", url, payload: { status: "removed" }, headers });
+    expect(res.json()).toMatchObject({ status: "removed" });
+    expect((await app.inject({ method: "GET", url: `/media/${photo.publicId}/thumb` })).statusCode).toBe(404);
+  });
+
   it("answers 404 for an unknown photo and 400 for an unknown status", async () => {
     const { service, add } = setup();
     const photo = add(1);
@@ -424,7 +467,28 @@ describe("GET /admin/media (moderation queue, #64)", () => {
     expect(pending.items).toHaveLength(1);
     const flagged = (await app.inject({ method: "GET", url: "/admin/media?isPublic=true", headers })).json();
     expect(flagged.items.map((i: { status: string }) => i.status)).toEqual(["removed"]);
-    expect((await app.inject({ method: "GET", url: "/admin/media?status=pending", headers })).statusCode).toBe(400);
+    expect((await app.inject({ method: "GET", url: "/admin/media?status=approved", headers })).statusCode).toBe(400);
+  });
+
+  it("filters photos awaiting review and counts them for the badge (ADR-019)", async () => {
+    const { service, add } = setup();
+    add(1);
+    const waiting = add(2, { moderation: "pending", invitationId: null });
+    add(3, { moderation: "pending", invitationId: null, processing: "pending" });
+    const app = server(service);
+    expect((await app.inject({ method: "GET", url: "/admin/media/pending-count" })).statusCode).toBe(401);
+    const headers = { authorization: `Bearer ${await adminToken()}` };
+
+    const res = await app.inject({ method: "GET", url: "/admin/media?status=pending", headers });
+    expect(res.statusCode).toBe(200);
+    const items = adminMediaResponseSchema.parse(res.json()).items;
+    expect(items.map((i) => i.status)).toEqual(["pending", "pending"]);
+    expect(items[1]).toMatchObject({ publicId: waiting.publicId, invitationId: null });
+
+    const count = await app.inject({ method: "GET", url: "/admin/media/pending-count", headers });
+    expect(count.statusCode).toBe(200);
+    expect(count.headers["cache-control"]).toBe("no-store");
+    expect(count.json()).toEqual({ pending: 2 });
   });
 
   it("previews a hidden photo for admins while the public route keeps refusing it", async () => {

@@ -1,4 +1,4 @@
-import type { AdminMediaQuery, AdminWishesQuery, ModerationStatus } from "@grad/contract";
+import type { AdminMediaQuery, AdminWishesQuery, ModerationStatus, PhotoModerationStatus } from "@grad/contract";
 
 /*
  * The moderation queue (#64, #75). There is no approval step (owner decision
@@ -87,7 +87,8 @@ export const MODERATION_ACTIONS: { status: ModerationStatus; label: string; done
   { status: "removed", label: "Remove", done: "removed", key: "r" },
 ];
 
-export const STATUS_LABEL: Record<ModerationStatus, string> = {
+export const STATUS_LABEL: Record<PhotoModerationStatus, string> = {
+  pending: "Awaiting review",
   visible: "Visible",
   hidden: "Hidden",
   removed: "Removed",
@@ -119,7 +120,8 @@ export function queueKeyCommand(event: {
 
 /** Fields an optimistic change touches, so a rollback restores exactly these. */
 export interface ModerationFields {
-  status: ModerationStatus;
+  /** Photos may also be `pending` (awaiting review, ADR-019); the actions never set it. */
+  status: PhotoModerationStatus;
   isPublic: boolean;
 }
 
@@ -129,7 +131,7 @@ export function canFlagPublic(item: ModerationFields & { processingStatus?: stri
 }
 
 /** Whether "Print" is offered: the API only prints visible, processed photos. */
-export function canPrint(item: { status: ModerationStatus; processingStatus: string }): boolean {
+export function canPrint(item: { status: PhotoModerationStatus; processingStatus: string }): boolean {
   return item.status === "visible" && item.processingStatus === "ready";
 }
 

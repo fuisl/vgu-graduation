@@ -7,7 +7,6 @@ import { RsvpService } from "../rsvp/rsvp.service.js";
 import { MailService } from "./mail.service.js";
 import { mailErrorCode } from "./mailer.js";
 import { fakeMailer } from "./mailer.fake.js";
-import { SlidingWindowLimiter } from "./rate-limit.js";
 import {
   RSVP_CONFIRMATION_DELAY_MS,
   RSVP_CONFIRMATION_JOB,
@@ -132,21 +131,6 @@ describe("mailErrorCode", () => {
     expect(mailErrorCode(Object.assign(new Error("550 guest@example.com unknown"), { code: "EENVELOPE" }))).toBe("EENVELOPE");
     expect(mailErrorCode(new Error("550 guest@example.com unknown"))).toBe("SEND_FAILED");
     expect(mailErrorCode({ code: "guest@example.com" })).toBe("SEND_FAILED");
-  });
-});
-
-describe("SlidingWindowLimiter", () => {
-  it("allows the limit per window, then frees up as hits age out, and refunds", () => {
-    let now = 0;
-    const limiter = new SlidingWindowLimiter(2, 1000, () => now);
-    expect(limiter.take("a")).toBe(true);
-    expect(limiter.take("a")).toBe(true);
-    expect(limiter.take("a")).toBe(false);
-    expect(limiter.take("b")).toBe(true);
-    limiter.refund("a");
-    expect(limiter.take("a")).toBe(true);
-    now = 1000;
-    expect(limiter.take("a")).toBe(true);
   });
 });
 

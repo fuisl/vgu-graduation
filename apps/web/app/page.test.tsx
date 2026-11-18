@@ -45,25 +45,22 @@ describe("/", () => {
     expect(main(out)).not.toContain("[");
   });
 
-  it("shows start-here/ instead of the journey while no entry is ready", async () => {
+  it("shows the-journey/ with the ready chapters, numbered from 01, instead of start-here/", async () => {
     const out = main(await render());
-    expect(out).toMatch(/<section aria-labelledby="home-explore"[^>]*brand-section--white/);
-    expect(out).toMatch(/<h2 id="home-explore"[^>]*>start-here\/<\/h2>/);
-    expect(out).not.toContain("home-journey");
-    expect(out).not.toContain("the-journey/");
-    expect(out).not.toContain("01_the_film.mp4");
+    expect(out).toContain("home-journey");
+    expect(out).toContain("the-journey/");
+    expect(out).not.toContain("start-here/");
+    const files = [...out.matchAll(/class="journey-row__file"[^>]*>([^<]+)</g)].map((m) => m[1]);
+    expect(files).toEqual(["01_presto.jpg", "02_career_fair.jpg", "03_germany.jpg"]);
     expect(out).not.toMatch(/to come/i);
-    const links = [...out.matchAll(/<a class="journey-row" href="([^"]+)"/g)].map((m) => m[1]);
-    expect(links).toEqual(["/wall", "/guide", "/venue", "/live", "/ascii-live"]);
-    expect(out).toContain("The Wall");
-    expect(out.indexOf("home-title")).toBeLessThan(out.indexOf("home-explore"));
+    expect(out.indexOf("home-title")).toBeLessThan(out.indexOf("home-journey"));
   });
 
   it("keeps the band when the API is down", async () => {
     event.mockResolvedValue(error);
     const out = main(await render());
-    expect(out).toContain("start-here/");
-    expect(out).toContain('href="/ascii-live"');
+    expect(out).toContain("the-journey/");
+    expect(out).toContain("01_presto.jpg");
   });
 
   it("leaves the facts and teasers to the menubar and their own pages", async () => {
@@ -71,7 +68,6 @@ describe("/", () => {
     expect(out).not.toContain("VGU Campus, Binh Duong");
     expect(out).not.toContain("webcal");
     expect(out).not.toContain('role="timer"');
-    expect(out).not.toContain("<img");
     expect(gallery).not.toHaveBeenCalled();
     expect(wishes).not.toHaveBeenCalled();
   });
@@ -84,8 +80,8 @@ describe("/", () => {
     }));
     const { default: VietnameseHome } = await import("./page");
     const out = main(html(await VietnameseHome()));
-    expect(out).toContain("start-here/");
-    expect(out).toContain("Phụ đề trực tiếp");
+    expect(out).toContain("the-journey/");
+    expect(out).toContain("Ngày hội việc làm");
     expect(out).not.toContain("[");
     vi.doUnmock("next/headers");
   });

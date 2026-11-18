@@ -29,7 +29,7 @@ describe("pages in Vietnamese", () => {
 
   it("renders header, page and footer copy in Vietnamese, with VI marked current", async () => {
     const out = html(await HomePage());
-    expect(out).toContain("Phụ đề trực tiếp");
+    expect(out).toContain("Ngày hội việc làm");
     expect(out).toContain(">Máy ảnh<");
     expect(out).toContain(">Bảng kỷ niệm<");
     expect(out).toContain(">Thư mời<");

@@ -163,4 +163,4 @@ Once a guest has said they are attending, the guest portal (`/me`) has a "Share 
 
 ### Photos
 
-The owner's originals live in `photos/<CHAPTER>/` at the repository root, which git ignores. The published copies are in `apps/web/public/journey/<chapter>/01.jpg` to `04.jpg`: auto-rotated, at most 2048px on the long side, sRGB JPEG at quality 80, with every metadata block removed (EXIF, including GPS, XMP and IPTC). A folder's `headline` image is photo 1, which is also the row thumbnail; the rest follow by date.
+The owner's originals live in `photos/<CHAPTER>/` at the repository root, which git ignores. The published copies are in `apps/web/public/journey/<chapter>/01-<hash>.jpg` to `04-<hash>.jpg` (the first 8 characters of the file's SHA-256, so a recrop gets a new URL past the image cache): cropped by hand to 16:9 so every photo fills the plate (the crop keeps what the photo is about: faces, a banner, a landmark), at most 1920px wide and never enlarged, sRGB JPEG at quality 82, with every metadata block removed (EXIF, including GPS, XMP and IPTC). A folder's `headline` image is photo 1, which is also the row thumbnail; the rest follow by date.

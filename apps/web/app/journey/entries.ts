@@ -5,10 +5,12 @@ import type { MessageId } from "../../lib/i18n/messages/en";
  * "What the owner fills in"). Words live in lib/i18n/messages/en.ts and vi.ts, under the keys named here.
  *
  * - Photos and posters: put the file in apps/web/public/journey/ and write its path, "/journey/my-photo.jpg".
+ *   Journey photos carry a content hash ("01-1a2b3c4d.jpg") so a recrop gets a new URL past the image cache.
  *   Next.js resizes them for phones. Never a remote or stock image.
  * - Leave a path empty ("") and the guest sees a quiet labelled plate instead.
  * - Add or remove a chapter by adding or removing a block below, plus its keys in en.ts and vi.ts.
- * - A chapter shows at most four photos. Filenames stay plain ASCII in both languages.
+ * - A chapter shows at most four photos. Filenames stay plain ASCII in both languages, without a number:
+ *   the page numbers the rows it shows from 01 (view.ts, numberedFile).
  */
 
 /** One photo in a chapter. */
@@ -51,7 +53,7 @@ export type JourneyEntry = JourneyFilm | JourneyChapter;
 export const JOURNEY_ENTRIES: JourneyEntry[] = [
   {
     kind: "video",
-    file: "01_the_film.mp4",
+    file: "the_film.mp4",
     titleKey: "landing.journey.film.title",
     dateKey: "landing.journey.film.date",
     storyKey: "landing.journey.film.story",
@@ -64,67 +66,67 @@ export const JOURNEY_ENTRIES: JourneyEntry[] = [
   },
   {
     kind: "photos",
-    file: "02_presto.jpg",
+    file: "presto.jpg",
     titleKey: "landing.journey.presto.title",
     dateKey: "landing.journey.presto.date",
     storyKey: "landing.journey.presto.story",
     photos: [
-      { src: "/journey/presto/01.jpg", altKey: "landing.journey.presto.photo1" },
-      { src: "/journey/presto/02.jpg", altKey: "landing.journey.presto.photo2" },
-      { src: "/journey/presto/03.jpg", altKey: "landing.journey.presto.photo3" },
-      { src: "/journey/presto/04.jpg", altKey: "landing.journey.presto.photo4" },
+      { src: "/journey/presto/01-f9899090.jpg", altKey: "landing.journey.presto.photo1" },
+      { src: "/journey/presto/02-28647d54.jpg", altKey: "landing.journey.presto.photo2" },
+      { src: "/journey/presto/03-1c792f02.jpg", altKey: "landing.journey.presto.photo3" },
+      { src: "/journey/presto/04-1c094d46.jpg", altKey: "landing.journey.presto.photo4" },
     ],
   },
   {
     kind: "photos",
-    file: "03_career_fair.jpg",
+    file: "career_fair.jpg",
     titleKey: "landing.journey.careerFair.title",
     dateKey: "landing.journey.careerFair.date",
     storyKey: "landing.journey.careerFair.story",
     photos: [
-      { src: "/journey/career-fair/01.jpg", altKey: "landing.journey.careerFair.photo1" },
-      { src: "/journey/career-fair/02.jpg", altKey: "landing.journey.careerFair.photo2" },
-      { src: "/journey/career-fair/03.jpg", altKey: "landing.journey.careerFair.photo3" },
-      { src: "/journey/career-fair/04.jpg", altKey: "landing.journey.careerFair.photo4" },
+      { src: "/journey/career-fair/01-d3497754.jpg", altKey: "landing.journey.careerFair.photo1" },
+      { src: "/journey/career-fair/02-d4639b1c.jpg", altKey: "landing.journey.careerFair.photo2" },
+      { src: "/journey/career-fair/03-49b079e5.jpg", altKey: "landing.journey.careerFair.photo3" },
+      { src: "/journey/career-fair/04-ea2c05e3.jpg", altKey: "landing.journey.careerFair.photo4" },
     ],
   },
   {
     kind: "photos",
-    file: "04_germany.jpg",
+    file: "germany.jpg",
     titleKey: "landing.journey.germany.title",
     dateKey: "landing.journey.germany.date",
     storyKey: "landing.journey.germany.story",
     photos: [
-      { src: "/journey/germany/01.jpg", altKey: "landing.journey.germany.photo1" },
-      { src: "/journey/germany/02.jpg", altKey: "landing.journey.germany.photo2" },
-      { src: "/journey/germany/03.jpg", altKey: "landing.journey.germany.photo3" },
-      { src: "/journey/germany/04.jpg", altKey: "landing.journey.germany.photo4" },
+      { src: "/journey/germany/01-276c31fc.jpg", altKey: "landing.journey.germany.photo1" },
+      { src: "/journey/germany/02-978a3c79.jpg", altKey: "landing.journey.germany.photo2" },
+      { src: "/journey/germany/03-99ea5c42.jpg", altKey: "landing.journey.germany.photo3" },
+      { src: "/journey/germany/04-1e0844c5.jpg", altKey: "landing.journey.germany.photo4" },
     ],
   },
   {
     kind: "photos",
-    file: "05_friend_group.jpg",
+    file: "friend_group.jpg",
     titleKey: "landing.journey.friends.title",
     dateKey: "landing.journey.friends.date",
     storyKey: "landing.journey.friends.story",
     photos: [
-      { src: "/journey/friends/01.jpg", altKey: "landing.journey.friends.photo1" },
-      { src: "/journey/friends/02.jpg", altKey: "landing.journey.friends.photo2" },
-      { src: "/journey/friends/03.jpg", altKey: "landing.journey.friends.photo3" },
-      { src: "/journey/friends/04.jpg", altKey: "landing.journey.friends.photo4" },
+      { src: "/journey/friends/01-4384e087.jpg", altKey: "landing.journey.friends.photo1" },
+      { src: "/journey/friends/02-fd0fc211.jpg", altKey: "landing.journey.friends.photo2" },
+      { src: "/journey/friends/03-cc6611a6.jpg", altKey: "landing.journey.friends.photo3" },
+      { src: "/journey/friends/04-cc135ff5.jpg", altKey: "landing.journey.friends.photo4" },
     ],
   },
   {
     kind: "photos",
-    file: "06_study.jpg",
+    file: "study.jpg",
     titleKey: "landing.journey.study.title",
     dateKey: "landing.journey.study.date",
     storyKey: "landing.journey.study.story",
     photos: [
-      { src: "/journey/study/01.jpg", altKey: "landing.journey.study.photo1" },
-      { src: "/journey/study/02.jpg", altKey: "landing.journey.study.photo2" },
-      { src: "/journey/study/03.jpg", altKey: "landing.journey.study.photo3" },
-      { src: "/journey/study/04.jpg", altKey: "landing.journey.study.photo4" },
+      { src: "/journey/study/01-f4101de5.jpg", altKey: "landing.journey.study.photo1" },
+      { src: "/journey/study/02-d7066a47.jpg", altKey: "landing.journey.study.photo2" },
+      { src: "/journey/study/03-eec62832.jpg", altKey: "landing.journey.study.photo3" },
+      { src: "/journey/study/04-81442cc2.jpg", altKey: "landing.journey.study.photo4" },
     ],
   },
 ];

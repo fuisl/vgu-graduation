@@ -3,10 +3,10 @@ import { createI18n } from "../../lib/i18n/dictionary";
 import { en } from "../../lib/i18n/messages/en";
 import { vi } from "../../lib/i18n/messages/vi";
 import { JOURNEY_ENTRIES } from "./entries";
-import { isPlaceholder, readyEntries, resolveEntries, type JourneyEntryView } from "./view";
+import { isPlaceholder, numberedFile, readyEntries, resolveEntries, type JourneyEntryView } from "./view";
 
 const film: JourneyEntryView = {
-  file: "01_the_film.mp4",
+  file: "the_film.mp4",
   title: "The film",
   date: "4 min · English and Vietnamese captions",
   story: "Four years in four minutes.",
@@ -16,7 +16,7 @@ const film: JourneyEntryView = {
 };
 
 const chapter: JourneyEntryView = {
-  file: "02_first_year.jpg",
+  file: "first_year.jpg",
   title: "First year",
   date: "2022, Binh Duong",
   story: "We met.",
@@ -44,13 +44,22 @@ describe("placeholders never render", () => {
     expect(isPlaceholder(vi["landing.lead"])).toBe(true);
   });
 
-  it("has nothing ready in the shipped data, in either language", () => {
-    expect(readyEntries(resolveEntries(JOURNEY_ENTRIES, createI18n("en").t))).toEqual([]);
-    expect(readyEntries(resolveEntries(JOURNEY_ENTRIES, createI18n("vi").t))).toEqual([]);
+  it("shows only the chapters whose story is written, numbered from 01, in both languages", () => {
+    for (const locale of ["en", "vi"] as const) {
+      const ready = readyEntries(resolveEntries(JOURNEY_ENTRIES, createI18n(locale).t));
+      expect(ready.map((entry) => entry.file)).toEqual(["01_presto.jpg", "02_career_fair.jpg", "03_germany.jpg"]);
+      for (const entry of ready) expect(entry.photos).toHaveLength(4);
+    }
+  });
+
+  it("numbers rows in the order guests see them", () => {
+    expect(numberedFile(0, "presto.jpg")).toBe("01_presto.jpg");
+    expect(numberedFile(9, "study.jpg")).toBe("10_study.jpg");
+    expect(readyEntries([{ ...film, video: { ...film.video!, src: "" } }, chapter]).map((entry) => entry.file)).toEqual(["01_first_year.jpg"]);
   });
 
   it("keeps a film once its words and video exist", () => {
-    expect(readyEntries([film])).toEqual([film]);
+    expect(readyEntries([film])).toEqual([{ ...film, file: "01_the_film.mp4" }]);
     expect(readyEntries([{ ...film, video: { ...film.video!, src: "" } }])).toEqual([]);
     expect(readyEntries([{ ...film, video: { ...film.video!, label: "[What the film is.]" } }])).toEqual([]);
     expect(readyEntries([{ ...film, date: "[Length] · captions" }])).toEqual([]);
@@ -61,7 +70,7 @@ describe("placeholders never render", () => {
     expect(ready?.photos).toEqual([{ src: "/journey/b.jpg", alt: "The dorm" }]);
     expect(ready?.thumb).toBe("/journey/b.jpg");
     expect(readyEntries([{ ...chapter, photos: [{ src: "", alt: "Empty" }] }])).toEqual([]);
-    expect(readyEntries([{ ...chapter, file: "02_[first_year].jpg" }])).toEqual([]);
+    expect(readyEntries([{ ...chapter, file: "[first_year].jpg" }])).toEqual([]);
     expect(readyEntries([{ ...chapter, story: "" }])).toEqual([]);
   });
 });

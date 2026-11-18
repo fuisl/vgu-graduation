@@ -52,12 +52,12 @@ describe("selection", () => {
 describe("the entries data", () => {
   it("lists the film, then five chapters of four photos each", () => {
     expect(JOURNEY_ENTRIES.map((entry) => entry.file)).toEqual([
-      "01_the_film.mp4",
-      "02_presto.jpg",
-      "03_career_fair.jpg",
-      "04_germany.jpg",
-      "05_friend_group.jpg",
-      "06_study.jpg",
+      "the_film.mp4",
+      "presto.jpg",
+      "career_fair.jpg",
+      "germany.jpg",
+      "friend_group.jpg",
+      "study.jpg",
     ]);
     expect(JOURNEY_ENTRIES.map((entry) => (entry.kind === "photos" ? entry.photos.length : 0))).toEqual([0, 4, 4, 4, 4, 4]);
   });
@@ -104,7 +104,7 @@ describe("the i18n keys", () => {
   it("renders Vietnamese text, keeping the filenames", () => {
     const out = list(resolveEntries(JOURNEY_ENTRIES, createI18n("vi").t), "vi");
     expect(out).toContain("Bộ phim");
-    expect(out).toContain("01_the_film.mp4");
+    expect(out).toContain("the_film.mp4");
     expect(out).toContain("Tiếp theo");
     expect(out).not.toContain("Film to come");
   });

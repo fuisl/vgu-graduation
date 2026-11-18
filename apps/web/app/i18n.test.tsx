@@ -31,7 +31,7 @@ describe("pages in Vietnamese", () => {
     const out = html(await HomePage());
     expect(out).toContain("Phụ đề trực tiếp");
     expect(out).toContain(">Máy ảnh<");
-    expect(out).toContain(">Lời chúc<");
+    expect(out).toContain(">Bảng kỷ niệm<");
     expect(out).toContain(">Thư mời<");
     expect(out).toContain("Lễ tốt nghiệp VGU · Khóa 2026");
     expect(out).toMatch(/<button[^>]*value="vi"[^>]*lang="vi"[^>]*aria-label="VI, Tiếng Việt"[^>]*aria-current="true"/);

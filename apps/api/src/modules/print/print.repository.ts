@@ -1,4 +1,4 @@
-import type { AdminPrintJobsQuery, PrintJobStatus } from "@grad/contract";
+import type { AdminPrintJobsQuery, PrintJobStatus, PrintOptions } from "@grad/contract";
 import { and, count, desc, eq, gte, type SQL, sql } from "drizzle-orm";
 import { recordAudit } from "../../audit/audit.js";
 import { db, pool } from "../../db/index.js";
@@ -12,6 +12,8 @@ export interface StoredPrintJob {
   requestedByAdmin: string | null;
   attempts: number;
   error: string | null;
+  /** Admin-chosen print options; null for the daemon's defaults. */
+  options: PrintOptions | null;
   leaseExpiresAt: Date | null;
   completedAt: Date | null;
   createdAt: Date;
@@ -21,6 +23,8 @@ export interface StoredPrintJob {
 export interface NewPrintJob {
   photoId: string;
   copies: number;
+  /** Admin requests only; stored as given (already validated by the contract). */
+  options?: PrintOptions;
   /** Exactly one of these: the admin handle, or the guest's invitation. */
   requestedByAdmin?: string;
   requestedByInvitationId?: string;
@@ -55,6 +59,7 @@ const columns = {
   requestedByAdmin: printJobs.requestedByAdmin,
   attempts: printJobs.attempts,
   error: printJobs.error,
+  options: printJobs.options,
   leaseExpiresAt: printJobs.leaseExpiresAt,
   completedAt: printJobs.completedAt,
   createdAt: printJobs.createdAt,
@@ -136,6 +141,7 @@ export class PrintRepository {
         .values({
           photoId: job.photoId,
           copies: job.copies,
+          options: job.options ?? null,
           requestedByAdmin: job.requestedByAdmin ?? null,
           requestedByInvitationId: job.requestedByInvitationId ?? null,
         })
@@ -149,6 +155,7 @@ export class PrintRepository {
           photoId: job.photoId,
           copies: job.copies,
           requestedBy: job.requestedByAdmin ? "admin" : "guest",
+          ...(job.options ? { options: job.options } : {}),
           ...(job.requestedByInvitationId ? { invitationId: job.requestedByInvitationId } : {}),
         },
       });

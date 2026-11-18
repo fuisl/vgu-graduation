@@ -16,6 +16,7 @@ const stored: StoredPrintJob = {
   requestedByAdmin: null,
   attempts: 0,
   error: null,
+  options: null,
   leaseExpiresAt: null,
   completedAt: null,
   createdAt: NOW,
@@ -66,6 +67,25 @@ describe("PrintService.create", () => {
     const result = await service.create({ kind: "admin", handle: "tester" }, { photoPublicId: "pub/1", copies: 3 });
     expect(result).toMatchObject({ status: "ok", job: { id: JOB_ID, createdAt: NOW.toISOString() } });
     expect(repo.create).toHaveBeenCalledWith({ photoId: "photo-row", copies: 3, requestedByAdmin: "tester" }, "tester");
+  });
+
+  it("stores an admin's print options, dropping an empty caption and empty option sets", async () => {
+    const { service, repo } = setup();
+    await service.create(
+      { kind: "admin", handle: "tester" },
+      { photoPublicId: "pub/1", copies: 1, options: { layout: "boarding", ascii: true, caption: "Class of 2026" } },
+    );
+    await service.create({ kind: "admin", handle: "tester" }, { photoPublicId: "pub/1", copies: 1, options: { caption: "" } });
+    expect(repo.create.mock.calls.map((call) => (call as unknown[])[0])).toEqual([
+      { photoId: "photo-row", copies: 1, options: { layout: "boarding", ascii: true, caption: "Class of 2026" }, requestedByAdmin: "tester" },
+      { photoId: "photo-row", copies: 1, requestedByAdmin: "tester" },
+    ]);
+  });
+
+  it("ignores print options from guests: they always get the defaults", async () => {
+    const { service, repo } = setup();
+    await service.create({ kind: "guest", token: "t" }, { photoPublicId: "pub/1", copies: 1, options: { layout: "strip", caption: "hi" } });
+    expect((repo.create.mock.calls[0] as unknown[])[0]).toEqual({ photoId: "photo-row", copies: 1, requestedByInvitationId: INVITATION_ID });
   });
 
   it("refuses guests while guest requests are disabled (the default), before resolving anything", async () => {
@@ -120,7 +140,20 @@ describe("PrintService.claimNext", () => {
       variant: "display",
       attempt: 1,
       leaseExpiresAt: "2026-11-20T03:05:00.000Z",
+      options: null,
     });
+  });
+
+  it("hands the daemon the job's print options", async () => {
+    const { service, repo } = setup();
+    repo.claim.mockResolvedValueOnce({
+      ...stored,
+      status: "printing",
+      attempts: 1,
+      options: { layout: "receipt", ascii: true },
+      leaseExpiresAt: new Date(NOW.getTime() + 300_000),
+    });
+    expect((await service.claimNext())?.options).toEqual({ layout: "receipt", ascii: true });
   });
 
   it("returns null on an empty queue", async () => {

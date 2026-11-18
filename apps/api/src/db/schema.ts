@@ -1,3 +1,4 @@
+import type { PrintOptions } from "@grad/contract";
 import { sql } from "drizzle-orm";
 import {
   bigint,
@@ -430,6 +431,8 @@ export const printJobs = pgTable(
     leaseExpiresAt: timestamp("lease_expires_at", { withTimezone: true }),
     /** What the daemon reported on failure, or why the queue gave up. Never guest data. */
     error: text("error"),
+    /** Admin-chosen print options (contract `printOptionsSchema`); null prints with the daemon's defaults. */
+    options: jsonb("options").$type<PrintOptions>(),
     completedAt: timestamp("completed_at", { withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),

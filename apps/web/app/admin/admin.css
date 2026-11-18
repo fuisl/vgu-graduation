@@ -111,7 +111,7 @@ textarea.admin-input{min-height:6rem;resize:vertical}
 .admin-toggle:disabled{cursor:not-allowed}
 .admin-print{display:grid;gap:var(--space-2)}
 .admin-print form{display:grid;gap:var(--space-3)}
-.admin-print .admin-fieldset{margin:0}
+.admin-print .admin-fieldset,.admin-print .admin-field{margin:0}
 
 .admin-link-button{min-height:44px;padding:0;border:0;background:none;color:var(--fg);font:inherit;text-decoration:underline;text-underline-offset:.2em;cursor:pointer}
 .admin-print-refresh{display:flex;flex-wrap:wrap;align-items:center;column-gap:var(--space-2);margin:0 0 var(--space-4)}

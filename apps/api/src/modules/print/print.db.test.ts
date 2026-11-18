@@ -103,6 +103,22 @@ describe("print queue (real Postgres)", () => {
     expect(JSON.stringify(rows)).not.toContain("Print Guest");
   });
 
+  it("stores print options with the job and hands them to the claim; null without", async () => {
+    const p = await photo();
+    const options = { layout: "boarding" as const, ascii: true, caption: "Class of 2026" };
+    const created = await repo.create({ photoId: p.id, copies: 1, options, requestedByAdmin: "tester" }, "tester");
+    if (created.status !== "ok") throw new Error("expected ok");
+    expect(created.job.options).toEqual(options);
+    const plain = await queue(p.id);
+    expect(plain.options).toBeNull();
+
+    expect((await repo.claim(300, 3, "service:printer"))?.options).toEqual(options);
+    expect((await repo.claim(300, 3, "service:printer"))?.options).toBeNull();
+    expect((await repo.list({ limit: 10 })).map((j) => j.options)).toEqual([null, options]);
+    const { rows: [audit] } = await pool!.query("SELECT metadata FROM audit WHERE action = 'print.create' AND target_id = $1", [created.job.id]);
+    expect(audit.metadata).toMatchObject({ options });
+  });
+
   it("caps guest requests per invitation, even when they race", async () => {
     const p = await photo();
     const since = new Date(Date.now() - 3600_000);

@@ -14,6 +14,7 @@ import {
   PRINT_STATUSES,
   printerState,
   printHref,
+  printOptionTags,
   type PrintCounts,
 } from "../../../lib/admin/print-queue";
 import { loadPrintJobsAction, retryPrintJobAction, type QueueResult } from "../queue-actions";
@@ -254,8 +255,12 @@ export function PrintQueue({
                     {STATUS_LABEL[job.status]}
                   </span>
                   <span>{copiesLabel(job.copies)}</span>
+                  {printOptionTags(job.options).map((tag) => (
+                    <span key={tag}>{tag}</span>
+                  ))}
                   <span className="admin-muted">{when(job.createdAt)}</span>
                 </p>
+                {job.options?.caption ? <p className="admin-hint">Caption: “{job.options.caption}”</p> : null}
                 <p className="admin-hint">
                   Requested by {job.requestedBy === "admin" ? "an admin" : "a guest"}
                   {job.attempts > 0 ? ` · ${job.attempts} ${job.attempts === 1 ? "attempt" : "attempts"}` : ""}

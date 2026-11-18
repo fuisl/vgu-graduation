@@ -173,6 +173,20 @@ describe("print actions", () => {
     expect(JSON.parse(spy.mock.calls[0][1].body)).toEqual({ photoPublicId: PUBLIC_ID, copies: 2 });
   });
 
+  it("sends the admin's print options with the request", async () => {
+    const spy = mockFetch(201, job);
+    const options = { layout: "boarding", ascii: true, caption: "Class of 2026" } as const;
+    expect((await actions.requestPrintAction(PUBLIC_ID, 1, options)).ok).toBe(true);
+    expect(JSON.parse(spy.mock.calls[0][1].body)).toEqual({ photoPublicId: PUBLIC_ID, copies: 1, options });
+  });
+
+  it("refuses invalid print options before calling the API", async () => {
+    const spy = mockFetch(201, job);
+    expect((await actions.requestPrintAction(PUBLIC_ID, 1, { layout: "poster" } as never)).ok).toBe(false);
+    expect((await actions.requestPrintAction(PUBLIC_ID, 1, { caption: "x".repeat(61) })).ok).toBe(false);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
   it("refuses 0 or 6 copies before calling the API", async () => {
     const spy = mockFetch(201, job);
     expect((await actions.requestPrintAction(PUBLIC_ID, 0)).ok).toBe(false);

@@ -1,4 +1,11 @@
-import type { AdminPrintJob, AdminPrintJobsResponse, PrintJobStatus } from "@grad/contract";
+import {
+  PRINT_LAYOUT_LABELS,
+  type AdminPrintJob,
+  type AdminPrintJobsResponse,
+  type PrintJobStatus,
+  type PrintLayout,
+  type PrintOptions,
+} from "@grad/contract";
 import { backoffDelay } from "../live/backoff";
 
 /*
@@ -76,6 +83,27 @@ export function mergePolledJobs(current: readonly AdminPrintJob[], fresh: readon
 export function moveCount(counts: PrintCounts, from: PrintJobStatus, to: PrintJobStatus): PrintCounts {
   if (from === to) return counts;
   return { ...counts, [from]: Math.max(0, counts[from] - 1), [to]: counts[to] + 1 };
+}
+
+/**
+ * Short tags for a job's print options (photobooth layout, ASCII), in the
+ * order shown on the row; empty for a job printed with the defaults.
+ */
+export function printOptionTags(options: PrintOptions | null | undefined): string[] {
+  if (!options) return [];
+  const tags: string[] = [];
+  if (options.layout) tags.push(PRINT_LAYOUT_LABELS[options.layout]);
+  if (options.ascii) tags.push("ASCII");
+  return tags;
+}
+
+/**
+ * What the Print… form sends: always the layout and ASCII choice the admin
+ * saw, the caption only when one was typed (otherwise the daemon's default).
+ */
+export function printOptionsFromForm(layout: PrintLayout, ascii: boolean, caption: string): PrintOptions {
+  const trimmed = caption.trim();
+  return { layout, ascii, ...(trimmed ? { caption: trimmed } : {}) };
 }
 
 export function parsePrintStatus(raw: string | string[] | undefined): PrintJobStatus | undefined {

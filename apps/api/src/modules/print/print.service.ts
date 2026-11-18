@@ -9,6 +9,7 @@ import {
   PRINT_LEASE_SECONDS,
   PRINT_MAX_ATTEMPTS,
   type PrintJob,
+  type PrintOptions,
 } from "@grad/contract";
 import { type Config, config as defaultConfig } from "../../config.js";
 import { InvitationsService } from "../invitations/invitations.service.js";
@@ -60,10 +61,29 @@ function toPrintJob(job: StoredPrintJob): PrintJob {
   };
 }
 
+/**
+ * Options worth storing: absent keys and an empty caption are dropped, and a
+ * request with nothing left stores null (the daemon's defaults).
+ */
+export function normalizePrintOptions(options: PrintOptions | undefined): PrintOptions | undefined {
+  if (!options) return undefined;
+  const normalized: PrintOptions = {};
+  if (options.layout) normalized.layout = options.layout;
+  if (options.ascii !== undefined) normalized.ascii = options.ascii;
+  const caption = options.caption?.trim();
+  if (caption) normalized.caption = caption;
+  return Object.keys(normalized).length > 0 ? normalized : undefined;
+}
+
+function withOptions(options: PrintOptions | undefined): { options?: PrintOptions } {
+  return options ? { options } : {};
+}
+
 function toAdminPrintJob(job: StoredPrintJob): AdminPrintJob {
   return {
     ...toPrintJob(job),
     requestedBy: job.requestedByAdmin ? "admin" : "guest",
+    options: job.options ?? null,
     attempts: job.attempts,
     error: job.error,
     leaseExpiresAt: job.leaseExpiresAt?.toISOString() ?? null,
@@ -84,7 +104,11 @@ export class PrintService {
     private readonly now: () => Date = () => new Date(),
   ) {}
 
-  /** POST /print/jobs. Guests only when enabled, one copy, within the per-invitation limit. */
+  /**
+   * POST /print/jobs. Guests only when enabled, one copy, within the
+   * per-invitation limit, and always with the default print options (any they
+   * send are ignored); admins may choose options.
+   */
   async create(requester: PrintRequester, dto: CreatePrintJobRequest): Promise<CreatePrintResult> {
     let invitationId: string | undefined;
     if (requester.kind === "guest") {
@@ -101,7 +125,15 @@ export class PrintService {
 
     const result =
       requester.kind === "admin"
-        ? await this.repository.create({ photoId: photo.id, copies: dto.copies, requestedByAdmin: requester.handle }, requester.handle)
+        ? await this.repository.create(
+            {
+              photoId: photo.id,
+              copies: dto.copies,
+              ...withOptions(normalizePrintOptions(dto.options)),
+              requestedByAdmin: requester.handle,
+            },
+            requester.handle,
+          )
         : await this.repository.create(
             { photoId: photo.id, copies: 1, requestedByInvitationId: invitationId },
             "guest",
@@ -155,6 +187,7 @@ export class PrintService {
       variant: "display",
       attempt: job.attempts,
       leaseExpiresAt: job.leaseExpiresAt.toISOString(),
+      options: job.options ?? null,
     };
   }
 }

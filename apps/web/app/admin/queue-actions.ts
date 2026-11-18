@@ -2,7 +2,9 @@
 
 import {
   moderationStatusSchema,
+  PRINT_CAPTION_MAX,
   printJobStatusSchema,
+  printOptionsSchema,
   type AdminMediaResponse,
   type AdminPrintJob,
   type AdminPrintJobsResponse,
@@ -10,6 +12,7 @@ import {
   type CreatePrintJobResponse,
   type ModerationStatus,
   type PrintJobStatus,
+  type PrintOptions,
 } from "@grad/contract";
 import { revalidateTag } from "next/cache";
 import {
@@ -129,11 +132,25 @@ export async function setWishPublicAction(id: string, isPublic: boolean) {
   return revalidated(await setWishPublic(token, id, isPublic));
 }
 
-export async function requestPrintAction(publicId: string, copies: number): Promise<QueueResult<CreatePrintJobResponse>> {
+export async function requestPrintAction(
+  publicId: string,
+  copies: number,
+  options?: PrintOptions
+): Promise<QueueResult<CreatePrintJobResponse>> {
   const { token } = await requireAdminSession();
   if (typeof publicId !== "string" || !PUBLIC_ID.test(publicId)) return invalid("Unknown photo.");
   if (!Number.isInteger(copies) || copies < 1 || copies > 5) return invalid("Choose 1 to 5 copies.");
-  return done(await createPrintJob(token, { photoPublicId: publicId, copies }));
+  const parsedOptions = options === undefined ? undefined : printOptionsSchema.safeParse(options);
+  if (parsedOptions && !parsedOptions.success) {
+    return invalid(`Check the print options: a known layout and a one-line caption of up to ${PRINT_CAPTION_MAX} characters.`);
+  }
+  return done(
+    await createPrintJob(token, {
+      photoPublicId: publicId,
+      copies,
+      ...(parsedOptions?.data ? { options: parsedOptions.data } : {}),
+    })
+  );
 }
 
 export async function loadPrintJobsAction(

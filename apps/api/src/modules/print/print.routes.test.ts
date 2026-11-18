@@ -102,6 +102,24 @@ describe("POST /print/jobs", () => {
     expect(res.headers["retry-after"]).toBe("3600");
   });
 
+  it("passes an admin's print options through to the service", async () => {
+    const { app, created } = build();
+    const options = { layout: "polaroid", ascii: true, caption: "GRAD '26" };
+    const res = await app.inject({ method: "POST", url: "/print/jobs", headers: await adminHeaders(), payload: { photoPublicId: "pub1", copies: 1, options } });
+    expect(res.statusCode).toBe(201);
+    expect(created[0]![1]).toEqual({ photoPublicId: "pub1", copies: 1, options });
+  });
+
+  it("rejects unknown layouts and over-long captions", async () => {
+    const { app, created } = build();
+    const headers = await adminHeaders();
+    const bad = [{ layout: "poster" }, { caption: "x".repeat(61) }, { ascii: "yes" }];
+    for (const options of bad) {
+      expect((await app.inject({ method: "POST", url: "/print/jobs", headers, payload: { photoPublicId: "pub1", options } })).statusCode).toBe(400);
+    }
+    expect(created).toEqual([]);
+  });
+
   it("validates the body", async () => {
     const { app } = build();
     const headers = await adminHeaders();
@@ -143,6 +161,20 @@ describe("printer daemon routes", () => {
     expect(res.statusCode).toBe(200);
     expect(res.headers["cache-control"]).toBe("no-store");
     expect(nextPrintJobResponseSchema.parse(res.json()).job?.imageUrl).toBe("http://localhost:4000/media/pub1/display");
+
+    const withOptions = build({
+      claimNext: async () => ({
+        ...job,
+        status: "printing",
+        imageUrl: "http://localhost:4000/media/pub1/display",
+        variant: "display",
+        attempt: 1,
+        leaseExpiresAt: "2026-11-20T03:05:00.000Z",
+        options: { layout: "strip", ascii: false },
+      }),
+    });
+    const claimed = await withOptions.app.inject({ method: "GET", url: "/internal/print/jobs/next", headers: printer });
+    expect(nextPrintJobResponseSchema.parse(claimed.json()).job?.options).toEqual({ layout: "strip", ascii: false });
 
     const empty = build({ claimNext: async () => null });
     expect((await empty.app.inject({ method: "GET", url: "/internal/print/jobs/next", headers: printer })).json()).toEqual({ job: null });

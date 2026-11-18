@@ -1,4 +1,13 @@
+import { DEFAULT_PRINT_LAYOUT, printLayoutSchema } from "@grad/contract";
 import { z } from "zod";
+
+/** An env boolean: true/false/1/0/yes/no (z.coerce.boolean would read "false" as true). */
+function bool(fallback: boolean) {
+  return z
+    .enum(["true", "false", "1", "0", "yes", "no", ""])
+    .optional()
+    .transform((value) => (value === undefined || value === "" ? fallback : ["true", "1", "yes"].includes(value)));
+}
 
 /**
  * Printer daemon configuration, from the environment only. The venue overlay
@@ -9,8 +18,29 @@ const envSchema = z.object({
   API_URL: z.string().url().optional(),
   /** The printer's service token (the API's SERVICE_TOKEN_PRINTER). Never logged. */
   SERVICE_TOKEN: z.string().optional(),
-  /** `cups` prints with `lp`; `dry-run` writes each job's image to DRY_RUN_DIR instead. */
-  PRINT_MODE: z.enum(["cups", "dry-run"]).default("cups"),
+  /**
+   * `cups` prints with `lp`; `dry-run` writes each job's image to DRY_RUN_DIR
+   * instead; `photobooth` hands it to the venue's thermal Receipt Photobooth
+   * (POST {PHOTOBOOTH_URL}/api/tickets), which prints it in a layout.
+   */
+  PRINT_MODE: z.enum(["cups", "dry-run", "photobooth"]).default("cups"),
+  /** Receipt Photobooth base URL on the venue LAN, e.g. https://localhost:8000. Required in photobooth mode. */
+  PHOTOBOOTH_URL: z.string().url().optional(),
+  /**
+   * Accept the booth's self-signed certificate. Applies to requests to the
+   * booth only (its own connection pool), never to the API or anything else.
+   */
+  PHOTOBOOTH_INSECURE_TLS: bool(false),
+  /** Layout for jobs that don't choose one. */
+  PHOTOBOOTH_DEFAULT_LAYOUT: printLayoutSchema.default(DEFAULT_PRINT_LAYOUT),
+  /** Caption for jobs that don't set one (the booth's layouts print it under the photo). */
+  PHOTOBOOTH_CAPTION: z.string().max(120).default("GRAD '26 · VGU"),
+  /** Off by default: the booth's QR points at its LAN address, which guests can't reach. */
+  PHOTOBOOTH_INCLUDE_QR: bool(false),
+  /** The booth's quote of the day on receipt-style layouts. */
+  PHOTOBOOTH_INCLUDE_QUOTE: bool(true),
+  /** Per booth request; it composes and prints before answering (a polaroid takes ~4 s). */
+  PHOTOBOOTH_TIMEOUT_MS: z.coerce.number().int().positive().default(60_000),
   DRY_RUN_DIR: z.string().default("./dry-run-output"),
   /** CUPS queue name (`lp -d`); unset uses the CUPS default printer. */
   PRINTER_NAME: z.string().optional(),
@@ -39,7 +69,8 @@ const envSchema = z.object({
 export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
   const parsed = envSchema.parse(env);
   // Names only, never values: SERVICE_TOKEN is a credential.
-  const missing = (["API_URL", "SERVICE_TOKEN"] as const).filter((key) => !parsed[key]);
+  const missing: string[] = (["API_URL", "SERVICE_TOKEN"] as const).filter((key) => !parsed[key]);
+  if (parsed.PRINT_MODE === "photobooth" && !parsed.PHOTOBOOTH_URL) missing.push("PHOTOBOOTH_URL");
   if (missing.length > 0) {
     throw new Error(`Missing required environment variables: ${missing.join(", ")}`);
   }
@@ -59,6 +90,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     requestTimeoutMs: parsed.REQUEST_TIMEOUT_MS,
     leaseMarginMs: parsed.LEASE_MARGIN_MS,
     journalRetentionMs: parsed.JOURNAL_RETENTION_HOURS * 3_600_000,
+    photobooth: {
+      url: (parsed.PHOTOBOOTH_URL ?? "").replace(/\/+$/, ""),
+      insecureTls: parsed.PHOTOBOOTH_INSECURE_TLS,
+      defaultLayout: parsed.PHOTOBOOTH_DEFAULT_LAYOUT,
+      caption: parsed.PHOTOBOOTH_CAPTION,
+      includeQr: parsed.PHOTOBOOTH_INCLUDE_QR,
+      includeQuote: parsed.PHOTOBOOTH_INCLUDE_QUOTE,
+      timeoutMs: parsed.PHOTOBOOTH_TIMEOUT_MS,
+    },
     logLevel: parsed.LOG_LEVEL,
   };
 }

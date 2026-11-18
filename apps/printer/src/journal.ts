@@ -1,12 +1,14 @@
 import { mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
+import type { PrintOptions } from "@grad/contract";
 
 /**
  * Where a job is in the daemon's hands. The order is the order of the steps:
  *
  *   received    taken from the queue; nothing sent to CUPS yet (safe to redo)
- *   submitting  about to run `lp` / `lp` running; the printer may or may not
- *               have the job (ambiguous after a crash)
+ *   submitting  about to run `lp` / `lp` running, or the photobooth request
+ *               sent; the printer may or may not have the job (ambiguous
+ *               after a crash)
  *   printed     CUPS accepted the job
  *   failed      will be reported as failed (error kept)
  *   reported    the API has the outcome; kept only to recognise a re-delivery
@@ -21,6 +23,13 @@ export interface JournalEntry {
   imageUrl: string;
   attempt: number;
   leaseExpiresAt: string;
+  /** The admin's print options from the claim (photobooth mode); null/absent for defaults. */
+  options?: PrintOptions | null;
+  /**
+   * Copies the printer confirmed so far (photobooth mode sends one request per
+   * copy). A retry starts after them, so a confirmed copy never prints twice.
+   */
+  copiesPrinted?: number;
   phase: JournalPhase;
   /** Outcome already sent to the API (set with phase `reported`). */
   outcome?: "done" | "failed";

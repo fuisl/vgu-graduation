@@ -23,6 +23,42 @@ export const PRINT_MAX_ATTEMPTS = 3;
 export const PRINT_GUEST_RATE_LIMIT = { max: 3, windowSeconds: 60 * 60 } as const;
 
 /**
+ * Print layouts of the venue's thermal photobooth (the "Receipt Photobooth",
+ * `PRINT_MODE=photobooth` in apps/printer). Same names as the booth's
+ * `GET /api/formats`; labels are what admins see.
+ */
+export const printLayoutSchema = z.enum(["polaroid", "boarding", "receipt", "photo", "strip"]);
+export type PrintLayout = z.infer<typeof printLayoutSchema>;
+export const PRINT_LAYOUT_LABELS: Record<PrintLayout, string> = {
+  polaroid: "Polaroid",
+  boarding: "Boarding pass",
+  receipt: "Receipt",
+  photo: "Photo only",
+  strip: "Strip",
+};
+/** Used when a job carries no layout. */
+export const DEFAULT_PRINT_LAYOUT: PrintLayout = "polaroid";
+export const PRINT_CAPTION_MAX = 60;
+
+/**
+ * Optional per-job print options, set by admins only (guest requests always
+ * print with the defaults). Used by the photobooth printer mode; the CUPS and
+ * dry-run modes ignore them. `ascii` re-renders the photo as monospace type.
+ * An empty caption means "the daemon's default caption".
+ */
+export const printOptionsSchema = z.object({
+  layout: printLayoutSchema.optional(),
+  ascii: z.boolean().optional(),
+  caption: z
+    .string()
+    .trim()
+    .max(PRINT_CAPTION_MAX)
+    .regex(/^[^\p{Cc}]*$/u, "Caption must be a single line")
+    .optional(),
+});
+export type PrintOptions = z.infer<typeof printOptionsSchema>;
+
+/**
  * POST /print/jobs: requests a print of a visible, processed photo, identified
  * by its `publicId`. Admin session (any copies), or a guest's invitation
  * credential when guest requests are enabled (one copy; 403 when disabled,
@@ -32,6 +68,8 @@ export const PRINT_GUEST_RATE_LIMIT = { max: 3, windowSeconds: 60 * 60 } as cons
 export const createPrintJobRequestSchema = z.object({
   photoPublicId: z.string().min(1),
   copies: z.number().int().min(1).max(5).default(1),
+  /** Admin only; ignored for guest requests. */
+  options: printOptionsSchema.optional(),
 });
 export type CreatePrintJobRequest = z.infer<typeof createPrintJobRequestSchema>;
 
@@ -61,6 +99,8 @@ export const claimedPrintJobSchema = printJobSchema.extend({
   /** 1 on the first claim. */
   attempt: z.number().int().min(1),
   leaseExpiresAt: timestampSchema,
+  /** What the admin chose (null: defaults). Optional on the wire so an older API still parses. */
+  options: printOptionsSchema.nullish(),
 });
 export type ClaimedPrintJob = z.infer<typeof claimedPrintJobSchema>;
 
@@ -90,6 +130,8 @@ export type CompletePrintJobResponse = z.infer<typeof completePrintJobResponseSc
 /** A job as admins see it. `error` is what the daemon reported (or the lease reason), never guest data. */
 export const adminPrintJobSchema = printJobSchema.extend({
   requestedBy: z.enum(["admin", "guest"]),
+  /** Print options the admin chose; null for defaults. */
+  options: printOptionsSchema.nullish(),
   attempts: z.number().int().min(0),
   error: z.string().nullable(),
   leaseExpiresAt: timestampSchema.nullable(),

@@ -12,3 +12,6 @@ coverage
 
 # Agent git worktrees (Claude Code)
 .claude/worktrees/
+
+# Owner originals for the landing journey; resized copies live in apps/web/public/journey/
+/photos/

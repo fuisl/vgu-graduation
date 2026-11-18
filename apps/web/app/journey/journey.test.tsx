@@ -13,6 +13,12 @@ const i18n = createI18n("en");
 const list = (entries: JourneyEntryView[], locale: "en" | "vi" = "en") =>
   html(<JourneyList entries={entries} messages={pickMessages(locale, "landing.journey.ui.")} locale={locale} />);
 const shipped = () => resolveEntries(JOURNEY_ENTRIES, i18n.t);
+/** The shipped entries with every photo path cleared, as before the owner adds media. */
+const withoutMedia = () =>
+  resolveEntries(
+    JOURNEY_ENTRIES.map((entry) => (entry.kind === "photos" ? { ...entry, photos: entry.photos.map((photo) => ({ ...photo, src: "" })) } : entry)),
+    i18n.t,
+  );
 
 const film = shipped()[0] as JourneyEntryView;
 const chapter = shipped()[1] as JourneyEntryView;
@@ -44,15 +50,16 @@ describe("selection", () => {
 });
 
 describe("the entries data", () => {
-  it("lists the film, then chapters of 4, 3, 4 and 2 photos", () => {
+  it("lists the film, then five chapters of four photos each", () => {
     expect(JOURNEY_ENTRIES.map((entry) => entry.file)).toEqual([
       "01_the_film.mp4",
-      "02_[first_year].jpg",
-      "03_[second_year].jpg",
-      "04_[third_year].jpg",
-      "05_[final_year].jpg",
+      "02_presto.jpg",
+      "03_career_fair.jpg",
+      "04_germany.jpg",
+      "05_friend_group.jpg",
+      "06_study.jpg",
     ]);
-    expect(JOURNEY_ENTRIES.map((entry) => (entry.kind === "photos" ? entry.photos.length : 0))).toEqual([0, 4, 3, 4, 2]);
+    expect(JOURNEY_ENTRIES.map((entry) => (entry.kind === "photos" ? entry.photos.length : 0))).toEqual([0, 4, 4, 4, 4, 4]);
   });
 
   it("keeps filenames in plain ASCII and each one unique", () => {
@@ -131,18 +138,17 @@ describe("JourneyList", () => {
 
 describe("empty media", () => {
   it("shows labelled plates and loads nothing while no media is set", () => {
-    const out = list(shipped());
+    const out = list(withoutMedia());
     expect(out).toContain("Film to come");
     expect(out).toContain("Photo 1 of 4 to come");
-    expect(out).toContain("Photo 2 of 2 to come");
     expect(out).not.toContain("<img");
     expect(out).not.toContain("<video");
   });
 
   it("labels each row's empty thumbnail by its kind", () => {
-    const out = list(shipped());
+    const out = list(withoutMedia());
     expect(out.match(/journey-row__kind[^>]*>Video</g)).toHaveLength(1);
-    expect(out.match(/journey-row__kind[^>]*>Photo</g)).toHaveLength(4);
+    expect(out.match(/journey-row__kind[^>]*>Photo</g)).toHaveLength(5);
   });
 
   it("keeps a plate for a chapter with no photos listed", () => {
@@ -190,7 +196,7 @@ describe("with media set", () => {
     const out = list([{ ...chapter, photos: photos(2) }]);
     expect(out.match(/class="journey-flashback"/g)).toHaveLength(2);
     expect(out).toMatch(/aria-pressed="true" aria-label="Photo 1 of 2"/);
-    const five: JourneyEntry = { ...JOURNEY_ENTRIES[1], photos: Array.from({ length: 5 }, () => ({ src: "", altKey: "landing.journey.firstYear.photo1" })) } as JourneyEntry;
+    const five: JourneyEntry = { ...JOURNEY_ENTRIES[1], photos: Array.from({ length: 5 }, () => ({ src: "", altKey: "landing.journey.presto.photo1" })) } as JourneyEntry;
     expect(resolveEntries([five], i18n.t)[0]?.photos).toHaveLength(MAX_PHOTOS);
   });
 });

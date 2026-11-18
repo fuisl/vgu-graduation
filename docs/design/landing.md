@@ -26,7 +26,7 @@ The site is public before the owner has written the landing's words or added its
 
 ## The journey
 
-A list of entries, each a mono filename (`01_the_film.mp4`, `02_[first_year].jpg`, ...), that opens one at a time: the film is first and open on load, then the photo chapters. Everything is in `apps/web/app/journey/`, route-local because nothing else uses it: `entries.ts` (the data), `view.ts` (data plus the page's language), `selection.ts` (the state, pure), `JourneyList.tsx` (the one client component) and `journey.css`. The number of entries is a data change only.
+A list of entries, each a mono filename (`01_the_film.mp4`, `02_presto.jpg`, ...), that opens one at a time: the film is first and open on load, then the photo chapters. Everything is in `apps/web/app/journey/`, route-local because nothing else uses it: `entries.ts` (the data), `view.ts` (data plus the page's language), `selection.ts` (the state, pure), `JourneyList.tsx` (the one client component) and `journey.css`. The number of entries is a data change only.
 
 - **One DOM, two layouts.** Each row button is followed by its panel, inside an `ol` (`display: contents` on the items). Up to 960px the panel opens in place under its row. From 961px the same grid puts the rows in the left column and the one open panel in the right, spanning all rows; two equal columns divided by the panel's left hairline.
 - **Row.** A stripe on the left edge, a thumbnail and a mono filename, at least 72px high (112px on desktop). Open: solid `--brand-blue` stripe, `--brand-blue-soft` fill. Closed: `--brand-blue-soft` stripe. One blue only. The button has `aria-expanded` and `aria-controls` on both layouts, and its name is the filename and then the title. As in the wireframe, one entry is always open: pressing the open row leaves it open.
@@ -46,7 +46,7 @@ Words, in `apps/web/lib/i18n/messages/en.ts` and `vi.ts` (the same keys in both;
 | --- | --- |
 | `landing.lead` | The one line under the headline |
 | `landing.journey.film.title`, `.date`, `.story`, `.alt` | The film: title, length line, introduction, and a short description for screen readers |
-| `landing.journey.firstYear.*`, `.secondYear.*`, `.thirdYear.*`, `.finalYear.*` | Each chapter: `.title`, `.date` (date and place), `.story`, and `.photo1` to `.photo4` (what each photo shows, as alt text) |
+| `landing.journey.presto.*`, `.careerFair.*`, `.germany.*`, `.friends.*`, `.study.*` | Each chapter: `.title`, `.date` (date and place), `.story`, and `.photo1` to `.photo4` (what each photo shows, as alt text). Titles, dates and descriptions are prefilled as suggestions from the photos; a chapter shows once its story is written |
 
 A blank line in a story (`\n\n`) starts a new paragraph.
 
@@ -160,3 +160,7 @@ Once a guest has said they are attending, the guest portal (`/me`) has a "Share 
 - **Sharing:** the MP4 (H.264, 30 fps) is recorded once, in the background, when the card first scrolls into view, because the share sheet needs a fresh tap. Where the browser can share files (phones), "Share video" opens the system share sheet, where Instagram and Facebook offer Story, Reel or post; elsewhere it is "Save video". "Share picture" shares or downloads a PNG of the same card. Browsers that can only record WebM (Firefox) get the picture only: Instagram and Facebook reject WebM.
 - **Gates:** shown only when the RSVP is attending, the event loads, and the venue is the hall FIG_001 draws (`DRAWN_VENUE`, `figures.md`).
 
+
+### Photos
+
+The owner's originals live in `photos/<CHAPTER>/` at the repository root, which git ignores. The published copies are in `apps/web/public/journey/<chapter>/01.jpg` to `04.jpg`: auto-rotated, at most 2048px on the long side, sRGB JPEG at quality 80, with every metadata block removed (EXIF, including GPS, XMP and IPTC). A folder's `headline` image is photo 1, which is also the row thumbnail; the rest follow by date.

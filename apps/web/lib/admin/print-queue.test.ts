@@ -8,6 +8,8 @@ import {
   PRINT_POLL_MS,
   PRINT_STALL_MS,
   printerState,
+  printOptionsFromForm,
+  printOptionTags,
 } from "./print-queue";
 
 const NOW = Date.parse("2026-11-21T03:10:00.000Z");
@@ -95,5 +97,19 @@ describe("polling", () => {
     expect(parsePrintStatus("failed")).toBe("failed");
     expect(parsePrintStatus("lost")).toBeUndefined();
     expect(parsePrintStatus(undefined)).toBeUndefined();
+  });
+});
+
+describe("print options", () => {
+  it("tags a job with its layout and ASCII, nothing for defaults", () => {
+    expect(printOptionTags(null)).toEqual([]);
+    expect(printOptionTags(undefined)).toEqual([]);
+    expect(printOptionTags({ layout: "boarding", ascii: true, caption: "Hi" })).toEqual(["Boarding pass", "ASCII"]);
+    expect(printOptionTags({ layout: "photo", ascii: false })).toEqual(["Photo only"]);
+  });
+
+  it("builds the form's options, leaving out an empty caption", () => {
+    expect(printOptionsFromForm("polaroid", false, "   ")).toEqual({ layout: "polaroid", ascii: false });
+    expect(printOptionsFromForm("strip", true, " Class of 2026 ")).toEqual({ layout: "strip", ascii: true, caption: "Class of 2026" });
   });
 });

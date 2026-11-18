@@ -1,4 +1,4 @@
-import type { AdminMediaQuery, ModerationStatus } from "@grad/contract";
+import type { AdminMediaQuery, ModerationStatus, PhotoModerationStatus } from "@grad/contract";
 import { and, count, desc, eq, type SQL, sql } from "drizzle-orm";
 import { recordAudit } from "../../audit/audit.js";
 import { db } from "../../db/index.js";
@@ -16,12 +16,15 @@ export interface NewPhoto {
   sizeBytes: number;
 }
 
+/** A photo from someone without an invitation (ADR-019). */
+export type NewAnonymousPhoto = Omit<NewPhoto, "invitationId">;
+
 export interface PhotoForDerivation {
   id: string;
   publicId: string;
   originalKey: string;
   processingStatus: "pending" | "ready" | "failed";
-  moderationStatus: "visible" | "hidden" | "removed";
+  moderationStatus: PhotoModerationStatus;
 }
 
 export interface StoredGalleryItem {
@@ -37,10 +40,10 @@ export type CreatePhotoResult =
 
 export interface StoredAdminPhoto extends StoredGalleryItem {
   updatedAt: Date;
-  status: ModerationStatus;
+  status: PhotoModerationStatus;
   processingStatus: "pending" | "ready" | "failed";
   isPublic: boolean;
-  invitationId: string;
+  invitationId: string | null;
 }
 
 export interface ModeratePhotoResult {
@@ -51,8 +54,8 @@ export interface ModeratePhotoResult {
 }
 
 export type SetPublicResult =
-  | { status: "ok"; moderationStatus: ModerationStatus; isPublic: boolean; changed: boolean }
-  | { status: "not_eligible"; moderationStatus: ModerationStatus }
+  | { status: "ok"; moderationStatus: PhotoModerationStatus; isPublic: boolean; changed: boolean }
+  | { status: "not_eligible"; moderationStatus: PhotoModerationStatus }
   | { status: "not_found" };
 
 export class MediaRepository {
@@ -90,6 +93,26 @@ export class MediaRepository {
     });
   }
 
+  /**
+   * Inserts a photo from someone without an invitation (ADR-019) in moderation
+   * `pending`, with its derivative job, in one transaction. No roll: the route's
+   * per-IP limit is the brake. The worker still makes its derivatives, so an
+   * admin can preview it; it is listed and served only once approved.
+   */
+  async createPendingWithJob(photo: NewAnonymousPhoto): Promise<CreatePhotoResult> {
+    return db.transaction(async (tx) => {
+      await tx.insert(photos).values({ ...photo, invitationId: null, moderationStatus: "pending" });
+      await tx.insert(jobs).values({ type: DERIVE_JOB, payload: { photoId: photo.id } });
+      return { status: "ok", publicId: photo.publicId, shotsUsed: 0 } as const;
+    });
+  }
+
+  /** Photos waiting for an admin's approval (ADR-019); served by `idx_photos_gallery`. */
+  async countPendingReview(): Promise<number> {
+    const [row] = await db.select({ n: count() }).from(photos).where(eq(photos.moderationStatus, "pending"));
+    return row?.n ?? 0;
+  }
+
   async findForDerivation(photoId: string): Promise<PhotoForDerivation | null> {
     const [row] = await db
       .select({
@@ -104,7 +127,10 @@ export class MediaRepository {
     return row ?? null;
   }
 
-  /** Derivatives exist: the photo becomes listable (it is already `visible`). */
+  /**
+   * Derivatives exist: an invited guest's photo (already `visible`) becomes
+   * listable; an anonymous one stays unlisted until approved (ADR-019).
+   */
   async markReady(photoId: string, width: number, height: number): Promise<void> {
     await db
       .update(photos)

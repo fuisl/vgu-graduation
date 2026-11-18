@@ -3,7 +3,7 @@ import { loadConfig } from "../../config.js";
 import { buildServer } from "../../server.js";
 import { approvedTester } from "../admin/admin-accounts.fake.js";
 import type { GraduateInviteOutcome } from "../join/join.service.js";
-import { SlidingWindowLimiter } from "../mail/rate-limit.js";
+import { SlidingWindowLimiter } from "../../rate-limit/sliding-window.js";
 import type { GraduatePortalRoutesOptions } from "./graduate-portal.routes.js";
 
 const config = loadConfig({ LOG_LEVEL: "silent" });

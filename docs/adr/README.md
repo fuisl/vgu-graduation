@@ -29,3 +29,4 @@ Date: YYYY-MM-DD
 - [ADR-016: Yes / No links in the invitation email, calendar replies off by default](016-email-rsvp-links.md)
 - [ADR-017: Graduate portal, signed in by email](017-graduate-portal.md)
 - [ADR-018: Patch Next's bundled React for a page that never finished saving](018-react-lost-ping-patch.md)
+- [ADR-019: Public posting of wishes and photos](019-public-posting.md)

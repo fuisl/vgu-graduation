@@ -5,7 +5,7 @@ import { approvedTester } from "../admin/admin-accounts.fake.js";
 import type { InvitationsService, ResolveResult } from "../invitations/invitations.service.js";
 import { MailService } from "./mail.service.js";
 import { fakeMailer } from "./mailer.fake.js";
-import { SlidingWindowLimiter } from "./rate-limit.js";
+import { SlidingWindowLimiter } from "../../rate-limit/sliding-window.js";
 
 const config = loadConfig({ LOG_LEVEL: "silent" });
 const TOKEN = "guest-token-value";

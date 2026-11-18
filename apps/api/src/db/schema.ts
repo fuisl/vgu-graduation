@@ -207,9 +207,8 @@ export const photos = pgTable(
   {
     id: id(),
     publicId: text("public_id").notNull().unique(),
-    invitationId: uuid("invitation_id")
-      .notNull()
-      .references(() => invitations.id, { onDelete: "restrict" }),
+    /** The uploader's invitation; null for a photo from someone without one (ADR-019), which starts `pending`. */
+    invitationId: uuid("invitation_id").references(() => invitations.id, { onDelete: "restrict" }),
     originalKey: text("original_key").notNull(),
     contentType: text("content_type").notNull(),
     sizeBytes: bigint("size_bytes", { mode: "number" }).notNull(),
@@ -218,7 +217,8 @@ export const photos = pgTable(
     processingStatus: text("processing_status", { enum: ["pending", "ready", "failed"] })
       .notNull()
       .default("pending"),
-    moderationStatus: text("moderation_status", { enum: ["visible", "hidden", "removed"] })
+    /** `pending` = awaiting an admin's review (anonymous uploads, ADR-019); never listed or served until `visible`. */
+    moderationStatus: text("moderation_status", { enum: ["pending", "visible", "hidden", "removed"] })
       .notNull()
       .default("visible"),
     /** In the curated public gallery (#75). Set by moderators on visible photos only; listed only while visible. */
@@ -235,7 +235,7 @@ export const photos = pgTable(
     ),
     check(
       "photos_moderation_status_check",
-      sql`${t.moderationStatus} IN ('visible', 'hidden', 'removed')`,
+      sql`${t.moderationStatus} IN ('pending', 'visible', 'hidden', 'removed')`,
     ),
     index("idx_photos_gallery").on(t.moderationStatus, t.processingStatus, t.createdAt),
     index("idx_photos_invitation").on(t.invitationId),
@@ -249,9 +249,8 @@ export const wishes = pgTable(
   "wishes",
   {
     id: id(),
-    invitationId: uuid("invitation_id")
-      .notNull()
-      .references(() => invitations.id, { onDelete: "restrict" }),
+    /** The writer's invitation; null for a wish from someone without one (ADR-019). */
+    invitationId: uuid("invitation_id").references(() => invitations.id, { onDelete: "restrict" }),
     authorName: text("author_name").notNull(),
     body: text("body").notNull(),
     moderationStatus: text("moderation_status", { enum: ["visible", "hidden", "removed"] })

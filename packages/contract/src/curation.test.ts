@@ -38,7 +38,9 @@ describe("admin moderation queue (#64)", () => {
       processing: "ready",
       isPublic: false,
     });
-    expect(adminMediaQuerySchema.safeParse({ status: "pending" }).success).toBe(false);
+    // Photos awaiting review (ADR-019).
+    expect(adminMediaQuerySchema.parse({ status: "pending" })).toMatchObject({ status: "pending" });
+    expect(adminMediaQuerySchema.safeParse({ status: "approved" }).success).toBe(false);
   });
 
   it("filters wishes by status and public flag", () => {
@@ -59,6 +61,8 @@ describe("admin moderation queue (#64)", () => {
     };
     expect(adminMediaItemSchema.safeParse(item).success).toBe(true);
     expect(adminMediaItemSchema.safeParse({ ...item, isPublic: undefined }).success).toBe(false);
+    // A photo from someone without an invitation, waiting for review (ADR-019).
+    expect(adminMediaItemSchema.safeParse({ ...item, status: "pending", invitationId: null }).success).toBe(true);
   });
 
   it("moderation answers name the tags to revalidate", () => {

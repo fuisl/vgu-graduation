@@ -111,6 +111,16 @@ describe("wishes (real Postgres)", () => {
     expect((await service.createByToken(TOKEN, { body: "too many" })).status).toBe("rate_limited");
   });
 
+  it("stores an anonymous wish with no invitation, visible at once (ADR-019)", async (ctx) => {
+    if (!admin) return ctx.skip();
+    const result = await service.createAnonymous("Aunt Mai", "from a stranger");
+    expect(result).toMatchObject({ status: "ok", wish: { authorName: "Aunt Mai", body: "from a stranger" } });
+    const { rows } = await pool!.query("SELECT invitation_id, moderation_status FROM wishes WHERE body = 'from a stranger'");
+    expect(rows).toEqual([{ invitation_id: null, moderation_status: "visible" }]);
+    const page = await service.listVisible({ limit: 1 });
+    expect(page.items[0]).toMatchObject({ body: "from a stranger" });
+  });
+
   it("rejects bodies over the database limit even if the contract is bypassed", async (ctx) => {
     if (!admin) return ctx.skip();
     await expect(service.createByToken(OTHER_TOKEN, { body: "x".repeat(1001) })).rejects.toThrow();

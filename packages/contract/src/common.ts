@@ -14,6 +14,16 @@ export const timestampSchema = z.string().datetime({ offset: true });
 export const moderationStatusSchema = z.enum(["visible", "hidden", "removed"]);
 export type ModerationStatus = z.infer<typeof moderationStatusSchema>;
 
+/**
+ * Moderation state of a photo: the shared states plus `pending`, awaiting an
+ * admin's review. Photos from people without an invitation start `pending`
+ * (ADR-019) and are never listed or served until an admin sets them `visible`.
+ * Wishes are never pending. `pending` is a starting state only: the moderate
+ * endpoints set one of `moderationStatusSchema`, never back to `pending`.
+ */
+export const photoModerationStatusSchema = z.enum(["pending", "visible", "hidden", "removed"]);
+export type PhotoModerationStatus = z.infer<typeof photoModerationStatusSchema>;
+
 /** Body of the admin moderate endpoints (media and wishes). */
 export const moderateRequestSchema = z.object({ status: moderationStatusSchema });
 export type ModerateRequest = z.infer<typeof moderateRequestSchema>;

@@ -5,7 +5,8 @@ import { buildServer } from "../../server.js";
 import { fakeObjectStore } from "../../storage/object-store.fake.js";
 import { approvedTester } from "../admin/admin-accounts.fake.js";
 import type { ResolveResult } from "../invitations/invitations.service.js";
-import type { NewPhoto } from "./media.repository.js";
+import { SlidingWindowLimiter } from "../../rate-limit/sliding-window.js";
+import type { NewAnonymousPhoto, NewPhoto } from "./media.repository.js";
 import { MediaService } from "./media.service.js";
 
 const config = loadConfig({
@@ -47,8 +48,9 @@ function multipart(file: Buffer, { filename = "IMG_0001.jpg", type = "image/jpeg
 function setup({
   resolve = (t: string): ResolveResult => (t === TOKEN ? { status: "ok", invitation } : { status: "invalid" }),
   shotsUsed = 0,
-}: { resolve?: (token: string) => ResolveResult; shotsUsed?: number } = {}) {
-  const photos: NewPhoto[] = [];
+  anonymousLimiter,
+}: { resolve?: (token: string) => ResolveResult; shotsUsed?: number; anonymousLimiter?: SlidingWindowLimiter } = {}) {
+  const photos: (NewPhoto | (NewAnonymousPhoto & { invitationId: null; pending: true }))[] = [];
   const jobs: string[] = [];
   const storage = fakeObjectStore();
   const lines: string[] = [];
@@ -64,6 +66,12 @@ function setup({
         jobs.push(photo.id);
         return { status: "ok", publicId: photo.publicId, shotsUsed: used };
       },
+      createPendingWithJob: async (photo) => {
+        photos.push({ ...photo, invitationId: null, pending: true });
+        jobs.push(photo.id);
+        return { status: "ok", publicId: photo.publicId, shotsUsed: 0 };
+      },
+      countPendingReview: async () => photos.filter((p) => "pending" in p).length,
       listGallery: async () => [],
       isServable: async () => false,
       moderate: async () => null,
@@ -78,6 +86,7 @@ function setup({
     adminAccounts: approvedTester(),
     config,
     mediaService: service,
+    mediaAnonymousLimiter: anonymousLimiter,
     logStream: { write: (line: string) => void lines.push(line) },
   });
   return { app, photos, jobs, storage, lines };
@@ -91,7 +100,11 @@ describe("POST /media", () => {
     expect(res.statusCode).toBe(201);
     expect(res.headers["cache-control"]).toBe("no-store");
     const body = uploadMediaResponseSchema.parse(res.json());
-    expect(body).toMatchObject({ processingStatus: "pending", shotsRemaining: MEDIA_SHOTS_PER_INVITATION - 1 });
+    expect(body).toMatchObject({
+      processingStatus: "pending",
+      shotsRemaining: MEDIA_SHOTS_PER_INVITATION - 1,
+      reviewStatus: "visible",
+    });
     expect(body.publicId).toMatch(/^[A-Za-z0-9_-]{22}$/);
 
     expect(photos).toHaveLength(1);
@@ -115,19 +128,75 @@ describe("POST /media", () => {
     expect(res.statusCode).toBe(201);
   });
 
-  it("returns 401 without a credential, 404 for an invalid one and 410 when expired", async () => {
+  it("accepts a photo without a credential and holds it for review (ADR-019)", async () => {
+    const { app, photos, jobs } = setup();
     const { payload, headers } = multipart(JPEG);
-    const noAuth = { "content-type": headers["content-type"] };
-    expect((await setup().app.inject({ method: "POST", url: "/media", payload, headers: noAuth })).statusCode).toBe(401);
-    const wrong = await setup().app.inject({
+    const res = await app.inject({
       method: "POST",
       url: "/media",
       payload,
-      headers: { ...noAuth, authorization: "Bearer wrong" },
+      headers: { "content-type": headers["content-type"] },
     });
-    expect(wrong.statusCode).toBe(404);
+    expect(res.statusCode).toBe(201);
+    const body = uploadMediaResponseSchema.parse(res.json());
+    expect(body).toMatchObject({ processingStatus: "pending", shotsRemaining: null, reviewStatus: "pending" });
+    expect(photos).toEqual([expect.objectContaining({ invitationId: null, pending: true })]);
+    // Derivatives are still made, so an admin can preview it.
+    expect(jobs).toHaveLength(1);
+  });
+
+  it("treats an invalid or expired credential as none rather than refusing", async () => {
+    const { payload, headers } = multipart(JPEG);
+    const wrong = setup();
+    const res = await wrong.app.inject({
+      method: "POST",
+      url: "/media",
+      payload,
+      headers: { "content-type": headers["content-type"], authorization: "Bearer wrong" },
+    });
+    expect(res.statusCode).toBe(201);
+    expect(res.json()).toMatchObject({ reviewStatus: "pending", shotsRemaining: null });
+
     const expired = setup({ resolve: () => ({ status: "expired" }) });
-    expect((await expired.app.inject({ method: "POST", url: "/media", payload, headers })).statusCode).toBe(410);
+    const late = await expired.app.inject({ method: "POST", url: "/media", payload, headers });
+    expect(late.statusCode).toBe(201);
+    expect(late.json()).toMatchObject({ reviewStatus: "pending" });
+    expect(expired.photos).toEqual([expect.objectContaining({ invitationId: null })]);
+  });
+
+  it("limits anonymous uploads per client IP before reading the file, with Retry-After", async () => {
+    let now = 0;
+    const limiter = new SlidingWindowLimiter(2, 60 * 60 * 1000, () => now);
+    const { app, photos, storage } = setup({ anonymousLimiter: limiter });
+    const { payload, headers } = multipart(JPEG);
+    const anon = { "content-type": headers["content-type"] };
+    const send = (remoteAddress = "203.0.113.9", h: Record<string, string> = anon) =>
+      app.inject({ method: "POST", url: "/media", payload, headers: h, remoteAddress });
+
+    expect((await send()).statusCode).toBe(201);
+    now = 10 * 60 * 1000;
+    expect((await send()).statusCode).toBe(201);
+    const limited = await send();
+    expect(limited.statusCode).toBe(429);
+    expect(limited.headers["retry-after"]).toBe(String(50 * 60));
+    expect(limited.json()).toMatchObject({ error: "Too Many Requests" });
+    expect(photos).toHaveLength(2);
+    expect(storage.objects.size).toBe(2);
+
+    // Another client, and an invited guest on the same connection, are unaffected.
+    expect((await send("198.51.100.4")).statusCode).toBe(201);
+    expect((await send("203.0.113.9", headers)).statusCode).toBe(201);
+  });
+
+  it("does not spend the anonymous allowance when storage is down", async () => {
+    const limiter = new SlidingWindowLimiter(1, 60 * 60 * 1000);
+    const { app, storage } = setup({ anonymousLimiter: limiter });
+    const { payload, headers } = multipart(JPEG);
+    const anon = { "content-type": headers["content-type"] };
+    storage.state.down = true;
+    expect((await app.inject({ method: "POST", url: "/media", payload, headers: anon })).statusCode).toBe(503);
+    storage.state.down = false;
+    expect((await app.inject({ method: "POST", url: "/media", payload, headers: anon })).statusCode).toBe(201);
   });
 
   it("rejects bytes that are not a supported image with 415, whatever the declared type", async () => {

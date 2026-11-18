@@ -23,6 +23,9 @@ import {
   translationBacklogQuerySchema,
   translationTextSchema,
   uploadMediaResponseSchema,
+  ANONYMOUS_AUTHOR_NAME_MAX_LENGTH,
+  photoModerationStatusSchema,
+  WISH_REJECTED_MESSAGE,
 } from "./index.js";
 
 const uuid = "3f2e8b1a-9c3d-4c9a-8b1e-1a2b3c4d5e6f";
@@ -88,16 +91,28 @@ describe("media, wishes and moderation", () => {
     expect(mediaVariantParamsSchema.safeParse({ id: "abc", variant: "original" }).success).toBe(false);
   });
 
-  it("upload response carries the shots left on the roll", () => {
-    const ok = { publicId: "EMV5xWTOra4aOngA9GnNdQ", processingStatus: "pending", shotsRemaining: 0 };
+  it("upload response carries the shots left on the roll and the review status", () => {
+    const ok = { publicId: "EMV5xWTOra4aOngA9GnNdQ", processingStatus: "pending", shotsRemaining: 0, reviewStatus: "visible" };
     expect(uploadMediaResponseSchema.safeParse(ok).success).toBe(true);
     expect(uploadMediaResponseSchema.safeParse({ ...ok, shotsRemaining: -1 }).success).toBe(false);
     expect(uploadMediaResponseSchema.safeParse({ publicId: ok.publicId, processingStatus: "pending" }).success).toBe(false);
+    // Without an invitation (ADR-019): no roll, held for review.
+    expect(uploadMediaResponseSchema.safeParse({ ...ok, shotsRemaining: null, reviewStatus: "pending" }).success).toBe(true);
+    expect(uploadMediaResponseSchema.safeParse({ ...ok, reviewStatus: "hidden" }).success).toBe(false);
   });
 
   it("moderation accepts only visible, hidden and removed", () => {
     expect(moderateRequestSchema.safeParse({ status: "hidden" }).success).toBe(true);
     expect(moderateRequestSchema.safeParse({ status: "approved" }).success).toBe(false);
+    // `pending` is a photo's starting state, never something a moderator sets.
+    expect(moderateRequestSchema.safeParse({ status: "pending" }).success).toBe(false);
+    expect(photoModerationStatusSchema.safeParse("pending").success).toBe(true);
+  });
+
+  it("wish author names are optional in the schema, capped at 60 for anonymous posts by the API", () => {
+    expect(createWishRequestSchema.parse({ body: "Hi", authorName: "  Aunt Mai " }).authorName).toBe("Aunt Mai");
+    expect(ANONYMOUS_AUTHOR_NAME_MAX_LENGTH).toBe(60);
+    expect(WISH_REJECTED_MESSAGE).toBe("This message can't be posted. Please rephrase it.");
   });
 
   it("trims wishes and enforces the 1000 character limit", () => {

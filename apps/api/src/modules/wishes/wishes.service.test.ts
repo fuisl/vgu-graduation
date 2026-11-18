@@ -33,7 +33,7 @@ function wish(n: number, moderationStatus: StoredWish["moderationStatus"] = "vis
 
 function setup(resolved: ResolveResult = okInvitation, recent = 0, rows: StoredWish[] = []) {
   const repo = {
-    create: vi.fn(async (_inv: string, authorName: string, body: string) => ({ ...wish(1), authorName, body })),
+    create: vi.fn(async (_inv: string | null, authorName: string, body: string) => ({ ...wish(1), authorName, body })),
     countSince: vi.fn(async () => recent),
     list: vi.fn(async () => rows),
     moderate: vi.fn(),
@@ -74,6 +74,30 @@ describe("WishesService.createByToken", () => {
   it.each(["invalid", "expired"] as const)("passes through %s without writing", async (status) => {
     const { service, repo } = setup({ status });
     expect(await service.createByToken("t", { body: "Hi" })).toEqual({ status });
+    expect(repo.create).not.toHaveBeenCalled();
+  });
+
+  it("refuses blocked words in the body or the given name, without writing", async () => {
+    const { service, repo } = setup();
+    expect(await service.createByToken("t", { body: "shit" })).toEqual({ status: "rejected" });
+    expect(await service.createByToken("t", { body: "Hi", authorName: "cunt" })).toEqual({ status: "rejected" });
+    expect(repo.create).not.toHaveBeenCalled();
+  });
+});
+
+describe("WishesService.createAnonymous (ADR-019)", () => {
+  it("stores the wish with no invitation under the given name", async () => {
+    const { service, repo } = setup();
+    const result = await service.createAnonymous("Aunt Mai", "Congrats!");
+    expect(repo.create).toHaveBeenCalledWith(null, "Aunt Mai", "Congrats!");
+    expect(result).toMatchObject({ status: "ok", wish: { authorName: "Aunt Mai", body: "Congrats!" } });
+  });
+
+  it("refuses blocked words and links, without writing", async () => {
+    const { service, repo } = setup();
+    expect(await service.createAnonymous("Bao", "đồ đĩ")).toEqual({ status: "rejected" });
+    expect(await service.createAnonymous("Bao", "visit http://spam.example")).toEqual({ status: "rejected" });
+    expect(await service.createAnonymous("www.spam.example", "Hi")).toEqual({ status: "rejected" });
     expect(repo.create).not.toHaveBeenCalled();
   });
 });

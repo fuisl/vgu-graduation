@@ -18,7 +18,7 @@ import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { bearerToken } from "../../auth/credentials.js";
-import { SlidingWindowLimiter } from "../mail/rate-limit.js";
+import { SlidingWindowLimiter } from "../../rate-limit/sliding-window.js";
 import type { PortalGraduate } from "./graduate-portal.repository.js";
 import { GraduatePortalService } from "./graduate-portal.service.js";
 

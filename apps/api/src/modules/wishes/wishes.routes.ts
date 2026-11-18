@@ -1,4 +1,6 @@
 import {
+  ANONYMOUS_AUTHOR_NAME_MAX_LENGTH,
+  WISH_REJECTED_MESSAGE,
   adminWishesQuerySchema,
   adminWishesResponseSchema,
   createWishRequestSchema,
@@ -17,7 +19,8 @@ import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { invitationToken } from "../../auth/credentials.js";
 import { requireAdmin } from "../admin/admin-auth.js";
-import { InvalidCursorError, WishesService } from "./wishes.service.js";
+import { SlidingWindowLimiter } from "../../rate-limit/sliding-window.js";
+import { ANONYMOUS_WISH_RATE_LIMIT, InvalidCursorError, WishesService } from "./wishes.service.js";
 
 /**
  * Wishes change often on the day. The listing only paints the page first; the
@@ -28,9 +31,16 @@ const PUBLIC_CACHE = "public, s-maxage=10";
 
 const badCursor = { error: "Bad Request", message: "Invalid cursor" };
 
+const rejected = { error: "Unprocessable Entity", message: WISH_REJECTED_MESSAGE };
+
 export interface WishesRoutesOptions {
   /** Override for tests; defaults to the database-backed service. */
-  service?: Pick<WishesService, "createByToken" | "listVisible" | "listPublic" | "listAll" | "moderate" | "setPublic">;
+  service?: Pick<
+    WishesService,
+    "createByToken" | "createAnonymous" | "listVisible" | "listPublic" | "listAll" | "moderate" | "setPublic"
+  >;
+  /** Per-client-IP limiter on wishes without an invitation; defaults to `ANONYMOUS_WISH_RATE_LIMIT` in memory. */
+  anonymousLimiter?: SlidingWindowLimiter;
 }
 
 /**
@@ -39,9 +49,16 @@ export interface WishesRoutesOptions {
  */
 export const wishesRoutes: FastifyPluginAsync<WishesRoutesOptions> = async (fastify, options) => {
   const service = options.service ?? new WishesService();
+  const anonymousLimiter =
+    options.anonymousLimiter ??
+    new SlidingWindowLimiter(ANONYMOUS_WISH_RATE_LIMIT.max, ANONYMOUS_WISH_RATE_LIMIT.windowMs);
   const app = fastify.withTypeProvider<ZodTypeProvider>();
 
-  /** POST /wishes: a guest leaves a wish; visible at once, moderated afterwards. Never cached. */
+  /**
+   * POST /wishes: anyone leaves a wish; visible at once, moderated afterwards
+   * (ADR-019). With a valid invitation credential it is the guest's; without
+   * one, or with a stale one, it is anonymous and needs `authorName`. Never cached.
+   */
   app.post(
     "/wishes",
     {
@@ -50,9 +67,7 @@ export const wishesRoutes: FastifyPluginAsync<WishesRoutesOptions> = async (fast
         response: {
           201: createWishResponseSchema,
           400: errorResponseSchema,
-          401: errorResponseSchema,
-          404: errorResponseSchema,
-          410: errorResponseSchema,
+          422: errorResponseSchema,
           429: errorResponseSchema,
         },
       },
@@ -60,27 +75,39 @@ export const wishesRoutes: FastifyPluginAsync<WishesRoutesOptions> = async (fast
     async (request, reply) => {
       reply.header("Cache-Control", "no-store");
       const token = invitationToken(request);
-      if (!token) {
-        return reply.status(401).send({
-          error: "Unauthorized",
-          message: "Missing invitation bearer token or session cookie",
-        });
+      if (token) {
+        const result = await service.createByToken(token, request.body);
+        switch (result.status) {
+          case "rate_limited":
+            return reply
+              .status(429)
+              .header("Retry-After", String(result.retryAfterSeconds))
+              .send({ error: "Too Many Requests", message: "Too many wishes from this invitation, try again later" });
+          case "rejected":
+            return reply.status(422).send(rejected);
+          case "ok":
+            return reply.status(201).send(result.wish);
+          // "invalid" and "expired": a stale cookie must never block posting, so carry on as anonymous.
+        }
       }
 
-      const result = await service.createByToken(token, request.body);
-      switch (result.status) {
-        case "expired":
-          return reply.status(410).send({ error: "Gone", message: "This invitation has expired" });
-        case "invalid":
-          return reply.status(404).send({ error: "Not Found", message: "Invalid or revoked invitation" });
-        case "rate_limited":
-          return reply
-            .status(429)
-            .header("Retry-After", String(result.retryAfterSeconds))
-            .send({ error: "Too Many Requests", message: "Too many wishes from this invitation, try again later" });
-        case "ok":
-          return reply.status(201).send(result.wish);
+      const { authorName, body } = request.body;
+      if (!authorName || authorName.length > ANONYMOUS_AUTHOR_NAME_MAX_LENGTH) {
+        return reply.status(400).send({
+          error: "Bad Request",
+          message: `Please give your name (1 to ${ANONYMOUS_AUTHOR_NAME_MAX_LENGTH} characters)`,
+        });
       }
+      const ip = request.ip;
+      if (!anonymousLimiter.take(ip)) {
+        return reply
+          .status(429)
+          .header("Retry-After", String(anonymousLimiter.retryAfterSeconds(ip)))
+          .send({ error: "Too Many Requests", message: "Too many wishes from this connection, try again later" });
+      }
+      const result = await service.createAnonymous(authorName, body);
+      if (result.status === "rejected") return reply.status(422).send(rejected);
+      return reply.status(201).send(result.wish);
     },
   );
 

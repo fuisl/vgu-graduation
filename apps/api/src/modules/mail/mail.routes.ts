@@ -11,7 +11,7 @@ import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { invitationToken } from "../../auth/credentials.js";
 import { InvitationsService } from "../invitations/invitations.service.js";
 import { MailService } from "./mail.service.js";
-import { SlidingWindowLimiter } from "./rate-limit.js";
+import { SlidingWindowLimiter } from "../../rate-limit/sliding-window.js";
 
 export interface MailRoutesOptions {
   /** Override for tests; defaults to the SMTP mailer from config. */

@@ -65,6 +65,7 @@ Configuration is environment-only:
 | `LIVE_GALLERY_MAX_CLIENTS` (optional, default 1000) | ConfigMap |
 | `ADMIN_SESSION_SECRET` | SOPS-encrypted Secret, shared with the web app on Vercel |
 | `LOG_LEVEL` | ConfigMap |
+| `TRUST_PROXY` (optional) | ConfigMap; proxy hops whose `X-Forwarded-For` is believed for the client IP (per-IP rate limits, ADR-019). Default `1` in production (Traefik), `false` otherwise |
 | `PRINT_GUEST_REQUESTS_ENABLED` | ConfigMap; `true` lets guests queue prints (#72), default off |
 | `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM` (optional) | SOPS-encrypted Secret `api-mail`, mounted into the API and worker; unset turns guest email off (ADR-012) |
 | `SMTP_HOST`, `SMTP_PORT` (optional) | Defaults `smtp.gmail.com` and `587` |

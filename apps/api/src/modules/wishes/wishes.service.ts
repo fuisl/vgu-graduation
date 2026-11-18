@@ -14,6 +14,7 @@ import {
 } from "@grad/contract";
 import { InvitationsService } from "../invitations/invitations.service.js";
 import { type ListWishesOptions, WishesRepository, type StoredWish } from "./wishes.repository.js";
+import { isAllowed } from "./word-filter.js";
 
 /**
  * Per-invitation write cap on POST /wishes, on top of Traefik's per-IP limit:
@@ -23,11 +24,20 @@ import { type ListWishesOptions, WishesRepository, type StoredWish } from "./wis
  */
 export const WISH_RATE_LIMIT = { max: 5, windowMs: 10 * 60 * 1000 };
 
+/**
+ * Per-client-IP cap on wishes from people without an invitation (ADR-019),
+ * enforced in memory by the route (single API replica).
+ */
+export const ANONYMOUS_WISH_RATE_LIMIT = { max: 5, windowMs: 10 * 60 * 1000 };
+
 export type CreateWishResult =
   | { status: "ok"; wish: Wish }
   | { status: "invalid" }
   | { status: "expired" }
+  | { status: "rejected" }
   | { status: "rate_limited"; retryAfterSeconds: number };
+
+export type CreateAnonymousWishResult = { status: "ok"; wish: Wish } | { status: "rejected" };
 
 export type ModerateWishResult = { status: "ok"; wish: ModerateWishResponse } | { status: "not_found" };
 
@@ -90,7 +100,21 @@ export class WishesService {
       return { status: "rate_limited", retryAfterSeconds: Math.ceil(WISH_RATE_LIMIT.windowMs / 1000) };
     }
 
+    // Invited guests may share links; the blocklist still applies (ADR-019).
+    if (!isAllowed([dto.body, dto.authorName], { blockLinks: false })) return { status: "rejected" };
+
     const stored = await this.repository.create(id, dto.authorName ?? guest.name, dto.body);
+    return { status: "ok", wish: toWish(stored) };
+  }
+
+  /**
+   * Stores a wish from someone without an invitation (ADR-019): visible at
+   * once like any wish, with no invitation. The caller has checked the per-IP
+   * limit and that `authorName` is present. Links are refused (spam).
+   */
+  async createAnonymous(authorName: string, body: string): Promise<CreateAnonymousWishResult> {
+    if (!isAllowed([body, authorName], { blockLinks: true })) return { status: "rejected" };
+    const stored = await this.repository.create(null, authorName, body);
     return { status: "ok", wish: toWish(stored) };
   }
 

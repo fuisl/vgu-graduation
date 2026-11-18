@@ -47,6 +47,50 @@ describe("CORS", () => {
     expect(response.headers["access-control-allow-origin"]).toBeUndefined();
     await app.close();
   });
+
+  // The browser posts wishes and photos straight to the API with credentials (ADR-019).
+  it.each(["/wishes", "/media"])("answers the credentialed JSON POST preflight for %s", async (url) => {
+    const app = buildServer({ config });
+    const response = await app.inject({
+      method: "OPTIONS",
+      url,
+      headers: {
+        origin: "https://grad26.fuisloy.dev",
+        "access-control-request-method": "POST",
+        "access-control-request-headers": "content-type",
+      },
+    });
+    expect(response.statusCode).toBe(204);
+    expect(response.headers["access-control-allow-origin"]).toBe("https://grad26.fuisloy.dev");
+    expect(response.headers["access-control-allow-credentials"]).toBe("true");
+    expect(String(response.headers["access-control-allow-methods"])).toContain("POST");
+    expect(String(response.headers["access-control-allow-headers"]).toLowerCase()).toContain("content-type");
+    await app.close();
+  });
+});
+
+describe("client IP behind Traefik", () => {
+  async function ipSeen(trustProxy: boolean | number | string[], xff: string) {
+    const app = buildServer({ config: { ...config, trustProxy } });
+    app.get("/__ip", async (request) => ({ ip: request.ip }));
+    const response = await app.inject({
+      method: "GET",
+      url: "/__ip",
+      remoteAddress: "10.42.0.7",
+      headers: { "x-forwarded-for": xff },
+    });
+    await app.close();
+    return response.json<{ ip: string }>().ip;
+  }
+
+  it("takes the address Traefik appended, not one the client made up", async () => {
+    // Traefik appends the peer it saw; anything to its left came from the client.
+    expect(await ipSeen(1, "6.6.6.6, 203.0.113.9")).toBe("203.0.113.9");
+  });
+
+  it("ignores X-Forwarded-For when proxies are not trusted", async () => {
+    expect(await ipSeen(false, "203.0.113.9")).toBe("10.42.0.7");
+  });
 });
 
 describe("log redaction", () => {

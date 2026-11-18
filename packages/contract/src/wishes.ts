@@ -11,12 +11,30 @@ import {
 /** Matches the database CHECK on `wishes.body`. */
 export const WISH_MAX_LENGTH = 1000;
 
-/** POST /wishes. `authorName` defaults to the guest's name when omitted. */
+/** Longest author name an anonymous wish may carry (ADR-019). */
+export const ANONYMOUS_AUTHOR_NAME_MAX_LENGTH = 60;
+
+/**
+ * POST /wishes. The invitation credential (Bearer or the `inv` cookie) is
+ * optional since ADR-019:
+ * - with a valid credential, `authorName` defaults to the guest's name (up to 80);
+ * - without one, or with an invalid, revoked or expired one (treated as none, so
+ *   a stale cookie never blocks posting), `authorName` is required, 1 to
+ *   `ANONYMOUS_AUTHOR_NAME_MAX_LENGTH` characters after trimming (400 otherwise).
+ *
+ * Either way the wish is visible at once. Errors: 400 validation, 422 the word
+ * filter refused the text (`WISH_REJECTED_MESSAGE`; anonymous wishes may not
+ * contain links), 429 too many wishes (`Retry-After` in seconds; 5 per 10
+ * minutes per invitation, or per client IP without one).
+ */
 export const createWishRequestSchema = z.object({
   body: z.string().trim().min(1).max(WISH_MAX_LENGTH),
   authorName: z.string().trim().min(1).max(80).optional(),
 });
 export type CreateWishRequest = z.infer<typeof createWishRequestSchema>;
+
+/** The 422 message of POST /wishes when the word filter refuses a wish. */
+export const WISH_REJECTED_MESSAGE = "This message can't be posted. Please rephrase it.";
 
 export const wishSchema = z.object({
   id: z.string().uuid(),

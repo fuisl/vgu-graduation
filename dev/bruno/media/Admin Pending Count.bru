@@ -1,0 +1,22 @@
+meta {
+  name: Admin Pending Count
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{apiOrigin}}/admin/media/pending-count
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{adminSessionToken}}
+}
+
+docs {
+  Photos from people without an invitation waiting for approval (ADR-019):
+  `{ "pending": N }`. List them with GET /admin/media?status=pending; approve
+  with POST /admin/media/{publicId}/moderate `{ "status": "visible" }`, reject
+  with `hidden` or `removed`.
+}

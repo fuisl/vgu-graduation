@@ -19,6 +19,14 @@ const envSchema = z.object({
   PUBLIC_ORIGIN: z.string().default("http://localhost:3000"),
   API_ORIGIN: z.string().default("http://localhost:4000"),
   COOKIE_DOMAIN: z.string().default("localhost"),
+  /**
+   * Which proxies' `X-Forwarded-For` to believe, so `request.ip` is the real
+   * client for per-IP rate limits (ADR-019). A hop count (`1`: Traefik in front,
+   * the default in production), `true`/`false`, or a comma-separated list of
+   * proxy IPs/CIDRs. Unset: `1` in production, `false` elsewhere. Never `true`
+   * on the internet: it trusts the left-most, client-supplied entry.
+   */
+  TRUST_PROXY: z.string().optional(),
   ADMIN_SESSION_SECRET: z.string().min(1).default(DEV_ADMIN_SESSION_SECRET),
   S3_ENDPOINT: z.string().optional(),
   S3_REGION: z.string().optional(),
@@ -93,6 +101,29 @@ const REQUIRED_IN_PRODUCTION = [
 ] as const;
 
 /**
+ * Fastify's `trustProxy` from TRUST_PROXY: a hop count, a boolean, or a list of
+ * trusted proxy addresses. Throws on anything else, naming the variable only.
+ */
+export function parseTrustProxy(raw: string | undefined, isProduction: boolean): boolean | number | string[] {
+  const value = raw?.trim() ?? "";
+  if (value === "") return isProduction ? 1 : false;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  if (/^\d+$/.test(value)) {
+    const hops = Number(value);
+    return hops === 0 ? false : hops;
+  }
+  const list = value
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (list.length === 0 || list.some((s) => !/^[0-9a-fA-F:.]+(\/\d{1,3})?$/.test(s))) {
+    throw new Error("Invalid TRUST_PROXY: expected a hop count, true/false, or comma-separated IPs/CIDRs");
+  }
+  return list;
+}
+
+/**
  * Parses configuration from the environment only
  * (docs/architecture/target/applications-and-repository.md §4.3). Throws with
  * the names of missing variables, never their values.
@@ -120,6 +151,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
     publicOrigin: parsed.PUBLIC_ORIGIN,
     apiOrigin: parsed.API_ORIGIN,
     cookieDomain: parsed.COOKIE_DOMAIN,
+    trustProxy: parseTrustProxy(parsed.TRUST_PROXY, isProduction),
     adminSessionSecret: parsed.ADMIN_SESSION_SECRET,
     s3: {
       endpoint: parsed.S3_ENDPOINT,

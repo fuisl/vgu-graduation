@@ -9,6 +9,7 @@ import {
   type MediaVariant,
   type ModerateMediaResponse,
   type ModerationStatus,
+  type PhotoModerationStatus,
   type PageQuery,
   type PublicGalleryResponse,
   type SetMediaPublicResponse,
@@ -52,7 +53,7 @@ export type UploaderResult =
 
 export type SetMediaPublicResult =
   | { status: "ok"; photo: SetMediaPublicResponse }
-  | { status: "not_eligible"; moderationStatus: ModerationStatus }
+  | { status: "not_eligible"; moderationStatus: PhotoModerationStatus }
   | { status: "not_found" };
 
 export type UploadResult =
@@ -67,7 +68,16 @@ export class MediaService {
     private readonly invitations: Pick<InvitationsService, "resolveByToken"> = new InvitationsService(),
     private readonly repository: Pick<
       MediaRepository,
-      "countShots" | "createWithJob" | "listGallery" | "isServable" | "moderate" | "listForAdmin" | "isProcessed" | "setPublic"
+      | "countShots"
+      | "createWithJob"
+      | "createPendingWithJob"
+      | "countPendingReview"
+      | "listGallery"
+      | "isServable"
+      | "moderate"
+      | "listForAdmin"
+      | "isProcessed"
+      | "setPublic"
     > = new MediaRepository(),
     private readonly store: ObjectStore = new S3ObjectStore(defaultConfig),
     private readonly config: Config = defaultConfig,
@@ -88,11 +98,15 @@ export class MediaService {
 
   /**
    * Streams one file into `grad-originals` under the photo's row id, then records
-   * the `pending` photo and its derivative job. A `limit` event on `file` (how the
-   * multipart parser reports a truncated file) fails the upload like the byte
-   * counter does. Throws StorageUnavailableError when Garage is down.
+   * the photo (processing `pending`) and its derivative job. A `limit` event on
+   * `file` (how the multipart parser reports a truncated file) fails the upload
+   * like the byte counter does. Throws StorageUnavailableError when Garage is down.
+   *
+   * `invitationId` null is an upload from someone without an invitation
+   * (ADR-019): no roll, and the photo waits in moderation `pending` for an
+   * admin's approval instead of showing once processed.
    */
-  async upload(invitationId: string, file: Readable): Promise<UploadResult> {
+  async upload(invitationId: string | null, file: Readable): Promise<UploadResult> {
     const head = await peekHead(file, SNIFF_BYTES);
     if (head.length === 0) return { status: "empty" };
     const contentType = head.length >= SNIFF_BYTES ? sniffImageType(head) : null;
@@ -118,22 +132,15 @@ export class MediaService {
       return { status: "too_large" };
     }
 
-    const created = await this.repository
-      .createWithJob(
-        {
-          id,
-          publicId: generatePublicId(),
-          invitationId,
-          originalKey,
-          contentType,
-          sizeBytes: counter.bytes,
-        },
-        MEDIA_SHOTS_PER_INVITATION,
-      )
-      .catch(async (err: unknown) => {
-        await this.store.delete(originals, originalKey).catch(() => {});
-        throw err;
-      });
+    const photo = { id, publicId: generatePublicId(), originalKey, contentType, sizeBytes: counter.bytes };
+    const created = await (
+      invitationId === null
+        ? this.repository.createPendingWithJob(photo)
+        : this.repository.createWithJob({ ...photo, invitationId }, MEDIA_SHOTS_PER_INVITATION)
+    ).catch(async (err: unknown) => {
+      await this.store.delete(originals, originalKey).catch(() => {});
+      throw err;
+    });
     if (created.status === "roll_finished") {
       // A concurrent upload took the last shot while this one streamed.
       await this.store.delete(originals, originalKey).catch(() => {});
@@ -144,9 +151,15 @@ export class MediaService {
       photo: {
         publicId: created.publicId,
         processingStatus: "pending",
-        shotsRemaining: MEDIA_SHOTS_PER_INVITATION - created.shotsUsed,
+        shotsRemaining: invitationId === null ? null : MEDIA_SHOTS_PER_INVITATION - created.shotsUsed,
+        reviewStatus: invitationId === null ? "pending" : "visible",
       },
     };
+  }
+
+  /** GET /admin/media/pending-count: photos waiting for an admin's approval (ADR-019). */
+  async countPendingReview(): Promise<number> {
+    return this.repository.countPendingReview();
   }
 
   /** GET /gallery (public): visible, processed photos only, newest first. */

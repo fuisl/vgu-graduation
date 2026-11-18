@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { loadConfig } from "./config.js";
+import { loadConfig, parseTrustProxy } from "./config.js";
 
 const productionEnv = {
   NODE_ENV: "production",
@@ -52,6 +52,18 @@ describe("loadConfig", () => {
     expect(loadConfig({ PRINT_GUEST_REQUESTS_ENABLED: "false" }).print.guestRequestsEnabled).toBe(false);
     expect(loadConfig({ PRINT_GUEST_REQUESTS_ENABLED: "true" }).print.guestRequestsEnabled).toBe(true);
     expect(() => loadConfig({ PRINT_GUEST_REQUESTS_ENABLED: "yes" })).toThrow();
+  });
+
+  it("trusts one proxy hop in production by default and none in development", () => {
+    expect(loadConfig({}).trustProxy).toBe(false);
+    expect(parseTrustProxy(undefined, true)).toBe(1);
+    expect(parseTrustProxy("", true)).toBe(1);
+    expect(loadConfig({ TRUST_PROXY: "2" }).trustProxy).toBe(2);
+    expect(loadConfig({ TRUST_PROXY: "0" }).trustProxy).toBe(false);
+    expect(loadConfig({ TRUST_PROXY: "false" }).trustProxy).toBe(false);
+    expect(loadConfig({ TRUST_PROXY: "true" }).trustProxy).toBe(true);
+    expect(loadConfig({ TRUST_PROXY: "10.42.0.0/16, 127.0.0.1" }).trustProxy).toEqual(["10.42.0.0/16", "127.0.0.1"]);
+    expect(() => loadConfig({ TRUST_PROXY: "yes please" })).toThrow(/TRUST_PROXY/);
   });
 
   it("turns mail on only with both SMTP credentials, sending as SMTP_USER by default", () => {

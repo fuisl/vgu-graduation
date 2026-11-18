@@ -44,7 +44,7 @@ Degradation: if the tunnel is down, Vercel serves the last cached invitation for
 
 ## 6.2 During the ceremony
 
-**Guest camera.** The gallery page offers upload. The browser posts the file directly to the API hostname with the parent-domain cookie. The API streams it into `grad-originals`, writes a `Photo` row in `pending` state, and enqueues a derivative job. The worker generates stripped, resized variants into `grad-derivatives` and marks the photo `ready`. Photos are shown without pre-review (decided 2026-09-27); moderators can hide one afterwards or remove it on request.
+**Guest camera.** The gallery page offers upload. The browser posts the file directly to the API hostname with the parent-domain cookie. The API streams it into `grad-originals`, writes a `Photo` row in `pending` state, and enqueues a derivative job. The worker generates stripped, resized variants into `grad-derivatives` and marks the photo `ready`. Invited guests' photos are shown without pre-review (decided 2026-09-27); moderators can hide one afterwards or remove it on request. Since ADR-019 people without an invitation can upload too (limited per IP); their photos wait in moderation `pending` until an admin approves them.
 
 ```mermaid
 sequenceDiagram

@@ -37,32 +37,33 @@ describe("/", () => {
     event.mockResolvedValue(okEvent);
   });
 
-  it("opens with one headline and one placeholder line in the owner's voice", async () => {
+  it("opens with one headline, and no lead while the owner's line is still a placeholder", async () => {
     const out = await render();
     expect(out.match(/<h1/g)).toHaveLength(1);
     expect(out).toContain('aria-label="Graduation ’26"');
-    expect(main(out)).toContain("[Your one-line opening, in your own words.]");
+    expect(main(out)).not.toContain("home-lead");
+    expect(main(out)).not.toContain("[");
   });
 
-  it("labels the journey band by its heading, below the hero", async () => {
+  it("shows start-here/ instead of the journey while no entry is ready", async () => {
     const out = main(await render());
-    expect(out).toMatch(/<section aria-labelledby="home-journey"[^>]*brand-section--white/);
-    expect(out).toMatch(/<h2 id="home-journey"[^>]*>the-journey\/<\/h2>/);
-    expect(out.indexOf("home-title")).toBeLessThan(out.indexOf("home-journey"));
+    expect(out).toMatch(/<section aria-labelledby="home-explore"[^>]*brand-section--white/);
+    expect(out).toMatch(/<h2 id="home-explore"[^>]*>start-here\/<\/h2>/);
+    expect(out).not.toContain("home-journey");
+    expect(out).not.toContain("the-journey/");
+    expect(out).not.toContain("01_the_film.mp4");
+    expect(out).not.toMatch(/to come/i);
+    const links = [...out.matchAll(/<a class="journey-row" href="([^"]+)"/g)].map((m) => m[1]);
+    expect(links).toEqual(["/wall", "/guide", "/venue", "/live", "/ascii-live"]);
+    expect(out).toContain("The Wall");
+    expect(out.indexOf("home-title")).toBeLessThan(out.indexOf("home-explore"));
   });
 
-  it("has no entry points any more", async () => {
-    const out = main(await render());
-    expect(out).not.toContain("Start here");
-    expect(out).not.toContain("home-entry");
-    for (const href of ["/me", "/venue", "/gallery", "/wishes"]) expect(out).not.toContain(`href="${href}"`);
-  });
-
-  it("keeps the whole band when the API is down", async () => {
+  it("keeps the band when the API is down", async () => {
     event.mockResolvedValue(error);
     const out = main(await render());
-    expect(out).toContain("the-journey/");
-    expect(out).toContain("01_the_film.mp4");
+    expect(out).toContain("start-here/");
+    expect(out).toContain('href="/ascii-live"');
   });
 
   it("leaves the facts and teasers to the menubar and their own pages", async () => {
@@ -75,7 +76,7 @@ describe("/", () => {
     expect(wishes).not.toHaveBeenCalled();
   });
 
-  it("renders in Vietnamese, with the same heading and filenames", async () => {
+  it("renders in Vietnamese, with the same heading", async () => {
     vi.resetModules();
     vi.doMock("next/headers", () => ({
       cookies: async () => ({ get: (name: string) => (name === "lang" ? { name, value: "vi" } : undefined) }),
@@ -83,9 +84,9 @@ describe("/", () => {
     }));
     const { default: VietnameseHome } = await import("./page");
     const out = main(html(await VietnameseHome()));
-    expect(out).toContain("the-journey/");
-    expect(out).toContain("02_[first_year].jpg");
-    expect(out).toContain("Bộ phim");
+    expect(out).toContain("start-here/");
+    expect(out).toContain("Phụ đề trực tiếp");
+    expect(out).not.toContain("[");
     vi.doUnmock("next/headers");
   });
 });

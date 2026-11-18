@@ -27,3 +27,26 @@ export function resolveEntries(entries: JourneyEntry[], t: Translator): JourneyE
     return { ...words, video: null, photos, thumb: photos[0]?.src ?? "" };
   });
 }
+
+/**
+ * Placeholders never render (docs/design/landing.md): a template value is written in square brackets,
+ * "[Date, place]", "02_[first_year].jpg", and an empty string means "not there yet". Either one keeps
+ * the piece it belongs to off the public page until the owner writes the real thing.
+ */
+export function isPlaceholder(value: string): boolean {
+  return value.trim() === "" || /\[[^\]]*\]/.test(value);
+}
+
+/**
+ * The entries ready for guests: words written (filename, title, date line, story) and media in place. A film
+ * needs its video and its screen-reader name; a chapter keeps only the photos that exist and are described, and
+ * needs at least one. With nothing ready the landing shows its entry links instead of the band.
+ */
+export function readyEntries(entries: JourneyEntryView[]): JourneyEntryView[] {
+  return entries.flatMap((entry) => {
+    if ([entry.file, entry.title, entry.date, entry.story].some(isPlaceholder)) return [];
+    if (entry.video) return entry.video.src && !isPlaceholder(entry.video.label) ? [entry] : [];
+    const photos = entry.photos.filter((photo) => photo.src && !isPlaceholder(photo.alt));
+    return photos.length > 0 ? [{ ...entry, photos, thumb: photos[0]?.src ?? "" }] : [];
+  });
+}

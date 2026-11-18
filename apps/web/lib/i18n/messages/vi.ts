@@ -18,6 +18,7 @@ export const vi: Messages = {
   // TODO(owner): native review of the menubar copy (nav.camera, header.invitation, header.venue*; owner brief 2026-10).
   "nav.camera": "Máy ảnh",
   "nav.wishes": "Lời chúc",
+  "nav.asciiLive": "ASCII Live",
   "header.navLabel": "Điều hướng chính",
   "header.menu": "Menu",
   "header.closeMenu": "Đóng menu",
@@ -65,6 +66,18 @@ export const vi: Messages = {
   // TODO(owner): landing.lead and everything in landing.journey.film, .firstYear, .secondYear, .thirdYear and .finalYear are placeholders. Write them in your own words, in both languages (docs/design/landing.md, "What the owner fills in").
   "landing.lead": "[Một câu mở đầu, do chủ trang viết.]",
   "landing.journey.heading": "the-journey/",
+  // TODO(owner): native review of landing.explore.* (shown while the-journey/ has no content yet).
+  "landing.explore.heading": "start-here/",
+  "landing.explore.wall.title": "Bức tường",
+  "landing.explore.wall.description": "Ảnh và lời chúc của mọi người, cập nhật liên tục.",
+  "landing.explore.guide.title": "Hướng dẫn cho khách",
+  "landing.explore.guide.description": "Những điều cần biết khi ở khuôn viên trường.",
+  "landing.explore.venue.title": "Địa điểm",
+  "landing.explore.venue.description": "Ngày giờ, chỉ đường và bản đồ khuôn viên.",
+  "landing.explore.live.title": "Phụ đề trực tiếp",
+  "landing.explore.live.description": "Đọc theo buổi lễ bằng ngôn ngữ của mình ngay khi diễn ra.",
+  "landing.explore.ascii.title": "ASCII Live",
+  "landing.explore.ascii.description": "Biến hình ảnh máy ảnh thành tranh ASCII trực tiếp.",
   "landing.journey.ui.previous": "Mục trước",
   "landing.journey.ui.next": "Tiếp theo",
   "landing.journey.ui.photos": "Thêm ảnh của chương này",

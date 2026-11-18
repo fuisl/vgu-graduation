@@ -227,7 +227,7 @@ export function AsciiLive({ messages }: { messages: MessageSlice<"ascii."> }) {
 
           <aside className="ascii-live-controls" aria-label={t("ascii.controls")}>
             <div className="ascii-live-control-heading">
-              <span>01</span><h2>{t("ascii.capture")}</h2>
+              <h2>{t("ascii.capture")}</h2>
             </div>
             {cameras.length > 1 && <label>
               {t("ascii.camera")}
@@ -242,14 +242,14 @@ export function AsciiLive({ messages }: { messages: MessageSlice<"ascii."> }) {
             </label>
 
             <div className="ascii-live-control-heading">
-              <span>02</span><h2>{t("ascii.charsetHeading")}</h2>
+              <h2>{t("ascii.charsetHeading")}</h2>
             </div>
             <PillGroup as="toggle" label={t("ascii.charsetHeading")} tone="on-white">
               {CHARSETS.map((id) => <PillToggle key={id} pressed={settings.charset === id} onClick={() => setSettings((value) => ({ ...value, charset: id }))}>{t(`ascii.charset.${id}`)}</PillToggle>)}
             </PillGroup>
 
             <div className="ascii-live-control-heading">
-              <span>03</span><h2>{t("ascii.image")}</h2>
+              <h2>{t("ascii.image")}</h2>
             </div>
             <label>
               <span>{t("ascii.columns")} <output>{settings.columns}</output></span>

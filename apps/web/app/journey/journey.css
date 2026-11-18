@@ -190,8 +190,52 @@
   white-space: pre-line;
 }
 
+/* start-here/: while the journey has nothing ready, the same rows link to the public features. */
+[data-theme="brand"] .journey-links {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--brand-line);
+}
+[data-theme="brand"] .journey-links > li {
+  display: grid;
+}
+[data-theme="brand"] a.journey-row {
+  text-decoration: none;
+}
+[data-theme="brand"] .journey-links .journey-row__thumb {
+  color: var(--brand-blue);
+}
+[data-theme="brand"] .journey-row__text {
+  display: grid;
+  align-content: center;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-3);
+}
+[data-theme="brand"] .journey-row__title {
+  font-weight: 500;
+  line-height: 1.2;
+}
+[data-theme="brand"] .journey-row__description {
+  color: var(--brand-muted);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
 /* Two columns: the rows on the left, the one open panel on the right, spanning them and the filler row. */
 @media (min-width: 961px) {
+  [data-theme="brand"] .journey-links {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  [data-theme="brand"] .journey-links > li:nth-child(even) {
+    border-left: 1px solid var(--brand-line);
+  }
+  [data-theme="brand"] .journey-links .journey-row__text {
+    padding: var(--space-4);
+  }
   [data-theme="brand"] .journey-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-rows: repeat(var(--journey-count), auto) 1fr;

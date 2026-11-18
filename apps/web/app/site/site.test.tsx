@@ -37,10 +37,10 @@ beforeEach(() => {
 });
 
 describe("SiteHeader (the menubar)", () => {
-  it("leads the nav with the event essentials, then Camera and Wishes", () => {
+  it("leads the nav with the event essentials, then Camera, Wishes and ASCII Live", () => {
     const links = [...desktop(html(<SiteHeader i18n={i18n} />)).matchAll(/<a class="brand-pill" href="([^"]+)"[^>]*>(.*?)<\/a>/g)].map((m) => [m[1], m[2]]);
     // Server render before GET /event answers (and when it fails): a plain "Venue" label.
-    expect(links).toEqual([["/venue", "Venue"], ["/gallery", "Camera"], ["/wishes", "Wishes"]]);
+    expect(links).toEqual([["/venue", "Venue"], ["/gallery", "Camera"], ["/wishes", "Wishes"], ["/ascii-live", "ASCII Live"]]);
   });
 
   it("marks the current item with aria-current in the desktop nav", () => {
@@ -118,7 +118,7 @@ describe("SiteHeader (the menubar)", () => {
     const out = sheet(html(<SiteHeader i18n={i18n} current="wishes" />));
     expect(out).toMatch(/<a class="brand-sheet__when" href="\/venue">.*Venue and calendar/);
     const rows = [...out.matchAll(/<a class="brand-sheet__link" href="([^"]+)"[^>]*>([^<]+)</g)].map((m) => [m[1], m[2]]);
-    expect(rows).toEqual([["/gallery", "Camera"], ["/wishes", "Wishes"]]);
+    expect(rows).toEqual([["/gallery", "Camera"], ["/wishes", "Wishes"], ["/ascii-live", "ASCII Live"]]);
     expect(out).toMatch(/href="\/wishes" aria-current="page"/);
     expect(out).toContain('href="/me"');
     expect(out).toContain('aria-label="Language"');

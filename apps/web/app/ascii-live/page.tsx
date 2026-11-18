@@ -15,7 +15,7 @@ export default async function AsciiLivePage() {
   const i18n = await getI18n();
   return (
     <BrandTheme>
-      <SiteHeader i18n={i18n} />
+      <SiteHeader i18n={i18n} current="ascii" />
       <AsciiLive messages={pickMessages(i18n.locale, "ascii.")} />
       <SiteFooter i18n={i18n} />
     </BrandTheme>

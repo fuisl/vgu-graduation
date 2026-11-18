@@ -1,16 +1,18 @@
 import type {I18n} from "../../lib/i18n/dictionary";
 
 /** Pages a header can mark as current. `home` marks nothing: the mark (logo) is the way home. */
-export type SiteNavKey = "home" | "venue" | "gallery" | "wishes";
+export type SiteNavKey = "home" | "venue" | "gallery" | "wishes" | "ascii";
 
 /**
  * The menubar's action destinations, after the event essentials (date and venue, which are the
  * link to /venue). `gallery` is labelled "Camera": /gallery opens the shared camera first.
  * Labels are `nav.<label>` messages.
  */
-export const SITE_NAV: ReadonlyArray<{key: SiteNavKey; href: string; label: "camera" | "wishes"}> = [
+export const SITE_NAV: ReadonlyArray<{key: SiteNavKey; href: string; label: "camera" | "wishes" | "asciiLive"}> = [
   {key: "gallery", href: "/gallery", label: "camera"},
   {key: "wishes", href: "/wishes", label: "wishes"},
+  // Experimental (/ascii-live): last, after the event destinations.
+  {key: "ascii", href: "/ascii-live", label: "asciiLive"},
 ];
 
 /** The essentials item's destination: date, time, venue, directions and the calendar. */

@@ -18,7 +18,6 @@
 [data-theme="brand"] .ascii-live-controls { padding: var(--space-5); border: 1px solid var(--brand-line-on-white); border-radius: var(--brand-radius); background: var(--brand-white); color: var(--brand-ink); }
 [data-theme="brand"] .ascii-live-control-heading { display: flex; align-items: center; gap: var(--space-3); margin: var(--space-5) 0 var(--space-3); padding-top: var(--space-4); border-top: 1px solid var(--brand-line-on-white); }
 [data-theme="brand"] .ascii-live-control-heading:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
-[data-theme="brand"] .ascii-live-control-heading span { font: var(--text-xs) / 1 var(--font-mono); color: var(--brand-muted-on-white); }
 [data-theme="brand"] .ascii-live-control-heading h2 { margin: 0; font: 500 var(--text-xs) / 1 var(--font-mono); letter-spacing: var(--brand-tracking-label); text-transform: uppercase; color: var(--brand-muted-on-white); }
 [data-theme="brand"] .ascii-live-controls label { display: grid; gap: var(--space-2); margin: var(--space-3) 0; font-size: var(--text-sm); }
 [data-theme="brand"] .ascii-live-controls label > span { display: flex; justify-content: space-between; }
